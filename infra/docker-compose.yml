@@ -1,0 +1,55 @@
+name: routcontrol
+
+x-db-env: &db-env
+  DB_NAME: ${DB_NAME:-routcontrol}
+  DB_OWNER_USER: ${DB_OWNER_USER:-rc_owner}
+  DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:-rc_owner-dev}
+  DB_APP_USER: ${DB_APP_USER:-rc_app}
+  DB_APP_PASSWORD: ${DB_APP_PASSWORD:-rc_app-dev}
+
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    environment:
+      <<: *db-env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-dev}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/20-routcontrol-roles.sh:/docker-entrypoint-initdb.d/20-routcontrol-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-routcontrol}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ../backend
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      <<: *db-env
+      DB_HOST: db
+      DB_PORT: "5432"
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
+    volumes:
+      - ../backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  pgdata:

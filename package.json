@@ -1,0 +1,13 @@
+{
+  "name": "routcontrol",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "scripts": {
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d db redis",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "backend:dev": "docker compose -f infra/docker-compose.yml up backend",
+    "backend:migrate": "docker compose -f infra/docker-compose.yml run --rm backend python manage.py migrate",
+    "backend:seed": "docker compose -f infra/docker-compose.yml run --rm backend python manage.py seed_demo",
+    "test:backend": "docker compose -f infra/docker-compose.yml run --rm backend pytest"
+  }
+}

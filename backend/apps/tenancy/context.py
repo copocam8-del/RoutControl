@@ -1,0 +1,65 @@
+"""Contexto de empresa de la request en curso.
+
+El contexto vive en dos lugares que siempre se fijan juntos:
+  1. una ContextVar de Python, que usa el ORM (TenantManager) para filtrar y para fallar cerrado;
+  2. la variable de sesión de PostgreSQL ``app.current_org``, fijada con ``set_config(..., true)``
+     (equivale a ``SET LOCAL``: dura solo la transacción), que usan las políticas de RLS.
+
+``tenant_context`` abre una transacción en la conexión de la aplicación, así que todo lo que pasa
+dentro (la vista entera, cuando lo usa el middleware) es atómico y queda filtrado por RLS.
+"""
+
+from __future__ import annotations
+
+import uuid
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Iterator
+
+from django.conf import settings
+from django.db import connections, transaction
+
+_current_org: ContextVar[uuid.UUID | None] = ContextVar("rc_current_org", default=None)
+
+PG_SETTING = "app.current_org"
+
+
+class TenantContextMissing(RuntimeError):
+    """Se intentó acceder a datos de empresa sin contexto de empresa."""
+
+
+def app_db() -> str:
+    return settings.APP_DB_ALIAS
+
+
+def get_current_org_id() -> uuid.UUID | None:
+    return _current_org.get()
+
+
+def require_current_org_id() -> uuid.UUID:
+    org_id = _current_org.get()
+    if org_id is None:
+        raise TenantContextMissing("No hay contexto de empresa: el acceso a datos de empresa falla cerrado.")
+    return org_id
+
+
+def _set_pg_org(value: str) -> None:
+    with connections[app_db()].cursor() as cursor:
+        cursor.execute("SELECT set_config(%s, %s, true)", [PG_SETTING, value])
+
+
+@contextmanager
+def tenant_context(org_id: uuid.UUID | str) -> Iterator[uuid.UUID]:
+    org_uuid = org_id if isinstance(org_id, uuid.UUID) else uuid.UUID(str(org_id))
+    previous = _current_org.get()
+    token = _current_org.set(org_uuid)
+    try:
+        with transaction.atomic(using=app_db()):
+            _set_pg_org(str(org_uuid))
+            yield org_uuid
+            # Si el bloque terminó bien, se restaura el valor anterior (importa cuando esto corre
+            # anidado, por ejemplo dentro de la transacción de una prueba). Si hubo excepción,
+            # el rollback del atomic ya lo deshace.
+            _set_pg_org(str(previous) if previous else "")
+    finally:
+        _current_org.reset(token)
