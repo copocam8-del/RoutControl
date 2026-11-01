@@ -302,3 +302,84 @@ body {
     animation: none;
   }
 }
+
+/* --- Mis recorridos ---------------------------------------------------------------------------- */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list__item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: inherit;
+  border: 0;
+  text-align: left;
+  min-height: 56px;
+  cursor: pointer;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+}
+
+.stats strong {
+  display: block;
+  font-size: 22px;
+  color: var(--navy-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.map {
+  width: 100%;
+  height: 60dvh;
+  min-height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.map--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+}
+
+.legend {
+  list-style: none;
+  padding: 8px 2px 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.legend__line {
+  display: inline-block;
+  width: 22px;
+  height: 4px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+
+.legend__line--dashed {
+  background: transparent !important;
+  border-top: 3px dashed;
+  height: 0;
+}
+
+.legend__dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  vertical-align: middle;
+}

@@ -6,6 +6,8 @@ export const config = {
   /** En desarrollo, mismo origen (proxy de Vite). En producción, https://api.<dominio>. */
   apiBase: `${env.DEV ? "" : (env.API_URL ?? "").replace(/\/$/, "")}/api/v1`,
   appVersion: "0.1.0-etapa0",
+  /** Estilo de MapLibre. OpenFreeMap: gratis y sin cuenta (el proveedor definitivo está pendiente, §15.3). */
+  mapStyleUrl: env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty",
   tracking: {
     /** Con la app abierta: guardar un punto cada tanto tiempo... */
     minIntervalMs: 15_000,

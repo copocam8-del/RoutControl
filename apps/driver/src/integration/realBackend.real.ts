@@ -173,6 +173,33 @@ describe("PWA contra el backend real (por el proxy de Vite)", () => {
     expect(await second.api.currentWorkday()).toBeNull();
   });
 
+  it("mis recorridos: el listado y el recorrido reales cumplen el contrato del mapa", async () => {
+    const p = phone();
+    await p.api.login(DRIVER, PASSWORD);
+    await ensureNoActiveWorkday(p.api);
+    await p.workday.resume();
+    await p.workday.start();
+    const w = p.workday.getState().workday!;
+    const t = Date.now();
+    const points = [0, 1].map((i) => ({
+      point_id: uuidv7(),
+      recorded_at: new Date(t + i * 60_000).toISOString(),
+      lat: -34.6 - i * 0.001,
+      lng: -58.4,
+      accuracy: 8,
+      source: "FOREGROUND" as const,
+    }));
+    await p.api.postBatch(w.tracking_token, { points });
+    await p.workday.end();
+
+    const list = await p.api.listWorkdays();
+    expect(list[0]?.id).toBe(w.id);
+    const track = await p.api.workdayTrack(w.id); // valida con zod la respuesta real
+    expect(track.stats.point_count).toBeGreaterThanOrEqual(2);
+    expect(track.stats.distance_m).toBeGreaterThan(100);
+    expect(track.segments.features.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("logout: el refresh deja de servir", async () => {
     const p = phone();
     await p.api.login(DRIVER, PASSWORD);

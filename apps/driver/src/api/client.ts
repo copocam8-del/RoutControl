@@ -18,6 +18,10 @@ import {
   trackingBatchResponse,
   type Workday,
   workdayEnvelope,
+  workdayList,
+  type WorkdayTrack,
+  workdayTrack,
+  type WorkdayWithDriver,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -152,6 +156,17 @@ export class ApiClient {
 
   async currentWorkday(): Promise<Workday | null> {
     return (await this.authed("/workdays/current", { method: "GET" }, workdayEnvelope)).workday;
+  }
+
+  // --- Recorridos (mapa) ----------------------------------------------------------------------
+
+  async listWorkdays(date?: string): Promise<WorkdayWithDriver[]> {
+    const query = date ? `?date=${encodeURIComponent(date)}` : "";
+    return (await this.authed(`/workdays/${query}`, { method: "GET" }, workdayList)).workdays;
+  }
+
+  workdayTrack(workdayId: string): Promise<WorkdayTrack> {
+    return this.authed(`/workdays/${workdayId}/track`, { method: "GET" }, workdayTrack);
   }
 
   // --- Tracking (con el token de la jornada, no con la sesión) -------------------------------

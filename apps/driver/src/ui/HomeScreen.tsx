@@ -7,6 +7,7 @@ import { ago, elapsed } from "./format";
 import { useApp, useNow, useStore } from "./hooks";
 import { InstallHint } from "./InstallHint";
 import { SyncIndicator } from "./SyncIndicator";
+import { TrackScreen } from "./TrackScreen";
 
 const CONSENT_KEY = "consent-accepted-v1";
 
@@ -26,8 +27,10 @@ export function HomeScreen() {
   const now = useNow();
   const [askConsent, setAskConsent] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [showTracks, setShowTracks] = useState(false);
 
   if (session.status !== "authenticated") return null;
+  if (showTracks) return <TrackScreen onBack={() => setShowTracks(false)} />;
   const active = wd.phase === "active" || wd.phase === "ending";
   const gps = GPS_TEXT[wd.gps];
 
@@ -112,6 +115,9 @@ export function HomeScreen() {
         )}
       </div>
 
+      <button className="btn btn--secondary" onClick={() => setShowTracks(true)}>
+        Mis recorridos
+      </button>
       <InstallHint />
       <button className="btn btn--ghost" onClick={() => setShowDiagnostics((v) => !v)}>
         {showDiagnostics ? "Ocultar diagnóstico" : "Diagnóstico"}

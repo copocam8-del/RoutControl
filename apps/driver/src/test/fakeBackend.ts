@@ -87,6 +87,12 @@ export class FakeBackend {
       return json(200, { workday: w ? this.wire(w) : null });
     }
     if (path === "/workdays/start" && method === "POST") return this.start(body);
+    if (path === "/workdays/" && method === "GET") {
+      const list = [...this.workdays.values()].sort((a, b) => b.started_at.localeCompare(a.started_at));
+      return json(200, { workdays: list.map((w) => ({ ...this.wire(w), driver: { id: USER_ID, name: "Repartidor de prueba" } })) });
+    }
+    const track = /^\/workdays\/([^/]+)\/track$/.exec(path);
+    if (track && method === "GET") return this.track(track[1]!);
     const end = /^\/workdays\/([^/]+)\/end$/.exec(path);
     if (end && method === "POST") return this.end(end[1]!, body);
     return json(404, { detail: "No encontrado" });
@@ -187,6 +193,35 @@ export class FakeBackend {
       }
     }
     return json(200, result);
+  }
+
+  /** Recorrido simplificado: un solo tramo con todos los puntos y los huecos que se carguen a mano. */
+  trackGaps: Array<{ from_at: string; to_at: string; seconds: number; reason: string; from: number[] | null; to: number[] | null }> = [];
+
+  private track(id: string): Response {
+    const w = this.workdays.get(id);
+    if (!w) return json(404, { detail: "Jornada no encontrada." });
+    const pts = [...this.points.values()].filter((p) => p.workday_id === id) as Array<Record<string, any>>;
+    const coords = pts.map((p) => [p.lng, p.lat]);
+    return json(200, {
+      workday: { ...this.wire(w), driver: { id: USER_ID, name: "Repartidor de prueba" } },
+      segments: {
+        type: "FeatureCollection",
+        features: coords.length
+          ? [{ type: "Feature", geometry: coords.length > 1 ? { type: "LineString", coordinates: coords } : { type: "Point", coordinates: coords[0] }, properties: { segment: 0 } }]
+          : [],
+      },
+      points: {
+        type: "FeatureCollection",
+        features: pts.map((p) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+          properties: { recorded_at: p.recorded_at, accuracy_m: p.accuracy, source: p.source ?? "FOREGROUND", event: p.event ?? "" },
+        })),
+      },
+      gaps: this.trackGaps,
+      stats: { point_count: pts.length, segment_count: coords.length ? 1 : 0, distance_m: 1234.5, gap_count: this.trackGaps.length, gap_seconds: this.trackGaps.reduce((a, g) => a + g.seconds, 0) },
+    });
   }
 
   private wire(w: FakeWorkday) {
