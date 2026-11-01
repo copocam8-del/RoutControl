@@ -1,47 +1,49 @@
-import { Alert, Badge, Button, Card, formatAgo, formatElapsed, LoadingState, StatusLine, type StatusTone } from "@routcontrol/ui";
+import type { LocationPermission } from "@routcontrol/domain";
+import {
+  Alert,
+  Avatar,
+  Button,
+  Chip,
+  formatElapsed,
+  formatLongDate,
+  formatTime,
+  greeting,
+  IconAlert,
+  IconBattery,
+  IconCheck,
+  IconPin,
+  IconPlay,
+  IconSync,
+  LoadingState,
+  ListItem,
+  Stats,
+} from "@routcontrol/ui";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { GpsState } from "../tracking/workdayController";
-import { Brand } from "./Brand";
+import type { WorkdayState } from "../tracking/workdayController";
 import { ConsentDialog } from "./ConsentDialog";
-import { Diagnostics } from "./Diagnostics";
 import { useApp, useNow, useStore } from "./hooks";
-import { InstallHint } from "./InstallHint";
 import { LocationHelp } from "./LocationHelp";
-import { SyncIndicator } from "./SyncIndicator";
-import { TrackScreen } from "./TrackScreen";
+import { SyncChip } from "./SyncIndicator";
 
 const CONSENT_KEY = "consent-accepted-v1";
 
-const GPS_TEXT: Record<GpsState, { tone: StatusTone; text: string; actionable: boolean }> = {
-  watching: { tone: "ok", text: "Registrando recorrido (con la app abierta)", actionable: false },
-  paused: { tone: "warn", text: "Recorrido en pausa: la app está en segundo plano", actionable: false },
-  denied: { tone: "error", text: "Ubicación bloqueada: falta el permiso. Tocá para ver el diagnóstico", actionable: true },
-  error: { tone: "error", text: "GPS detenido: no hay señal de ubicación. Tocá para revisar", actionable: true },
-  off: { tone: "idle", text: "GPS apagado (fuera de jornada)", actionable: false },
-};
-
-export function HomeScreen() {
+/** Inicio: sin jornada (Inicio.dc.html) o con la jornada en curso (Jornada.dc.html). */
+export function HomeScreen({ onShowTrack }: { onShowTrack(workdayId: string): void }) {
   const app = useApp();
   const session = useStore(app.session);
   const wd = useStore(app.workday);
-  const sync = useStore(app.sender);
-  const now = useNow();
   const [askConsent, setAskConsent] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
-  const [showTracks, setShowTracks] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   // Se lee de antemano: al tocar "Iniciar jornada" no puede haber ningún await antes de pedir la
   // ubicación (iOS solo muestra el pedido de permiso dentro del toque). null = todavía leyendo.
   const consented = useLiveQuery(async () => Boolean((await app.db.meta.get(CONSENT_KEY))?.value), [app], null);
 
   if (session.status !== "authenticated") return null;
-  if (showTracks) return <TrackScreen onBack={() => setShowTracks(false)} />;
   const active = wd.phase === "active" || wd.phase === "ending";
-  const gps = GPS_TEXT[wd.gps];
-  const canLogout = !active && sync.pending === 0;
 
-  function onStartPressed() {
+  function start() {
     if (consented) void app.workday.start();
     else setAskConsent(true);
   }
@@ -52,58 +54,9 @@ export function HomeScreen() {
     void app.db.meta.put({ key: CONSENT_KEY, value: new Date().toISOString() });
   }
 
-  return (
-    <main className="screen">
-      <header className="topbar">
-        <div>
-          <Brand name={app.config.appName} small />
-          <div className="topbar__org">
-            {session.session.organization.name}{" "}
-            {session.session.organization.is_demo ? <Badge tone="warning">Datos de demostración</Badge> : null}
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void app.session.logout()}
-          disabled={!canLogout}
-          title={canLogout ? "Cerrar sesión" : "Finalizá la jornada y esperá a que se envíe todo"}
-        >
-          Salir
-        </Button>
-      </header>
-
-      {wd.phase === "loading" ? (
-        <Card label="Jornada">
-          <LoadingState label="Recuperando tu jornada…" />
-        </Card>
-      ) : (
-        <Card label="Jornada" className="workday-card">
-          <span className="workday-card__hello">Hola, {session.session.user.full_name || session.session.user.email}</span>
-          {active && wd.workday ? (
-            <>
-              <span className="timer" aria-label="Tiempo de jornada">
-                {formatElapsed(wd.workday.started_at, now)}
-              </span>
-              <span className="rc-muted">
-                Jornada en curso · {wd.workday.tracking_mode === "EVENTS_ONLY" ? "ubicación con la app abierta" : "recorrido continuo"}
-              </span>
-            </>
-          ) : (
-            <span className="timer timer--idle">Sin jornada</span>
-          )}
-        </Card>
-      )}
-
-      <StatusLine
-        tone={gps.tone}
-        title={gps.text}
-        detail={`Última ubicación ${formatAgo(wd.lastFixAt, now)}`}
-        onClick={gps.actionable ? () => setShowDiagnostics(true) : undefined}
-      />
-      <SyncIndicator status={sync} now={now} />
-
-      {wd.gps === "denied" ? (
+  const notices = (
+    <>
+      {wd.gps === "denied" || showHelp ? (
         <LocationHelp
           info={app.device.info()}
           host={globalThis.location?.host ?? ""}
@@ -123,47 +76,242 @@ export function HomeScreen() {
           </Button>
         </Alert>
       ) : null}
+    </>
+  );
 
-      <div className="thumb-zone">
-        {wd.phase === "loading" ? null : active ? (
-          <Button
-            variant="danger"
-            size="lg"
-            block
-            onClick={() => void app.workday.end()}
-            loading={wd.phase === "ending"}
-            loadingLabel="Finalizando…"
-          >
-            Finalizar jornada
-          </Button>
-        ) : (
-          <Button
-            size="lg"
-            block
-            onClick={onStartPressed}
-            disabled={wd.phase !== "idle" && wd.phase !== "starting"}
-            loading={wd.phase === "starting"}
-            loadingLabel="Obteniendo ubicación…"
-          >
-            Iniciar jornada
-          </Button>
-        )}
+  return (
+    <>
+      {active && wd.workday ? (
+        <WorkdayView wd={wd} notices={notices} onShowTrack={() => onShowTrack(wd.workday!.id)} />
+      ) : (
+        <IdleView wd={wd} notices={notices} onStart={start} onShowHelp={() => setShowHelp(true)} />
+      )}
+      {askConsent ? <ConsentDialog appName={app.config.appName} onAccept={onConsent} onCancel={() => setAskConsent(false)} /> : null}
+    </>
+  );
+}
+
+// --- Sin jornada ---------------------------------------------------------------------------------
+
+function IdleView({ wd, notices, onStart, onShowHelp }: { wd: WorkdayState; notices: React.ReactNode; onStart(): void; onShowHelp(): void }) {
+  const app = useApp();
+  const session = useStore(app.session);
+  const sync = useStore(app.sender);
+  const now = useNow(30_000);
+  if (session.status !== "authenticated") return null;
+  const { user, organization } = session.session;
+  const name = user.full_name || user.email;
+
+  return (
+    <main className="screen screen--tabs">
+      <header className="screen-header">
+        <div className="screen-header__row">
+          <div className="who">
+            <Avatar name={name} size={48} ring />
+            <div className="who__text">
+              <span className="who__greeting">{greeting(now)}</span>
+              <span className="who__name">{name}</span>
+            </div>
+          </div>
+        </div>
+        <div className="chips">
+          <Chip>{organization.name}</Chip>
+          {organization.is_demo ? <Chip tone="warn">Datos de demostración</Chip> : null}
+          <SyncChip status={sync} now={now} />
+        </div>
+      </header>
+
+      <div className="screen-body">
+        <section className="rc-hero" aria-label="Jornada">
+          <div className="hero__text">
+            <span className="rc-eyebrow">{formatLongDate(now)}</span>
+            {wd.phase === "loading" ? (
+              <LoadingState label="Recuperando tu jornada…" />
+            ) : (
+              <>
+                <h1 className="hero__title">Tu jornada todavía no empezó</h1>
+                <p className="hero__lead">Cuando la inicies, se registra tu ubicación hasta que la finalices.</p>
+              </>
+            )}
+          </div>
+          {wd.phase === "loading" ? null : (
+            <Button variant="hero" block onClick={onStart} loading={wd.phase === "starting"} loadingLabel="Obteniendo ubicación…">
+              <IconPlay />
+              Iniciar jornada
+            </Button>
+          )}
+        </section>
+
+        {notices}
+
+        <h2 className="section-title">Antes de salir</h2>
+        <ul className="items">
+          <li>
+            <PermissionItem gps={wd.gps} onShowHelp={onShowHelp} />
+          </li>
+          <li>
+            <ListItem
+              tone={sync.pending === 0 ? "ok" : "warn"}
+              icon={<IconSync />}
+              title={sync.pending === 0 ? "Todo enviado" : sync.pending === 1 ? "1 ubicación sin enviar" : `${sync.pending} ubicaciones sin enviar`}
+              detail={sync.pending === 0 ? "No quedan ubicaciones guardadas en el teléfono" : "Se envían solas cuando haya señal"}
+              trailing={sync.pending === 0 ? <span className="item-check"><IconCheck size={22} /></span> : undefined}
+            />
+          </li>
+          <BatteryItem />
+        </ul>
       </div>
+    </main>
+  );
+}
 
-      <div className="secondary-actions">
-        <Button variant="secondary" onClick={() => setShowTracks(true)}>
-          Mis recorridos
-        </Button>
-        <Button variant="secondary" onClick={() => setShowDiagnostics((v) => !v)} aria-expanded={showDiagnostics}>
-          {showDiagnostics ? "Ocultar diagnóstico" : "Diagnóstico"}
+const PERMISSION_ITEM: Record<LocationPermission | "loading", { tone: "ok" | "info" | "error"; title: string; detail: string }> = {
+  while_in_use: { tone: "ok", title: "Ubicación permitida", detail: "Lista para registrar tu recorrido" },
+  always: { tone: "ok", title: "Ubicación permitida", detail: "Lista para registrar tu recorrido" },
+  prompt: { tone: "info", title: "Permiso de ubicación", detail: "Te lo va a pedir el teléfono al iniciar la jornada" },
+  unknown: { tone: "info", title: "Permiso de ubicación", detail: "Se confirma al iniciar la jornada" },
+  denied: { tone: "error", title: "Ubicación bloqueada", detail: "Tocá para ver cómo habilitarla" },
+  loading: { tone: "info", title: "Permiso de ubicación", detail: "Consultando…" },
+};
+
+function PermissionItem({ gps, onShowHelp }: { gps: WorkdayState["gps"]; onShowHelp(): void }) {
+  const app = useApp();
+  const [permission, setPermission] = useState<LocationPermission | "loading">("loading");
+  useEffect(() => {
+    let alive = true;
+    void app.device.location.permission().then((p) => alive && setPermission(p));
+    return () => {
+      alive = false;
+    };
+  }, [app, gps]);
+  const denied = permission === "denied" || gps === "denied";
+  const d = PERMISSION_ITEM[denied ? "denied" : permission];
+  const ok = d.tone === "ok";
+  return (
+    <ListItem
+      tone={d.tone}
+      icon={<IconPin />}
+      title={d.title}
+      detail={d.detail}
+      onClick={denied ? onShowHelp : undefined}
+      trailing={ok ? <span className="item-check"><IconCheck size={22} /></span> : undefined}
+    />
+  );
+}
+
+/** Solo si el navegador informa la batería (Safari no): nada de datos inventados. */
+function BatteryItem() {
+  const app = useApp();
+  const [level, setLevel] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void app.device.battery.level().then((l) => alive && setLevel(l));
+    return () => {
+      alive = false;
+    };
+  }, [app]);
+  if (level === null) return null;
+  const pct = Math.round(level * 100);
+  return (
+    <li>
+      <ListItem
+        tone={pct < 30 ? "warn" : "ok"}
+        icon={<IconBattery />}
+        title={`Batería al ${pct}%`}
+        detail={pct < 50 ? "Llevá el cargador por las dudas" : "Carga suficiente para salir"}
+      />
+    </li>
+  );
+}
+
+// --- Jornada en curso ----------------------------------------------------------------------------
+
+const GPS_CHIP: Record<WorkdayState["gps"], { tone: "ok" | "warn" | "error" | "neutral"; text: string; live?: boolean }> = {
+  watching: { tone: "ok", text: "Registrando recorrido", live: true },
+  paused: { tone: "warn", text: "Recorrido en pausa" },
+  denied: { tone: "error", text: "Ubicación bloqueada" },
+  error: { tone: "error", text: "Sin señal de ubicación" },
+  off: { tone: "neutral", text: "GPS apagado" },
+};
+
+function WorkdayView({ wd, notices, onShowTrack }: { wd: WorkdayState; notices: React.ReactNode; onShowTrack(): void }) {
+  const app = useApp();
+  const sync = useStore(app.sender);
+  const now = useNow();
+  const workday = wd.workday!;
+  const gps = GPS_CHIP[wd.gps];
+
+  return (
+    <main className="screen screen--tabs">
+      <header className="screen-header screen-header--workday">
+        <div className="screen-header__row">
+          <Chip tone={gps.tone} live={gps.live}>
+            {gps.text}
+          </Chip>
+          <SyncChip status={sync} now={now} compact />
+        </div>
+        <div className="clock">
+          <div className="clock__main">
+            <span className="clock__label">Jornada en curso</span>
+            <span className="clock__value" aria-label="Tiempo de jornada">
+              {formatElapsed(workday.started_at, now)}
+            </span>
+          </div>
+          <div className="clock__since">
+            <span className="clock__label">Desde las</span>
+            <span className="clock__time">{formatTime(workday.started_at)}</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="screen-body">
+        <Stats
+          label="Estado del registro"
+          valueFirst
+          items={[
+            { label: "Última ubicación", value: wd.lastFixAt ? formatTime(new Date(wd.lastFixAt).toISOString()) : "—" },
+            { label: "Precisión", value: wd.lastAccuracy === null ? "—" : `± ${Math.round(wd.lastAccuracy)} m` },
+            { label: "Sin enviar", value: sync.pending, tone: sync.pending > 0 ? "warn" : "ok" },
+          ]}
+        />
+
+        {notices}
+
+        <section className="workday-card" aria-label="Tu recorrido">
+          <div className="workday-card__head">
+            <span className="rc-eyebrow">Tu recorrido de hoy</span>
+            {wd.gps === "paused" ? (
+              <span className="rc-badge rc-badge--warning">En pausa</span>
+            ) : wd.gps === "watching" ? (
+              <span className="rc-badge rc-badge--success">Con la app abierta</span>
+            ) : null}
+          </div>
+          <div className="workday-card__body">
+            <span className="workday-card__icon" aria-hidden="true">
+              {wd.gps === "watching" ? <IconPin size={22} /> : <IconAlert size={22} />}
+            </span>
+            <p>
+              {wd.workday?.tracking_mode === "EVENTS_ONLY"
+                ? "Tu ubicación se registra mientras la app está abierta. Si bloqueás la pantalla o cerrás la app, ese tramo queda sin datos."
+                : "Tu recorrido se registra de forma continua."}
+            </p>
+          </div>
+          <Button size="lg" block onClick={onShowTrack}>
+            Ver mi recorrido
+          </Button>
+        </section>
+
+        <Button
+          variant="ghost"
+          className="end-workday"
+          onClick={() => void app.workday.end()}
+          loading={wd.phase === "ending"}
+          loadingLabel="Finalizando…"
+          disabled={wd.phase !== "active"}
+        >
+          Finalizar jornada
         </Button>
       </div>
-      <InstallHint />
-      {showDiagnostics ? <Diagnostics /> : null}
-
-      {askConsent ? (
-        <ConsentDialog appName={app.config.appName} onAccept={onConsent} onCancel={() => setAskConsent(false)} />
-      ) : null}
     </main>
   );
 }

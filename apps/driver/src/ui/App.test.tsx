@@ -15,7 +15,7 @@ function renderApp() {
   const backend = new FakeBackend();
   const device = new FakeDevice();
   const app = createApp({ db: freshDb(), api: new ApiClient("/api/v1", backend.fetch), device });
-  render(<App app={app} />);
+  render(<App app={app} welcomeMs={0} />);
   return { app, backend, device, user: userEvent.setup() };
 }
 
@@ -61,7 +61,9 @@ describe("App", () => {
     expect(await screen.findByText(/Registrando recorrido/)).toBeTruthy();
     expect(backend.workdays.size).toBe(1);
     // Con la jornada activa no se puede cerrar sesión (se perderían puntos).
+    await user.click(screen.getByRole("button", { name: "Perfil" }));
     expect((screen.getByRole("button", { name: "Salir" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Para salir, primero finalizá la jornada.")).toBeTruthy();
   });
 
   it("el aviso se muestra una sola vez", async () => {
@@ -84,7 +86,7 @@ describe("App", () => {
     const backend = new FakeBackend();
     await new ApiClient("/api/v1", backend.fetch).login("repartidor@demo.test", "secreta"); // deja la "cookie"
     const app = createApp({ db: freshDb(), api: new ApiClient("/api/v1", backend.fetch), device: new FakeDevice() });
-    render(<App app={app} />);
+    render(<App app={app} welcomeMs={0} />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Iniciar jornada" })).toBeTruthy());
   });
 });

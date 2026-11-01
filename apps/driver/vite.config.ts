@@ -42,8 +42,8 @@ export default defineConfig(({ mode }) => {
           scope: "/",
           display: "standalone",
           orientation: "portrait",
-          theme_color: "#0B1F3A",
-          background_color: "#F3F4F6",
+          theme_color: "#070B1F",
+          background_color: "#070B1F",
           icons: [
             { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },
             { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
@@ -60,12 +60,12 @@ export default defineConfig(({ mode }) => {
             "**/maplibre-gl-*.css",
             "**/TrackMap-*.js",
             "**/TrackMap-*.css",
-            // Inter: para español alcanza el subconjunto "latin" (á, é, ñ, ¿, ¡). Los demás alfabetos
-            // los baja el navegador solo si alguna vez hacen falta.
-            "**/inter-cyrillic*",
-            "**/inter-greek*",
-            "**/inter-vietnamese*",
-            "**/inter-latin-ext*",
+            // Plus Jakarta Sans: para español alcanza el subconjunto "latin" (á, é, ñ, ¿, ¡). Los
+            // demás alfabetos los baja el navegador solo si alguna vez hacen falta.
+            "**/plus-jakarta-sans-cyrillic*",
+            "**/plus-jakarta-sans-vietnamese*",
+            "**/plus-jakarta-sans-latin-ext*",
+            "**/plus-jakarta-sans-*-italic*",
           ],
           navigateFallback: "/index.html",
           // La API nunca pasa por el caché del Service Worker: los datos van por IndexedDB.

@@ -24,6 +24,8 @@ export interface WorkdayState {
   workday: LocalWorkday | null;
   gps: GpsState;
   lastFixAt: number | null;
+  /** Precisión de la última ubicación, en metros. */
+  lastAccuracy: number | null;
   /** Mensaje para mostrar (en español). */
   error: string | null;
   /** El servidor ya tiene una jornada activa que este teléfono no conoce. */
@@ -43,7 +45,7 @@ export interface WorkdayControllerDeps {
 }
 
 export class WorkdayController {
-  private state: WorkdayState = { phase: "loading", workday: null, gps: "off", lastFixAt: null, error: null, conflict: null };
+  private state: WorkdayState = { phase: "loading", workday: null, gps: "off", lastFixAt: null, lastAccuracy: null, error: null, conflict: null };
   private listeners = new Set<(s: WorkdayState) => void>();
   private stopWatch: (() => void) | null = null;
   private lastRecorded: PositionFix | null = null;
@@ -335,7 +337,7 @@ export class WorkdayController {
 
   private async onFix(fix: PositionFix): Promise<void> {
     if (this.state.phase !== "active") return;
-    this.set({ gps: "watching", lastFixAt: fix.timestamp });
+    this.set({ gps: "watching", lastFixAt: fix.timestamp, lastAccuracy: fix.accuracy });
     if (!shouldRecord(this.lastRecorded, fix, this.deps.config.tracking)) return;
     await this.saveFix(fix, "FOREGROUND");
   }
@@ -348,7 +350,7 @@ export class WorkdayController {
     const outcome = await recordPoint(db, { ...workday, ended_at: workday.end?.ended_at ?? null }, point, this.now());
     if (!outcome.saved) return;
     this.lastRecorded = fix;
-    this.set({ lastFixAt: fix.timestamp });
+    this.set({ lastFixAt: fix.timestamp, lastAccuracy: fix.accuracy });
     await sender.refreshPending();
     sender.flushSoon(source === "EVENT" ? 0 : config.sync.debounceMs);
   }

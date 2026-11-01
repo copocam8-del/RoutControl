@@ -1,6 +1,7 @@
 /** Estados de carga, vacío y error de cada pantalla de la PWA. */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiClient } from "../api/client";
@@ -23,27 +24,50 @@ async function loggedInApp() {
   return { app, backend, device };
 }
 
+function Tracks() {
+  const [selected, setSelected] = useState<string | null>(null);
+  return <TrackScreen selected={selected} onSelect={setSelected} onHome={() => {}} />;
+}
+
 const withApp = (app: Awaited<ReturnType<typeof loggedInApp>>["app"], ui: React.ReactNode) =>
   render(<AppContext.Provider value={app}>{ui}</AppContext.Provider>);
 
 describe("Inicio", () => {
   it("mientras recupera la jornada guardada muestra solo 'Recuperando…' (sin botón de iniciar)", async () => {
     const { app } = await loggedInApp(); // sin resume(): la jornada sigue "cargando"
-    withApp(app, <HomeScreen />);
+    withApp(app, <HomeScreen onShowTrack={() => {}} />);
     expect(screen.getByText("Recuperando tu jornada…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Iniciar jornada" })).toBeNull();
   });
 
-  it("si el GPS está denegado, el estado es un botón que abre el diagnóstico", async () => {
+  it("si el permiso está bloqueado desde antes, 'Antes de salir' lo dice y al tocarlo muestra los pasos", async () => {
     const { app, device } = await loggedInApp();
+    device.permissionState = "denied";
     await app.workday.resume();
-    const { LocationError } = await import("../device/DeviceServices");
-    device.nextFix = new LocationError("permission_denied");
-    await app.workday.start();
-    withApp(app, <HomeScreen />);
-    await userEvent.click(screen.getByRole("button", { name: /Ubicación bloqueada: falta el permiso/ }));
-    expect(screen.getByRole("region", { name: "Diagnóstico" })).toBeTruthy();
-    expect(screen.getByRole("alert").textContent).toContain("No se puede iniciar la jornada sin ubicación");
+    withApp(app, <HomeScreen onShowTrack={() => {}} />);
+    expect(screen.queryByRole("alert")).toBeNull();
+    await userEvent.click(await screen.findByRole("button", { name: /Ubicación bloqueada/ }));
+    expect(screen.getByRole("alert").textContent).toContain("La ubicación está bloqueada para esta app");
+    app.workday.dispose();
+  });
+
+  it("'Antes de salir' muestra solo datos reales: sin batería si el navegador no la informa", async () => {
+    const { app, device } = await loggedInApp();
+    device.batteryLevel = null;
+    await app.workday.resume();
+    withApp(app, <HomeScreen onShowTrack={() => {}} />);
+    expect(await screen.findByText("Ubicación permitida")).toBeTruthy();
+    expect(screen.getByText("Todo enviado")).toBeTruthy();
+    expect(screen.queryByText(/Batería/)).toBeNull();
+    app.workday.dispose();
+  });
+
+  it("con la batería informada, la muestra", async () => {
+    const { app, device } = await loggedInApp();
+    device.batteryLevel = 0.34;
+    await app.workday.resume();
+    withApp(app, <HomeScreen onShowTrack={() => {}} />);
+    expect(await screen.findByText("Batería al 34%")).toBeTruthy();
     app.workday.dispose();
   });
 });
@@ -69,7 +93,7 @@ describe("Mis recorridos", () => {
       device_id: "0192f3a0-0000-7000-8000-0000000000fe",
       token: "t",
     });
-    withApp(app, <TrackScreen onBack={() => {}} />);
+    withApp(app, <Tracks />);
     await userEvent.click(await screen.findByRole("button", { name: /Finalizada/ }));
     expect(await screen.findByText("Esta jornada no tiene ubicaciones registradas.")).toBeTruthy();
     expect(screen.queryByTestId("map")).toBeNull();

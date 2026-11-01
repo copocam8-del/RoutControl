@@ -12,7 +12,7 @@ import { App } from "./App";
 function renderApp() {
   const backend = new FakeBackend();
   const app = createApp({ db: freshDb(), api: new ApiClient("/api/v1", backend.fetch), device: new FakeDevice() });
-  render(<App app={app} />);
+  render(<App app={app} welcomeMs={0} />);
   return { backend, user: userEvent.setup() };
 }
 

@@ -16,6 +16,8 @@ export interface AppServices {
   sender: BatchSender;
   session: SessionStore;
   workday: WorkdayController;
+  /** Estado de la interfaz que dura lo que dura esta apertura de la app (no se guarda). */
+  ui: { splashShown: boolean };
   /** Arranca lo que depende de tener sesión (jornada, envíos periódicos). */
   startAuthenticated(): Promise<void>;
   stopAuthenticated(): void;
@@ -39,6 +41,7 @@ export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "d
     sender,
     session,
     workday,
+    ui: { splashShown: false },
     async startAuthenticated() {
       await workday.resume();
       // Envío periódico mientras la app está abierta (§5.2).

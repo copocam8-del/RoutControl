@@ -29,7 +29,7 @@ async function home(opts: { platform?: FakeDevice["platform"]; standalone?: bool
   await app.workday.resume();
   render(
     <AppContext.Provider value={app}>
-      <HomeScreen />
+      <HomeScreen onShowTrack={() => {}} />
     </AppContext.Provider>,
   );
   // Espera a que se haya leído el aviso aceptado y esté el botón.
@@ -121,7 +121,7 @@ describe("permiso bloqueado", () => {
   it("con la jornada en curso: avisa que no se registra el recorrido, sin botón de iniciar", async () => {
     const { app, device, button, user } = await home();
     await user.click(button);
-    await screen.findByText("Registrando recorrido (con la app abierta)");
+    await screen.findByText("Registrando recorrido");
     device.emitWatchError(new LocationError("permission_denied"));
     const help = await screen.findByRole("alert");
     expect(help.textContent).toContain("La jornada sigue abierta, pero no se está registrando tu recorrido");

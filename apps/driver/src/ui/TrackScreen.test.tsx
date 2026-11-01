@@ -1,6 +1,7 @@
 import type { WorkdayTrack } from "@routcontrol/domain";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiClient } from "../api/client";
@@ -12,6 +13,11 @@ import { AppContext } from "./hooks";
 import { formatDistance, formatDuration } from "@routcontrol/ui";
 
 import { TrackScreen } from "./TrackScreen";
+
+function Tracks() {
+  const [selected, setSelected] = useState<string | null>(null);
+  return <TrackScreen selected={selected} onSelect={setSelected} onHome={() => {}} />;
+}
 
 // MapLibre necesita WebGL (no existe en jsdom): se reemplaza por un doble que muestra qué recibió.
 vi.mock("@routcontrol/ui/map", () => ({
@@ -38,15 +44,18 @@ describe("Mis recorridos", () => {
     const user = userEvent.setup();
     render(
       <AppContext.Provider value={app}>
-        <TrackScreen onBack={() => {}} />
+        <Tracks />
       </AppContext.Provider>,
     );
-    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    await user.click(await screen.findByRole("button", { name: /En curso/ }));
     expect(await screen.findByTestId("map")).toHaveProperty("textContent", "mapa con 1 puntos");
     const summary = screen.getByRole("region", { name: "Resumen del recorrido" });
-    expect(summary.textContent).toContain("1,2 km");
-    expect(summary.textContent).toContain("1hueco");
-    expect(screen.getByRole("region", { name: "Huecos del recorrido" }).textContent).toContain("20 min");
+    expect(summary.textContent).toContain("Distancia1,2 km");
+    expect(summary.textContent).toContain("Duración");
+    const gaps = screen.getByRole("region", { name: "Huecos del recorrido" });
+    expect(gaps.textContent).toContain("1 tramo sin datos");
+    expect(gaps.textContent).toContain("20 min sin ubicación");
+    expect(screen.getByRole("heading", { name: "Mi recorrido" })).toBeTruthy();
     app.workday.dispose();
     await settle();
   });
@@ -57,7 +66,7 @@ describe("Mis recorridos", () => {
     await app.api.login("repartidor@demo.test", "secreta");
     render(
       <AppContext.Provider value={app}>
-        <TrackScreen onBack={() => {}} />
+        <Tracks />
       </AppContext.Provider>,
     );
     expect(await screen.findByText("Todavía no hay jornadas registradas.")).toBeTruthy();
@@ -67,7 +76,7 @@ describe("Mis recorridos", () => {
 function renderTrackScreen(app: Awaited<ReturnType<typeof setupWithWorkday>>["app"]) {
   render(
     <AppContext.Provider value={app}>
-      <TrackScreen onBack={() => {}} />
+      <Tracks />
     </AppContext.Provider>,
   );
 }
@@ -81,7 +90,7 @@ describe("Mis recorridos: si falla la carga (iPhone, 12:59: se cortó el túnel)
     // Más cortes que el reintento automático: la pantalla tiene que mostrar el error.
     backend.networkFailures.set(`/workdays/${workdayId}/track`, 2);
 
-    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    await user.click(await screen.findByRole("button", { name: /En curso/ }));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toBe("Sin conexión con el servidor: no se pudo cargar el recorrido.");
     expect(screen.queryByText(/Cargando/)).toBeNull();
@@ -100,7 +109,7 @@ describe("Mis recorridos: si falla la carga (iPhone, 12:59: se cortó el túnel)
     renderTrackScreen(app);
     const workdayId = [...backend.workdays.keys()][0]!;
     backend.networkFailures.set(`/workdays/${workdayId}/track`, 1);
-    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    await user.click(await screen.findByRole("button", { name: /En curso/ }));
     expect(await screen.findByTestId("map")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     app.workday.dispose();
@@ -112,7 +121,7 @@ describe("Mis recorridos: si falla la carga (iPhone, 12:59: se cortó el túnel)
     renderTrackScreen(app);
     const workdayId = [...backend.workdays.keys()][0]!;
     backend.forced.set(`/workdays/${workdayId}/track`, [500]);
-    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    await user.click(await screen.findByRole("button", { name: /En curso/ }));
     expect((await screen.findByRole("alert")).textContent).toBe("No se pudo cargar el recorrido (error 500).");
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeTruthy();
     app.workday.dispose();
@@ -126,7 +135,7 @@ describe("Mis recorridos: si falla la carga (iPhone, 12:59: se cortó el túnel)
     expect((await screen.findByRole("alert")).textContent).toContain("no se pudo cargar las jornadas");
     expect(screen.queryByText(/Cargando/)).toBeNull();
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
-    expect(await screen.findByRole("button", { name: /en curso/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /En curso/ })).toBeTruthy();
     app.workday.dispose();
   });
 });
