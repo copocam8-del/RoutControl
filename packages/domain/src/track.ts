@@ -8,6 +8,9 @@ const lngLat = z.tuple([z.number(), z.number()]);
 
 export const workdayWithDriver = workday.extend({
   driver: z.object({ id: z.uuid(), name: z.string() }),
+  /** Actividad registrada: cantidad de puntos y hora (del teléfono) del último. */
+  point_count: z.number().default(0),
+  last_point_at: isoDateTimeWithZone.nullable().default(null),
 });
 export type WorkdayWithDriver = z.infer<typeof workdayWithDriver>;
 

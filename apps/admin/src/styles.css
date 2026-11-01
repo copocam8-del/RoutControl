@@ -1,0 +1,208 @@
+/* Panel administrativo: disposición. Colores, tipografía y componentes salen de @routcontrol/ui. */
+
+a {
+  color: var(--rc-blue-700);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--rc-blue-950);
+}
+
+.brand__mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand__name {
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.brand__subtitle {
+  font-size: 13px;
+  color: var(--rc-muted);
+}
+
+.brand--inverse,
+.brand--inverse .brand__subtitle {
+  color: var(--rc-surface);
+}
+
+.brand--inverse .brand__subtitle {
+  color: var(--rc-blue-200);
+}
+
+/* Login */
+.login {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: linear-gradient(160deg, var(--rc-blue-50), var(--rc-violet-50));
+}
+
+.login__card {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login__title {
+  font-size: 22px;
+}
+
+/* Estructura: barra lateral + contenido */
+.shell {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  background: var(--rc-blue-950);
+  color: var(--rc-surface);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+}
+
+.sidebar__nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--rc-radius-md);
+  color: var(--rc-blue-200);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sidebar__link:hover {
+  background: rgb(255 255 255 / 8%);
+  color: var(--rc-surface);
+}
+
+.sidebar__link[aria-current="page"] {
+  background: var(--rc-violet-600);
+  color: var(--rc-surface);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 28px;
+  background: var(--rc-surface);
+  border-bottom: 1px solid var(--rc-border);
+}
+
+.header__org,
+.header__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.content {
+  padding: 28px;
+  max-width: 1200px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-title h1 {
+  font-size: 26px;
+}
+
+.page-title p {
+  margin: 4px 0 0;
+  text-transform: none;
+}
+
+.page-title p::first-letter {
+  text-transform: uppercase;
+}
+
+.date-field {
+  min-width: 190px;
+}
+
+.table-wrap {
+  background: var(--rc-surface);
+  border-radius: var(--rc-radius-lg);
+  box-shadow: var(--rc-shadow-card);
+  overflow-x: auto;
+}
+
+/* Pantallas angostas (tablet vertical, teléfono): la barra lateral pasa arriba. */
+@media (max-width: 800px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .sidebar__nav {
+    flex-direction: row;
+  }
+
+  .header,
+  .content {
+    padding: 16px;
+  }
+}

@@ -74,6 +74,22 @@ pnpm driver:dev          # http://localhost:5173 (con el backend corriendo, /api
 - **Íconos:** `pnpm --filter @routcontrol/driver icons` los regenera desde `public/favicon.svg`.
 - Qué se guarda en el teléfono y por qué: [ADR-006](docs/adr/ADR-006-almacenamiento-local-pwa.md).
 
+## Panel administrativo (`apps/admin`)
+
+Para dueños, administradores y supervisores (los repartidores no entran: usan la app del teléfono).
+
+```bash
+pnpm admin:dev                    # http://localhost:5174 (con el backend corriendo; /api por proxy)
+pnpm --filter @routcontrol/admin test
+pnpm --filter @routcontrol/admin test:real   # contra el Django real (backend, seed y admin:dev corriendo)
+```
+
+Pantallas: inicio (jornadas de hoy), jornadas por día con su recorrido en el mapa, y repartidores. Usuario de demo: `duenio@norte.demo` / `routcontrol-demo`.
+
+## Sistema de diseño (`packages/ui`)
+
+Tokens (paleta azul y violeta, tipografía, espaciados) y componentes base compartidos por la PWA y el panel. Ver [ADR-007](docs/adr/ADR-007-paleta-y-sistema-de-diseno.md).
+
 ## API (etapa 0)
 
 Base: `/api/v1/`. Esquema OpenAPI en `/api/v1/schema/`.
@@ -83,10 +99,13 @@ Base: `/api/v1/`. Esquema OpenAPI en `/api/v1/schema/`.
 | `POST auth/login` | — | `{email, password, organization_id?}` → `{access, user, organization, role}` + cookie `rc_refresh` (httpOnly). Si el usuario está en varias empresas: `409 choose_organization` |
 | `POST auth/refresh` | cookie | Rota el refresh → `{access}` |
 | `POST auth/logout` | cookie | Invalida el refresh y borra la cookie |
-| `GET auth/me` | Bearer | Usuario, empresa y rol |
+| `GET auth/me` | Bearer | Usuario, empresa (con `is_demo`) y rol |
 | `POST workdays/start` | Bearer (repartidor) | `{workday_id, started_at, device: {id, runtime, ...}, location?}` → jornada + `tracking_token`. Idempotente por `workday_id` |
 | `GET workdays/current` | Bearer (repartidor) | Jornada activa o `null` |
 | `POST workdays/{id}/end` | Bearer (repartidor) | `{ended_at, location?}`. Idempotente |
+| `GET workdays/?date=AAAA-MM-DD` | Bearer | Jornadas visibles (repartidor: las propias), con `point_count` y `last_point_at` |
+| `GET workdays/{id}/track` | Bearer | Recorrido en GeoJSON, partido en tramos por los huecos |
+| `GET drivers/` | Bearer (dueño, admin, supervisor) | Repartidores con su jornada en curso y la última |
 | `POST tracking/batch` | `Tracking <token>` | `[{point_id, recorded_at, lat, lng, accuracy, ...}]` o `{sent_at, points}` → `{accepted, duplicates, rejected, server_time}`. Ver [ADR-003](docs/adr/ADR-003-ingesta-gps.md) |
 
 Todas las fechas van en ISO 8601 con zona horaria (`Z` u offset).

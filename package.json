@@ -13,6 +13,9 @@
     "driver:build": "pnpm --filter @routcontrol/driver build",
     "driver:preview": "pnpm --filter @routcontrol/driver preview",
     "test:front": "pnpm -r --filter ./packages/* --filter ./apps/* test",
-    "typecheck": "pnpm -r --filter ./packages/* --filter ./apps/* typecheck"
+    "typecheck": "pnpm -r --filter ./packages/* --filter ./apps/* typecheck",
+    "admin:dev": "pnpm --filter @routcontrol/admin dev",
+    "admin:build": "pnpm --filter @routcontrol/admin build",
+    "admin:preview": "pnpm --filter @routcontrol/admin preview"
   }
 }

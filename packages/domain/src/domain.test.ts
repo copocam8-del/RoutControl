@@ -123,3 +123,25 @@ describe("recorrido", () => {
     expect(trackBounds(workdayTrack.parse({ ...base, points: { type: "FeatureCollection", features: [] } }))).toBeNull();
   });
 });
+
+describe("repartidores y señal", () => {
+  it("una jornada en curso sin puntos hace más de 10 min está 'sin señal'", async () => {
+    const { isWithoutSignal } = await import("./drivers");
+    const now = Date.parse("2026-11-01T13:00:00Z");
+    expect(isWithoutSignal("2026-11-01T12:55:00Z", "2026-11-01T12:00:00Z", now)).toBe(false);
+    expect(isWithoutSignal("2026-11-01T12:45:00Z", "2026-11-01T12:00:00Z", now)).toBe(true);
+    expect(isWithoutSignal(null, "2026-11-01T12:58:00Z", now)).toBe(false); // recién empezó
+    expect(isWithoutSignal(null, "2026-11-01T12:00:00Z", now)).toBe(true);
+  });
+
+  it("la sesión sin is_demo (backend anterior) vale false", async () => {
+    const { session } = await import("./workday");
+    const parsed = session.parse({
+      access: "a",
+      user: { id: "0192f3a0-0000-7000-8000-000000000001", email: "a@b.c", full_name: "" },
+      organization: { id: "0192f3a0-0000-7000-8000-000000000002", name: "X" },
+      role: "OWNER",
+    });
+    expect(parsed.organization.is_demo).toBe(false);
+  });
+});

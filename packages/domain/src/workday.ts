@@ -35,7 +35,8 @@ export const role = z.enum(["OWNER", "ADMIN", "SUPERVISOR", "DRIVER"]);
 export const session = z.object({
   access: z.string(),
   user: z.object({ id: z.uuid(), email: z.string(), full_name: z.string() }),
-  organization: z.object({ id: z.uuid(), name: z.string() }),
+  // is_demo: los datos de demostración se marcan como tales en la interfaz.
+  organization: z.object({ id: z.uuid(), name: z.string(), is_demo: z.boolean().default(false) }),
   role,
 });
 export type Session = z.infer<typeof session>;

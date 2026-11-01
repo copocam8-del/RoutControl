@@ -1,0 +1,20 @@
+{
+  "name": "@routcontrol/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cliente HTTP de la API, compartido por la PWA y el panel: access token en memoria, refresh por cookie httpOnly, respuestas validadas con zod.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@routcontrol/domain": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

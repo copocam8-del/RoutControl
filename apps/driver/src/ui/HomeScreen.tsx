@@ -1,4 +1,4 @@
-import { Alert, Button, Card, formatAgo, formatElapsed, LoadingState, StatusLine, type StatusTone } from "@routcontrol/ui";
+import { Alert, Badge, Button, Card, formatAgo, formatElapsed, LoadingState, StatusLine, type StatusTone } from "@routcontrol/ui";
 import { useState } from "react";
 
 import type { GpsState } from "../tracking/workdayController";
@@ -52,7 +52,10 @@ export function HomeScreen() {
       <header className="topbar">
         <div>
           <Brand name={app.config.appName} small />
-          <div className="topbar__org">{session.session.organization.name}</div>
+          <div className="topbar__org">
+            {session.session.organization.name}{" "}
+            {session.session.organization.is_demo ? <Badge tone="warning">Datos de demostración</Badge> : null}
+          </div>
         </div>
         <Button
           variant="ghost"
