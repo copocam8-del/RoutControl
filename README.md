@@ -65,6 +65,7 @@ pnpm typecheck
 pnpm driver:dev          # http://localhost:5173 (con el backend corriendo, /api va por proxy a :8000)
 ```
 
+- **Contra el Django real** (por el proxy de Vite): con `pnpm backend:dev`, `pnpm backend:seed` y `pnpm driver:dev` corriendo, `pnpm --filter @routcontrol/driver test:real`. Usa las piezas reales de la app (cliente, cola de envío y jornada) y simula solo el teléfono.
 - **Proxy, solo en desarrollo:** Vite reenvía `/api` a Django (`VITE_API_PROXY_TARGET`, por defecto `http://localhost:8000`). La PWA y la API quedan en el mismo origen. En producción la API está en `API_URL` (`https://api.<dominio>`) y no hay proxy ([ADR-005](docs/adr/ADR-005-sesion-web.md)).
 - **En el teléfono:** la geolocalización y el Service Worker exigen HTTPS. Pasos:
   1. Compilar y servir con `pnpm driver:build && pnpm driver:preview` (puerto 4173).

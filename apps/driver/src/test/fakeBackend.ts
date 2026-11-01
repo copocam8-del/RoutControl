@@ -6,6 +6,13 @@
  *   - token de seguimiento por jornada (401 si no existe o fue revocado);
  *   - access token corto + refresh por "cookie" (acá, un flag).
  * NO reemplaza las pruebas del backend: solo permite probar el teléfono contra el contrato.
+ *
+ * Lo que este backend falso NO reproduce (lo cubren las pruebas contra el Django real,
+ * `src/integration/realBackend.real.ts`, con `pnpm --filter @routcontrol/driver test:real`):
+ *   - la rotación del refresh en cada uso y la detección de reuso (ADR-005);
+ *   - la verificación del Origin en refresh/logout;
+ *   - la ventana de gracia del token después del fin (acá el token sirve para siempre);
+ *   - el rechazo de puntos "en el futuro" (recorded_in_future) y las fechas con microsegundos.
  */
 interface FakeWorkday {
   id: string;

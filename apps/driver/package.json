@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "test:real": "vitest run --config vitest.real.config.ts"
   },
   "dependencies": {
     "@routcontrol/domain": "workspace:*",
