@@ -38,6 +38,7 @@ Para pasarle argumentos a pytest: `pnpm test:backend -k rls -v`.
 cp .env.example .env              # opcional: todos los valores tienen un default de desarrollo
 pnpm backend:dev                  # PostGIS + migraciones + runserver en http://localhost:8000
 pnpm backend:seed                 # dos empresas de DEMOSTRACIÓN con usuarios de prueba
+pnpm map:data                     # una vez: baja el mapa de OSM de la zona AMBA a map-data/ (ADR-008)
 ```
 
 Si cambian los `requirements*.txt`: `docker compose -f infra/docker-compose.yml build backend`.

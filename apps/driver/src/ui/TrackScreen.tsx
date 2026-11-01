@@ -17,6 +17,7 @@ import {
   Stats,
   useLoad,
 } from "@routcontrol/ui";
+import type { MapSource } from "@routcontrol/ui/map";
 import { lazy, Suspense, useCallback } from "react";
 
 import { ApiError, NetworkError } from "../api/client";
@@ -111,7 +112,7 @@ function TrackDetailScreen({ id, onBack, onHome }: { id: string; onBack(): void;
       </header>
       <div className="screen-body">
         <Loadable state={track} loadingLabel="Cargando recorrido…" onRetry={reloadTrack}>
-          {(data) => <TrackDetail track={data} styleUrl={app.config.mapStyleUrl} />}
+          {(data) => <TrackDetail track={data} source={app.config.map} />}
         </Loadable>
         <Button variant="secondary" block className="push-bottom" onClick={onHome}>
           Volver al inicio
@@ -121,7 +122,7 @@ function TrackDetailScreen({ id, onBack, onHome }: { id: string; onBack(): void;
   );
 }
 
-function TrackDetail({ track, styleUrl }: { track: WorkdayTrack; styleUrl: string }) {
+function TrackDetail({ track, source }: { track: WorkdayTrack; source: MapSource }) {
   const now = useNow(30_000);
   const live = track.workday.ended_at === null;
   if (track.stats.point_count === 0) {
@@ -136,7 +137,7 @@ function TrackDetail({ track, styleUrl }: { track: WorkdayTrack; styleUrl: strin
   return (
     <>
       <Suspense fallback={<LoadingState label="Cargando mapa…" />}>
-        <TrackMap track={track} styleUrl={styleUrl} live={live} />
+        <TrackMap track={track} source={source} live={live} />
       </Suspense>
       <Stats
         label="Resumen del recorrido"

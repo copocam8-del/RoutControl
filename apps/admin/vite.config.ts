@@ -1,6 +1,10 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from "node:url";
+
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
+
+import { mapDataPlugin } from "../../scripts/map/vite-plugin";
 
 const ENV_DIR = "../.."; // el .env de la raíz del monorepo
 // Variables que llegan al navegador: públicas, nunca secretos.
@@ -18,6 +22,8 @@ export default defineConfig(({ mode }) => {
     envPrefix: ENV_PREFIX,
     plugins: [
       react(),
+      // Mapa autoalojado en /map/ (ADR-008).
+      mapDataPlugin(fileURLToPath(new URL("../../map-data", import.meta.url))),
       { name: "routcontrol-app-name", transformIndexHtml: (html: string) => html.replace("__APP_NAME__", `${appName} · Panel`) },
     ],
     server: { port: 5174, strictPort: true, proxy, allowedHosts: [".trycloudflare.com", ".ngrok-free.app", ".ngrok.app"] },

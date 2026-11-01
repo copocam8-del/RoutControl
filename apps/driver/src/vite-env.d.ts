@@ -7,7 +7,8 @@ interface ImportMetaEnv {
   readonly API_URL?: string;
   readonly VITE_API_PROXY_TARGET?: string;
   /** Estilo de mapa de MapLibre (URL de un style.json). */
-  readonly VITE_MAP_STYLE_URL?: string;
+  readonly VITE_MAP_PMTILES_URL?: string;
+  readonly VITE_MAP_ASSETS_URL?: string;
 }
 
 interface ImportMeta {

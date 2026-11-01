@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
-    "@routcontrol/domain": "workspace:*"
+    "@protomaps/basemaps": "^5.7.2",
+    "@routcontrol/domain": "workspace:*",
+    "pmtiles": "^4.5.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",

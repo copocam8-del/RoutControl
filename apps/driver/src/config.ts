@@ -6,8 +6,11 @@ export const config = {
   /** En desarrollo, mismo origen (proxy de Vite). En producción, https://api.<dominio>. */
   apiBase: `${env.DEV ? "" : (env.API_URL ?? "").replace(/\/$/, "")}/api/v1`,
   appVersion: "0.1.0-etapa0",
-  /** Estilo de MapLibre. OpenFreeMap: gratis y sin cuenta (el proveedor definitivo está pendiente, §15.3). */
-  mapStyleUrl: env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/dark",
+  /**
+   * Mapa autoalojado (ADR-008): teselas de OpenStreetMap en PMTiles, fuentes e íconos, todo desde
+   * nuestro origen en /map/. Nada de otros dominios (bloqueadores, sin conexión).
+   */
+  map: { pmtiles: env.VITE_MAP_PMTILES_URL || "/map/amba.pmtiles", assets: env.VITE_MAP_ASSETS_URL || "/map" },
   tracking: {
     /** Con la app abierta: guardar un punto cada tanto tiempo... */
     minIntervalMs: 15_000,

@@ -150,7 +150,7 @@ function Operation({ data, now }: { data: Today; now: number }) {
             />
           ) : (
             <Suspense fallback={<LoadingState label="Cargando mapa…" />}>
-              <PositionsMap positions={positions} styleUrl={config.mapStyleUrl} height={360} />
+              <PositionsMap positions={positions} source={config.map} height={360} />
             </Suspense>
           )}
         </section>

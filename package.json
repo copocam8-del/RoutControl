@@ -16,6 +16,10 @@
     "typecheck": "pnpm -r --filter ./packages/* --filter ./apps/* typecheck",
     "admin:dev": "pnpm --filter @routcontrol/admin dev",
     "admin:build": "pnpm --filter @routcontrol/admin build",
-    "admin:preview": "pnpm --filter @routcontrol/admin preview"
+    "admin:preview": "pnpm --filter @routcontrol/admin preview",
+    "map:data": "node scripts/map/extract-region.mjs --source https://build.protomaps.com/20261031.pmtiles --bbox -58.75,-34.90,-58.20,-34.45 --maxzoom 15 --out map-data/amba.pmtiles"
+  },
+  "devDependencies": {
+    "pmtiles": "^4.5.0"
   }
 }

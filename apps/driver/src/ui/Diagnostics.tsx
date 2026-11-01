@@ -1,6 +1,6 @@
-import { Button, Card, EmptyState, formatAgo } from "@routcontrol/ui";
+import { Button, Card, clearMapErrors, EmptyState, formatAgo, getMapErrors, type MapErrorRecord, subscribeMapErrors } from "@routcontrol/ui";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { getMeta, type SyncLogRow } from "../store/db";
 import { useApp, useNow, useStore } from "./hooks";
@@ -78,6 +78,7 @@ export function Diagnostics() {
       ) : (
         <p className="rc-muted">Este navegador no permite mantener la pantalla encendida.</p>
       )}
+      <MapErrors />
       <h3 style={{ margin: "16px 0 8px", fontSize: 16 }}>Registro</h3>
       {log === undefined ? null : log.length === 0 ? (
         <EmptyState title="Todavía no hay registros" description="Acá aparecen los envíos y los errores de sincronización." />
@@ -91,5 +92,52 @@ export function Diagnostics() {
         </ul>
       )}
     </Card>
+  );
+}
+
+let cachedRaw = "";
+let cached: MapErrorRecord[] = [];
+/** Lista estable para useSyncExternalStore (solo cambia si cambió lo guardado). */
+function snapshot(): MapErrorRecord[] {
+  const list = getMapErrors();
+  const raw = JSON.stringify(list);
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
+    cached = list;
+  }
+  return cached;
+}
+
+/** Errores del mapa con todo el detalle (mensaje, recurso y URL), para mandar una captura a soporte. */
+function MapErrors() {
+  const errors = useSyncExternalStore(subscribeMapErrors, snapshot, snapshot);
+  return (
+    <section aria-label="Errores del mapa">
+      <h3 style={{ margin: "16px 0 8px", fontSize: 16 }}>Mapa</h3>
+      {errors.length === 0 ? (
+        <p className="rc-muted" style={{ margin: 0 }}>
+          Sin errores del mapa.
+        </p>
+      ) : (
+        <>
+          <ul className="log map-errors">
+            {errors.map((e) => (
+              <li key={`${e.at}-${e.message}`}>
+                <div>
+                  <span className="rc-mono">{new Date(e.at).toLocaleString("es-AR")}</span>{" "}
+                  <strong>{e.kind === "offline" ? "Sin conexión" : "No se pudo cargar"}</strong> · {e.resource}
+                  {e.status !== null ? ` · HTTP ${e.status}` : ""}
+                </div>
+                <div className="rc-mono">{e.message}</div>
+                {e.url ? <div className="rc-mono">{e.url}</div> : null}
+              </li>
+            ))}
+          </ul>
+          <Button variant="ghost" size="sm" onClick={clearMapErrors}>
+            Borrar errores del mapa
+          </Button>
+        </>
+      )}
+    </section>
   );
 }

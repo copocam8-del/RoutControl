@@ -12,6 +12,7 @@ Desde `C:\dev\routcontrol`, con Docker Desktop abierto, en tres terminales:
 # Terminal 1: base de datos y backend
 pnpm backend:dev
 pnpm backend:seed              # una sola vez: crea los usuarios de demo
+pnpm map:data                  # una sola vez: el mapa de OSM de la zona AMBA (ADR-008)
 
 # Terminal 2: la PWA compilada (con Service Worker), en http://localhost:4173
 pnpm driver:build

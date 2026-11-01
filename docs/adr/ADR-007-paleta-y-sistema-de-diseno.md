@@ -28,7 +28,7 @@ Son los del README de las maquetas, sin cambios. Las cifras y los contrastes est
    - Por eso los botones principales grandes van en `#7C5CFF` con el texto a **19 px en negrita**, 1 px más que en la maqueta, para que sea texto grande.
    - Los botones chicos van en `#6B4BF0`, que da 5,4:1.
 2. **Rojo para los errores:** `#F87171` (puntos e íconos) y `#FCA5A5` (texto). Las maquetas no muestran errores; elegí estos tonos dentro de la misma familia de colores.
-3. **El mapa en tema oscuro:** el estilo "dark" de OpenFreeMap, configurable con `VITE_MAP_STYLE_URL`, y los controles de MapLibre adaptados.
+3. **El mapa en tema oscuro:** OpenStreetMap autoalojado (ADR-008) con el estilo oscuro de Protomaps y los colores de las maquetas, y los controles de MapLibre adaptados.
 
 ### Bordes de los campos (resuelto el 01/11/2026)
 - Los campos de formulario de la app y del panel usan **`#5A67B0`** (`fieldBorder`): 3,3:1 sobre la tarjeta y 3,7:1 sobre el fondo, como pide WCAG 1.4.11. Lo aprobó el cliente con las maquetas del panel.

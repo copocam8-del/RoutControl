@@ -22,3 +22,6 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Teselas del mapa: se generan con scripts/map/extract-region.mjs (ADR-008)
+map-data/*.pmtiles

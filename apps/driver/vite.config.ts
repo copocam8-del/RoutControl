@@ -1,7 +1,11 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from "node:url";
+
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+import { mapDataPlugin } from "../../scripts/map/vite-plugin";
 
 const ENV_DIR = "../.."; // el .env de la raíz del monorepo
 // Variables que llegan al código del navegador. Son públicas: nunca poner secretos con estos prefijos.
@@ -24,6 +28,8 @@ export default defineConfig(({ mode }) => {
     envPrefix: ENV_PREFIX,
     plugins: [
       react(),
+      // Mapa autoalojado en /map/ (ADR-008).
+      mapDataPlugin(fileURLToPath(new URL("../../map-data", import.meta.url))),
       {
         // El <title> sale del entorno, como el manifiesto (nombre provisorio).
         name: "routcontrol-app-name",
@@ -66,10 +72,23 @@ export default defineConfig(({ mode }) => {
             "**/plus-jakarta-sans-vietnamese*",
             "**/plus-jakarta-sans-latin-ext*",
             "**/plus-jakarta-sans-*-italic*",
+            // El mapa (/map/) no va en la instalación: se guarda la primera vez que se usa.
+            "map/**",
+            "**/maplibre-gl-worker-*",
           ],
           navigateFallback: "/index.html",
           // La API nunca pasa por el caché del Service Worker: los datos van por IndexedDB.
-          navigateFallbackDenylist: [/^\/api\//],
+          navigateFallbackDenylist: [/^\/api\//, /^\/map\//],
+          runtimeCaching: [
+            {
+              // Fuentes e íconos del mapa: cambian solo al actualizar el mapa; sirven sin conexión.
+              urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/map\/(fonts|sprites)\//.test(url.pathname),
+              handler: "CacheFirst",
+              options: { cacheName: "rc-map-assets", expiration: { maxEntries: 60 } },
+            },
+            // Las teselas (.pmtiles) se piden por rango: van siempre a la red, sin pasar por el
+            // caché del Service Worker (nunca puede devolver una versión vieja o rota).
+          ],
         },
         devOptions: { enabled: false },
       }),

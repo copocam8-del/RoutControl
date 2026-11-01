@@ -216,7 +216,7 @@ function TrackPanel({ workday, now }: { workday: WorkdayWithDriver; now: number 
             <>
               <Suspense fallback={<LoadingState label="Cargando mapa…" />}>
                 <div className="track-panel__map">
-                  <TrackMap track={track} styleUrl={config.mapStyleUrl} height={260} live={track.workday.ended_at === null} />
+                  <TrackMap track={track} source={config.map} height={260} live={track.workday.ended_at === null} />
                 </div>
               </Suspense>
               <div className="track-panel__stats" aria-label="Resumen del recorrido" role="group">

@@ -852,9 +852,16 @@ a.rc-item {
 .rc-map .maplibregl-ctrl-icon {
   filter: invert(1);
 }
-.rc-map .maplibregl-ctrl-attrib {
-  background: rgba(7, 11, 31, 0.75);
-  color: var(--rc-muted);
+.rc-map .maplibregl-ctrl-attrib,
+.rc-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  background: rgba(7, 11, 31, 0.85);
+  color: var(--rc-text-2);
+  border-radius: 12px;
+}
+.rc-map .maplibregl-ctrl-attrib-button {
+  background-color: var(--rc-surface);
+  filter: invert(1) hue-rotate(180deg);
+  border-radius: 50%;
 }
 .rc-map .maplibregl-ctrl-attrib a {
   color: var(--rc-text-2);
@@ -951,4 +958,19 @@ a.rc-item {
 @keyframes rc-ping {
   0% { transform: scale(1); opacity: 0.7; }
   100% { transform: scale(2.7); opacity: 0; }
+}
+
+.rc-map-failed__details {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.rc-map-failed__details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.rc-map-failed__details div {
+  margin-top: 4px;
+  text-align: left;
 }

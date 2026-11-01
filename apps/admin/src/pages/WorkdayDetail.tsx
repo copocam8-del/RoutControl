@@ -80,7 +80,7 @@ export function WorkdayDetail({ id }: { id: string }) {
             ) : (
               <section aria-label="Mapa">
                 <Suspense fallback={<LoadingState label="Cargando mapa…" />}>
-                  <TrackMap track={track} styleUrl={config.mapStyleUrl} height={460} live={w.ended_at === null} />
+                  <TrackMap track={track} source={config.map} height={460} live={w.ended_at === null} />
                 </Suspense>
               </section>
             )}

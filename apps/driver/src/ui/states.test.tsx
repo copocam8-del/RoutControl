@@ -73,6 +73,28 @@ describe("Inicio", () => {
 });
 
 describe("Diagnóstico", () => {
+  it("muestra el error exacto del mapa (mensaje, recurso y URL) para mandar la captura", async () => {
+    const { clearMapErrors, recordMapError } = await import("@routcontrol/ui");
+    clearMapErrors();
+    const { app } = await loggedInApp();
+    withApp(app, <Diagnostics />);
+    expect(await screen.findByText("Sin errores del mapa.")).toBeTruthy();
+    recordMapError({
+      at: Date.now(),
+      kind: "failed",
+      resource: "worker de MapLibre",
+      message: "SyntaxError: Unexpected token '<'",
+      url: "https://x.trycloudflare.com/assets/maplibre-gl-worker-abc.mjs",
+      status: null,
+    });
+    const section = await screen.findByRole("region", { name: "Errores del mapa" });
+    expect(section.textContent).toContain("No se pudo cargar · worker de MapLibre");
+    expect(section.textContent).toContain("SyntaxError: Unexpected token '<'");
+    expect(section.textContent).toContain("https://x.trycloudflare.com/assets/maplibre-gl-worker-abc.mjs");
+    await userEvent.click(screen.getByRole("button", { name: "Borrar errores del mapa" }));
+    expect(await screen.findByText("Sin errores del mapa.")).toBeTruthy();
+  });
+
   it("sin registros muestra un estado vacío explicado", async () => {
     const { app } = await loggedInApp();
     withApp(app, <Diagnostics />);
