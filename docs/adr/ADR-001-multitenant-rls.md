@@ -37,8 +37,9 @@ Solo dos búsquedas ocurren antes de conocer la empresa. Las dos son funciones `
 
 | Momento | Función | Devuelve | Lo demás se lee… |
 |---|---|---|---|
-| Login y refresh | `rc_user_memberships(user_id)` | `(organization_id, membership_id)` | El rol de la membresía se lee dentro del contexto de cada empresa, con RLS. El nombre sale de `Organization` (tabla de plataforma) |
+| Login | `rc_user_memberships(user_id)` | `(organization_id, membership_id)` | El rol de la membresía se lee dentro del contexto de cada empresa, con RLS. El nombre sale de `Organization` (tabla de plataforma) |
 | Cada request con JWT | — (no hace falta) | — | La empresa viene en el claim `org` firmado. Con ella se fija el contexto y la membresía se vuelve a leer **con RLS** |
+| Refresh | — (no hace falta) | — | Se verifica la firma del refresh, la empresa sale de su claim `org` y la sesión se busca por `jti` **con RLS** (ADR-005) |
 | `tracking/batch` | `rc_resolve_tracking_token(hash)` | `(organization_id, workday_id)` | El token y su dispositivo se leen dentro del contexto, con RLS |
 
 `rc_resolve_tracking_token` además exige que la empresa, el dispositivo, el perfil de repartidor, la membresía y el usuario estén activos.
@@ -60,7 +61,7 @@ No se le saca el RLS a ninguna tabla. `tests/tenancy/test_pre_context_lookups.py
 |---|---|---|
 | `tenancy_organization` | `USING/WITH CHECK (id = rc_current_org())` | ✅ Etapa 0. Para crear una empresa se entra antes a su contexto (`apps.tenancy.services.create_organization`); no hay excepciones al RLS. Las FK hacia esta tabla no cambian, porque los chequeos de integridad no pasan por el RLS |
 | `accounts_user` | — | ⚠️ **Pendiente para la etapa 1** (ver abajo) |
-| `token_blacklist_outstandingtoken` | — | ⚠️ **Pendiente para la etapa 1** (ver abajo) |
+| `accounts_refreshsession` (reemplaza a `token_blacklist_*`) | El de `TenantModel` (`organization_id = rc_current_org()`) | ✅ Etapa 0. Guarda solo el `jti`, nunca el token (ADR-005) |
 | `tenancy_plan`, `django_content_type`, `auth_permission` | — | No guardan datos de empresas ni de personas |
 
 ### Pendiente para la etapa 1: usuarios (`accounts_user`)
@@ -75,12 +76,6 @@ No se le saca el RLS a ninguna tabla. `tests/tenancy/test_pre_context_lookups.py
    - a los usuarios con membresía en la empresa del contexto: `EXISTS (SELECT 1 FROM tenancy_membership m WHERE m.user_id = id AND m.organization_id = rc_current_org())`. La membresía tiene su propio RLS, así que la subconsulta ya queda filtrada.
 3. Lo que hoy lee usuarios sin contexto (el `ModelBackend` en el login, simplejwt al autenticar) pasa a usar la función o a correr con `app.current_user` fijado.
 
-### Pendiente para la etapa 1: refresh tokens (`token_blacklist_outstandingtoken`)
+### Resuelto en la etapa 0: refresh tokens
 
-**Riesgo (mayor que el de usuarios):** simplejwt guarda **el refresh token completo** de cada sesión emitida. Como la tabla no tiene RLS, `rc_app` puede leer los refresh vigentes de todos los usuarios de todas las empresas. Con uno de esos tokens se puede renovar la sesión de otra persona. Ningún endpoint lo expone hoy; el riesgo es el mismo de un bug o una inyección.
-
-**Propuesta:**
-
-- dejar de guardar el token en claro: alcanza con el `jti`, que es lo que usa la lista negra;
-- agregar RLS por usuario (`user_id = rc_current_user()`), con el mismo `app.current_user` de la propuesta anterior;
-- si hace falta, reemplazar la app `token_blacklist` por una tabla propia con solo `jti`, `user_id` y `expires_at`.
+La app `token_blacklist` de simplejwt guardaba **el refresh token completo** de cada sesión, en una tabla sin RLS. Se quitó y se reemplazó por `accounts_refreshsession`, que guarda solo `jti`, usuario, vencimiento y revocación, con RLS por empresa. El diseño está en el ADR-005.

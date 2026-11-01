@@ -88,7 +88,7 @@ def _load_tracking_context(token_hash: str, org_id: uuid.UUID, workday_id: uuid.
     )
 
 
-def _active_membership(user_id: uuid.UUID):
+def active_membership(user_id: uuid.UUID):
     """Debe llamarse dentro de tenant_context: el ORM y el RLS limitan a la empresa del token.
 
     Exige membresía, empresa y usuario activos: un usuario desactivado pierde el acceso en la
@@ -110,6 +110,12 @@ def _active_membership(user_id: uuid.UUID):
     )
 
 
+# Endpoints de sesión: manejan su propio contexto y sus propias transacciones. No se envuelven
+# aunque traigan un Authorization, porque el rollback de un 401 desharía, por ejemplo, la
+# revocación de todas las sesiones al detectar el reuso de un refresh (ADR-005).
+NO_CONTEXT_PATHS = frozenset({"/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout"})
+
+
 class TenantContextMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -117,7 +123,7 @@ class TenantContextMiddleware:
     def __call__(self, request):
         request.tenant = None
         auth = _split_auth_header(request)
-        if auth is None:
+        if auth is None or request.path in NO_CONTEXT_PATHS:
             return self.get_response(request)
 
         scheme, raw = auth
@@ -127,7 +133,7 @@ class TenantContextMiddleware:
                 return self.get_response(request)
             user_id, org_id = resolved
             with tenant_context(org_id):
-                membership = _active_membership(user_id)
+                membership = active_membership(user_id)
                 if membership is not None:
                     request.tenant = TenantRequestContext(
                         kind="user", organization_id=org_id, user_id=user_id, membership=membership

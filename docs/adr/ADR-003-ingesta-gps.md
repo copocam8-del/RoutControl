@@ -29,6 +29,8 @@
 
 ## Límites de la etapa 0
 
+- **Token inválido = puntos trabados en el teléfono.** Si el lote responde 401, la PWA conserva los puntos pero no tiene cómo conseguir otro token para esa jornada. Está anotado para la etapa 1, con propuesta: pedir un token nuevo para la jornada al volver a iniciar sesión, dentro de la ventana de gracia ([pendientes-etapa-1.md](../pendientes-etapa-1.md)).
+
 - Máximo 500 puntos por lote.
 - La ingesta es síncrona. Pasarla a Celery queda para cuando haya volumen.
 - No hay particionado (lo pide §7.2).

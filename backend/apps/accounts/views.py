@@ -11,22 +11,21 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import update_last_login
 from django.db import connections
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.tenancy.context import app_db, tenant_context
 from apps.tenancy.models import Membership
 
+from . import sessions
+
 
 def active_membership_ids(user_id) -> list[tuple[uuid.UUID, uuid.UUID]]:
-    """Única lectura previa al contexto en login/refresh: [(organization_id, membership_id)]."""
+    """Única lectura previa al contexto en el login: [(organization_id, membership_id)].
+    El refresh no la necesita: la empresa sale del claim org del refresh firmado."""
     with connections[app_db()].cursor() as cursor:
         cursor.execute("SELECT organization_id, membership_id FROM rc_user_memberships(%s)", [str(user_id)])
         return cursor.fetchall()
@@ -129,15 +128,25 @@ class LoginView(APIView):
             )
 
         org = orgs[0]
-        refresh = RefreshToken.for_user(user)
-        refresh["org"] = org["id"]
-        update_last_login(None, user)
-        response = Response(_session_payload(user, org, str(refresh.access_token)))
-        _set_refresh_cookie(response, str(refresh))
+        tokens = sessions.start_session(user, org["id"])
+        response = Response(_session_payload(user, org, tokens.access))
+        _set_refresh_cookie(response, tokens.refresh)
         return response
 
 
+# Respuestas de /auth/refresh según el resultado de la rotación (accounts.sessions.rotate).
+_REFRESH_ERRORS = {
+    "invalid": "Sesión vencida.",
+    "unknown": "Sesión vencida.",
+    "revoked": "Sesión cerrada.",
+    "reuse_detected": "Por seguridad se cerraron todas tus sesiones. Volvé a ingresar.",
+    "access_lost": "Tu acceso a esta empresa fue dado de baja.",
+}
+
+
 class RefreshView(APIView):
+    """Rota el refresh: firma → empresa del claim org → contexto → sesión por jti con RLS."""
+
     authentication_classes: list = []
     permission_classes = [AllowAny]
 
@@ -148,35 +157,17 @@ class RefreshView(APIView):
         if not raw:
             return Response({"detail": "Sin sesión."}, status=status.HTTP_401_UNAUTHORIZED)
 
-        try:
-            current = RefreshToken(raw)
-            user_id, org_id = str(current["user_id"]), str(current["org"])
-        except (TokenError, KeyError):
-            response = Response({"detail": "Sesión vencida."}, status=status.HTTP_401_UNAUTHORIZED)
+        result = sessions.rotate(raw)
+        if result.tokens is None:
+            body = {"detail": _REFRESH_ERRORS[result.error or "invalid"]}
+            if result.error == "reuse_detected":
+                body["code"] = "refresh_reuse_detected"
+            response = Response(body, status=status.HTTP_401_UNAUTHORIZED)
             _clear_refresh_cookie(response)
             return response
 
-        # La membresía puede haberse dado de baja desde el último login.
-        if not any(str(o) == org_id for o, _ in active_membership_ids(uuid.UUID(user_id))):
-            try:
-                current.blacklist()
-            except TokenError:
-                pass
-            response = Response({"detail": "Sesión revocada."}, status=status.HTTP_401_UNAUTHORIZED)
-            _clear_refresh_cookie(response)
-            return response
-
-        serializer = TokenRefreshSerializer(data={"refresh": raw})
-        try:
-            # Rota el refresh y pone el anterior en la lista negra; un refresh ya usado falla acá.
-            serializer.is_valid(raise_exception=True)
-        except (TokenError, InvalidToken, serializers.ValidationError):
-            response = Response({"detail": "Sesión vencida."}, status=status.HTTP_401_UNAUTHORIZED)
-            _clear_refresh_cookie(response)
-            return response
-
-        response = Response({"access": serializer.validated_data["access"]})
-        _set_refresh_cookie(response, serializer.validated_data["refresh"])
+        response = Response({"access": result.tokens.access})
+        _set_refresh_cookie(response, result.tokens.refresh)
         return response
 
 
@@ -189,10 +180,7 @@ class LogoutView(APIView):
             return Response({"detail": "Origen no permitido."}, status=status.HTTP_403_FORBIDDEN)
         raw = request.COOKIES.get(settings.REFRESH_COOKIE_NAME)
         if raw:
-            try:
-                RefreshToken(raw).blacklist()
-            except TokenError:
-                pass
+            sessions.end_session(raw)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         _clear_refresh_cookie(response)
         return response

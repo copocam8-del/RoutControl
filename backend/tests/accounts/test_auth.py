@@ -143,7 +143,7 @@ def test_disabled_user_with_unexpired_access_token_gets_no_context(org_a):
     assert client.post(REFRESH).status_code == 401
 
 
-def test_logout_blacklists_refresh_and_clears_cookie(org_a):
+def test_logout_revokes_refresh_and_clears_cookie(org_a):
     client = APIClient()
     login(client, org_a.driver.email)
     refresh = client.cookies[COOKIE].value

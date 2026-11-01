@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION rc_current_org() RETURNS uuid
 DROP FUNCTION IF EXISTS rc_user_memberships(uuid);
 DROP FUNCTION IF EXISTS rc_resolve_tracking_token(varchar);
 
--- (1) Login y refresh: ¿en qué empresas tiene este usuario una membresía activa?
+-- (1) Login: ¿en qué empresas tiene este usuario una membresía activa?
 CREATE FUNCTION rc_user_memberships(p_user_id uuid)
   RETURNS TABLE (organization_id uuid, membership_id uuid)
   LANGUAGE sql STABLE SECURITY DEFINER

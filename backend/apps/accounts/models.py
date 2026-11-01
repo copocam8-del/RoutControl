@@ -4,6 +4,8 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
+from apps.tenancy.models import TenantModel
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -51,3 +53,28 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.email
+
+
+class RefreshSession(TenantModel):
+    """Una sesión de refresh (una por login, se renueva con cada rotación).
+
+    Guarda SOLO el jti del refresh token, nunca el token: con lo que hay en esta tabla no se puede
+    renovar la sesión de nadie. Tiene RLS por empresa como cualquier TenantModel. Ver ADR-005.
+    """
+
+    class RevokedReason(models.TextChoices):
+        ROTATED = "rotated"  # se usó para renovar; reusarlo es señal de robo
+        LOGOUT = "logout"
+        REUSE_DETECTED = "reuse_detected"  # se reusó un refresh ya rotado: se revocan todas
+        ACCESS_LOST = "access_lost"  # membresía, usuario o empresa desactivados
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    jti = models.CharField(max_length=64, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_reason = models.CharField(max_length=20, choices=RevokedReason.choices, blank=True)
+
+    class Meta(TenantModel.Meta):
+        indexes = [models.Index(fields=["organization", "user"], name="refreshsession_org_user")]

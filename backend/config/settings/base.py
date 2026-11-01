@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     "django.contrib.gis",
     "corsheaders",
     "rest_framework",
-    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "apps.tenancy",
     "apps.accounts",
@@ -118,9 +117,9 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "UPDATE_LAST_LOGIN": True,
+    # Sin la app token_blacklist de simplejwt: guardaba el refresh COMPLETO de cada sesión. La
+    # rotación, la revocación y la detección de reuso las hace accounts.sessions sobre
+    # RefreshSession (solo jti, con RLS por empresa). Ver docs/adr/ADR-005-sesion-web.md.
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
