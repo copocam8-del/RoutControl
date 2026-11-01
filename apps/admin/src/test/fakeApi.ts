@@ -90,6 +90,30 @@ export class FakeApi {
 }
 
 let seq = 0;
+
+/** Repartidor de demostración. `working`: con jornada en curso y ubicación; `silent`: sin señal hace 30 min. */
+export function driver(name: string, working: boolean, silent = false): DriverSummary {
+  seq += 1;
+  const started = new Date(Date.now() - 2 * 3600_000).toISOString();
+  return {
+    id: `0192f3a0-0000-7000-8000-${String(seq + 900).padStart(12, "0")}`,
+    name,
+    email: `${name.split(" ")[0]!.toLowerCase()}@norte.demo`,
+    employee_code: "",
+    vehicle_type: "",
+    status: "ACTIVE",
+    membership_status: "ACTIVE",
+    active_workday: working
+      ? {
+          id: `0192f3a0-0000-7000-8000-${String(seq + 950).padStart(12, "0")}`,
+          started_at: started,
+          last_point_at: new Date(Date.now() - (silent ? 30 : 1) * 60_000).toISOString(),
+          last_location: { lat: -34.6 - seq / 1000, lng: -58.4 },
+        }
+      : null,
+    last_workday: null,
+  };
+}
 export function workday(overrides: Partial<WorkdayWithDriver> = {}): WorkdayWithDriver {
   seq += 1;
   const id = `0192f3a0-0000-7000-8000-${String(seq).padStart(12, "0")}`;

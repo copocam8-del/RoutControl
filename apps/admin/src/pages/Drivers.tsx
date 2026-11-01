@@ -1,10 +1,10 @@
 import { type DriverSummary, isWithoutSignal } from "@routcontrol/domain";
-import { Badge, EmptyState, formatAgo, formatDay, formatTime, Loadable, useLoad } from "@routcontrol/ui";
+import { Avatar, Badge, EmptyState, formatAgo, formatDay, formatTime, Loadable, useLoad } from "@routcontrol/ui";
 import { useCallback } from "react";
 
 import { describeLoadError, useAdmin } from "../adminApp";
 import { useNow } from "../hooks";
-import { PageTitle } from "../Layout";
+import { DemoChip, PageTitle } from "../Layout";
 import { href } from "../router";
 
 const describe = (e: unknown) => describeLoadError(e, "los repartidores");
@@ -26,7 +26,7 @@ export function Drivers() {
 
   return (
     <>
-      <PageTitle title="Repartidores" description="Quiénes están en jornada ahora y cuándo trabajó cada uno por última vez." />
+      <PageTitle title="Repartidores" description="Quiénes están en jornada ahora y cuándo trabajó cada uno por última vez." actions={<DemoChip />} />
       <Loadable
         state={state}
         loadingLabel="Cargando repartidores…"
@@ -51,8 +51,13 @@ export function Drivers() {
                 {drivers.map((d) => (
                   <tr key={d.id}>
                     <td>
-                      <strong>{d.name}</strong>
-                      <div className="rc-muted">{d.email}</div>
+                      <span className="name-cell">
+                        <Avatar name={d.name} size={38} />
+                        <span>
+                          <strong>{d.name}</strong>
+                          <span className="rc-muted name-cell__sub">{d.email}</span>
+                        </span>
+                      </span>
                     </td>
                     <td>
                       <DriverStatus driver={d} now={now} />

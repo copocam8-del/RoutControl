@@ -1,12 +1,13 @@
 import type { WorkdayTrack } from "@routcontrol/domain";
 import {
   Button,
-  Card,
   EmptyState,
-  formatDay,
   formatDistance,
   formatDuration,
+  formatLongDate,
   formatTime,
+  IconAlert,
+  IconArrowLeft,
   Loadable,
   LoadingState,
   Stats,
@@ -16,7 +17,7 @@ import { lazy, Suspense, useCallback } from "react";
 
 import { describeLoadError, useAdmin } from "../adminApp";
 import { useNow } from "../hooks";
-import { PageTitle } from "../Layout";
+import { DemoChip, PageTitle } from "../Layout";
 import { href } from "../router";
 import { WorkdayStatus } from "../WorkdayTable";
 
@@ -38,74 +39,88 @@ export function WorkdayDetail({ id }: { id: string }) {
         const w = track.workday;
         const end = w.ended_at ? Date.parse(w.ended_at) : now;
         return (
-          <div className="rc-stack">
+          <>
             <PageTitle
+              back={
+                <a className="rc-icon-btn" href={href({ name: "workdays", date: w.date })} aria-label="Volver a las jornadas del día">
+                  <IconArrowLeft />
+                </a>
+              }
+              eyebrow={formatLongDate(w.started_at)}
               title={w.driver.name}
               description={
                 <>
-                  {formatDay(w.started_at)} · {formatTime(w.started_at)} – {w.ended_at ? formatTime(w.ended_at) : "en curso"}{" "}
-                  <WorkdayStatus workday={w} now={now} />
+                  {formatTime(w.started_at)} a {w.ended_at ? formatTime(w.ended_at) : "ahora"} <WorkdayStatus workday={w} now={now} />
                 </>
               }
-              actions={
-                <a className="rc-btn rc-btn--secondary rc-btn--sm" href={href({ name: "workdays", date: w.date })}>
-                  ← Jornadas del día
-                </a>
-              }
+              actions={<DemoChip />}
             />
             <Stats
               label="Resumen del recorrido"
               items={[
-                { label: "recorridos", value: formatDistance(track.stats.distance_m) },
-                { label: "duración", value: formatDuration((end - Date.parse(w.started_at)) / 1000) },
-                { label: "puntos", value: track.stats.point_count },
-                { label: track.stats.gap_count === 1 ? "hueco" : "huecos", value: track.stats.gap_count },
-                { label: "sin datos", value: formatDuration(track.stats.gap_seconds) },
+                { label: "Distancia", value: formatDistance(track.stats.distance_m) },
+                { label: "Duración", value: formatDuration((end - Date.parse(w.started_at)) / 1000) },
+                { label: "Ubicaciones", value: track.stats.point_count },
+                { label: track.stats.gap_count === 1 ? "Tramo sin datos" : "Tramos sin datos", value: track.stats.gap_count, tone: track.stats.gap_count ? "warn" : undefined },
+                { label: "Tiempo sin datos", value: formatDuration(track.stats.gap_seconds) },
               ]}
             />
             {track.stats.point_count === 0 ? (
-              <Card label="Mapa">
+              <section className="panel-card" aria-label="Mapa">
                 <EmptyState
                   title="Esta jornada no tiene ubicaciones registradas."
                   description="Puede pasar si la app estuvo cerrada o sin permiso de ubicación durante toda la jornada."
-                  action={<Button variant="secondary" onClick={reload}>Volver a consultar</Button>}
+                  action={
+                    <Button variant="secondary" onClick={reload}>
+                      Volver a consultar
+                    </Button>
+                  }
                 />
-              </Card>
+              </section>
             ) : (
-              <Card label="Mapa">
+              <section aria-label="Mapa">
                 <Suspense fallback={<LoadingState label="Cargando mapa…" />}>
-                  <TrackMap track={track} styleUrl={config.mapStyleUrl} />
+                  <TrackMap track={track} styleUrl={config.mapStyleUrl} height={460} live={w.ended_at === null} />
                 </Suspense>
-              </Card>
+              </section>
             )}
             {track.gaps.length > 0 ? (
-              <Card title="Huecos (sin datos de ubicación)" label="Huecos del recorrido">
-                <table className="rc-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Desde</th>
-                      <th scope="col">Hasta</th>
-                      <th scope="col">Duración</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {track.gaps.map((g) => (
-                      <tr key={g.from_at}>
-                        <td className="rc-num">{formatTime(g.from_at)}</td>
-                        <td className="rc-num">{formatTime(g.to_at)}</td>
-                        <td className="rc-num">{formatDuration(g.seconds)}</td>
+              <section className="gap-card" aria-label="Huecos del recorrido">
+                <span className="rc-item__icon rc-item__icon--gap" aria-hidden="true">
+                  <IconAlert />
+                </span>
+                <div className="gap-card__body">
+                  <h2 className="gap-card__title">
+                    {track.gaps.length === 1 ? "1 tramo sin datos" : `${track.gaps.length} tramos sin datos`} ·{" "}
+                    {formatDuration(track.stats.gap_seconds)}
+                  </h2>
+                  <table className="rc-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Desde</th>
+                        <th scope="col">Hasta</th>
+                        <th scope="col">Duración</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="rc-muted" style={{ marginBottom: 0 }}>
-                  {w.tracking_mode === "EVENTS_ONLY"
-                    ? "Jornada hecha con la app web: la ubicación se registra solo con la app abierta. Los huecos son esperables y no se comparan con jornadas de recorrido continuo (§4.2)."
-                    : "Tramos sin datos: sin señal, app cerrada o permiso revocado."}
-                </p>
-              </Card>
+                    </thead>
+                    <tbody>
+                      {track.gaps.map((g) => (
+                        <tr key={g.from_at}>
+                          <td className="rc-num">{formatTime(g.from_at)}</td>
+                          <td className="rc-num">{formatTime(g.to_at)}</td>
+                          <td className="rc-num">{formatDuration(g.seconds)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p>
+                    {w.tracking_mode === "EVENTS_ONLY"
+                      ? "Jornada hecha con la app web: la ubicación se registra solo con la app abierta. Los huecos son esperables y no se comparan con jornadas de recorrido continuo (§4.2)."
+                      : "Tramos sin datos: sin señal, app cerrada o permiso revocado."}
+                  </p>
+                </div>
+              </section>
             ) : null}
-          </div>
+          </>
         );
       }}
     </Loadable>

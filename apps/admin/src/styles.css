@@ -1,88 +1,89 @@
-/* Panel administrativo: disposición. Colores, tipografía y componentes salen de @routcontrol/ui. */
+/* Panel administrativo (Panel.dc.html): disposición. Colores, tipografía y componentes salen de
+   @routcontrol/ui (ADR-007). */
 
 a {
-  color: var(--rc-blue-700);
   font-weight: 600;
   text-underline-offset: 3px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--rc-blue-950);
-}
-
-.brand__mark {
-  width: 36px;
-  height: 36px;
-  flex: none;
-}
-
-.brand__text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.brand__name {
-  font-weight: 800;
-  font-size: 20px;
-}
-
-.brand__subtitle {
-  font-size: 13px;
-  color: var(--rc-muted);
-}
-
-.brand--inverse,
-.brand--inverse .brand__subtitle {
-  color: var(--rc-surface);
-}
-
-.brand--inverse .brand__subtitle {
-  color: var(--rc-blue-200);
-}
-
-/* Login */
+/* --- Ingreso -------------------------------------------------------------------------------------- */
 .login {
+  position: relative;
+  overflow: hidden;
   min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px 16px;
-  background: linear-gradient(160deg, var(--rc-blue-50), var(--rc-violet-50));
+}
+
+.login__glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  right: -200px;
+  top: -200px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(124, 92, 255, 0.4), rgba(7, 11, 31, 0));
+  pointer-events: none;
 }
 
 .login__card {
+  position: relative;
   width: 100%;
-  max-width: 420px;
-  padding: 28px;
+  max-width: 440px;
+  padding: 32px 28px;
+  border-radius: var(--rc-radius-2xl);
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
 }
 
-.login__title {
-  font-size: 22px;
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-/* Estructura: barra lateral + contenido */
+.login__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.login__intro h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.login__intro p {
+  margin: 0;
+  color: var(--rc-muted);
+}
+
+/* --- Estructura: barra lateral + contenido -------------------------------------------------------- */
 .shell {
-  display: grid;
-  grid-template-columns: 248px 1fr;
+  display: flex;
+  flex-wrap: wrap;
   min-height: 100dvh;
 }
 
 .sidebar {
-  background: var(--rc-blue-950);
-  color: var(--rc-surface);
-  padding: 20px 14px;
+  flex: 1 1 240px;
+  max-width: 100%;
+  padding: 28px 18px;
+  background: var(--rc-sidebar);
+  border-right: 1px solid var(--rc-surface-2);
   display: flex;
   flex-direction: column;
   gap: 28px;
-  position: sticky;
-  top: 0;
-  height: 100dvh;
+}
+
+.sidebar__brand {
+  padding: 0 8px;
 }
 
 .sidebar__nav {
@@ -95,114 +96,377 @@ a {
 }
 
 .sidebar__link {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: var(--rc-muted);
+  font-size: 15px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: var(--rc-radius-md);
-  color: var(--rc-blue-200);
-  font-weight: 600;
+  gap: 12px;
   text-decoration: none;
 }
 
 .sidebar__link:hover {
-  background: rgb(255 255 255 / 8%);
-  color: var(--rc-surface);
+  color: var(--rc-text);
+  background: rgba(124, 92, 255, 0.08);
 }
 
 .sidebar__link[aria-current="page"] {
-  background: var(--rc-violet-600);
-  color: var(--rc-surface);
+  background: rgba(124, 92, 255, 0.18);
+  color: var(--rc-violet-100);
+  font-weight: 700;
 }
 
-.main {
+.sidebar__link[aria-current="page"] svg {
+  color: var(--rc-violet-300);
+}
+
+.user-card {
+  margin-top: auto;
+  padding: 14px;
+  border-radius: var(--rc-radius-md);
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-card__text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  flex-grow: 1;
 }
 
-.header {
+.user-card__name {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-card__role {
+  font-size: 12px;
+  color: var(--rc-muted);
+}
+
+.user-card__logout {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--rc-surface-2);
+}
+
+.content {
+  flex: 999 1 560px;
+  min-width: 0;
+  padding: 32px clamp(16px, 3vw, 40px);
   display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- Título de página ----------------------------------------------------------------------------- */
+.page-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: space-between;
+  gap: 16px;
+}
+
+.page-title__main {
+  display: flex;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 28px;
-  background: var(--rc-surface);
-  border-bottom: 1px solid var(--rc-border);
 }
 
-.header__org,
-.header__user {
+.page-title__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.page-title h1 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page-title__description {
+  color: var(--rc-muted);
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.content {
-  padding: 28px;
-  max-width: 1200px;
-  width: 100%;
+.page-title__actions {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.page-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.page-title h1 {
-  font-size: 26px;
-}
-
-.page-title p {
-  margin: 4px 0 0;
-  text-transform: none;
-}
-
-.page-title p::first-letter {
-  text-transform: uppercase;
+.page-title__actions .rc-chip {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .date-field {
-  min-width: 190px;
+  min-width: 200px;
 }
 
-.table-wrap {
+/* --- Inicio --------------------------------------------------------------------------------------- */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.kpi {
+  padding: 20px;
+  border-radius: var(--rc-radius-xl);
   background: var(--rc-surface);
-  border-radius: var(--rc-radius-lg);
-  box-shadow: var(--rc-shadow-card);
+  border: 1px solid var(--rc-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kpi__label {
+  font-size: 14px;
+  color: var(--rc-muted);
+}
+
+.kpi__value {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi__of {
+  font-size: 18px;
+  color: var(--rc-muted);
+  font-weight: 600;
+}
+
+.kpi__value--ok { color: var(--rc-success-text); }
+.kpi__value--warn { color: var(--rc-warning-text); }
+
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.split > :first-child {
+  flex: 3 1 420px;
+}
+
+.split > :last-child {
+  flex: 2 1 320px;
+}
+
+.panel-card {
+  min-width: 0;
+  border-radius: var(--rc-radius-xl);
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-card--map {
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel-card__head {
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.panel-card__head span {
+  font-size: 13px;
+}
+
+.panel-card h2,
+.panel-card__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.panel-card__title {
+  margin-bottom: 8px;
+}
+
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.people li + li {
+  border-top: 1px solid var(--rc-border);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.person:hover .person__name {
+  color: var(--rc-violet-200);
+}
+
+.person__text {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.person__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.person__detail {
+  font-size: 13px;
+  color: var(--rc-muted);
+  font-weight: 400;
+}
+
+/* --- Tablas --------------------------------------------------------------------------------------- */
+.table-wrap {
   overflow-x: auto;
+}
+
+.panel-card > .table-wrap {
+  margin: 0 -8px;
+}
+
+.name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.name-cell a {
+  color: var(--rc-text);
+}
+
+.name-cell a:hover {
+  color: var(--rc-violet-200);
+}
+
+.name-cell__sub {
+  display: block;
+  font-size: 13px;
+}
+
+.rc-table td a {
+  text-decoration: none;
+}
+
+/* --- Recorrido ------------------------------------------------------------------------------------ */
+.gap-card {
+  padding: 18px 20px;
+  border-radius: var(--rc-radius-xl);
+  background: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.gap-card__body {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--rc-text-2);
+  font-size: 14px;
+}
+
+.gap-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--rc-text);
+}
+
+.gap-card__body p {
+  margin: 0;
+}
+
+.gap-card .rc-table td,
+.gap-card .rc-table th {
+  border-color: rgba(251, 146, 60, 0.25);
 }
 
 /* Pantallas angostas (tablet vertical, teléfono): la barra lateral pasa arriba. */
 @media (max-width: 800px) {
-  .shell {
-    grid-template-columns: 1fr;
+  .sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rc-surface-2);
   }
 
-  .sidebar {
-    position: static;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
+  .sidebar nav {
+    order: 3;
+    width: 100%;
   }
 
   .sidebar__nav {
     flex-direction: row;
+    overflow-x: auto;
   }
 
-  .header,
+  .sidebar__link {
+    white-space: nowrap;
+  }
+
+  .user-card {
+    margin: 0 0 0 auto;
+    padding: 6px 6px 6px 10px;
+  }
+
+  .user-card__text {
+    display: none;
+  }
+
   .content {
-    padding: 16px;
+    padding: 20px 16px;
+  }
+
+  .page-title h1 {
+    font-size: 26px;
   }
 }

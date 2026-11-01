@@ -4,7 +4,7 @@ import { useCallback } from "react";
 
 import { describeLoadError, useAdmin } from "../adminApp";
 import { useNow } from "../hooks";
-import { PageTitle } from "../Layout";
+import { DemoChip, PageTitle } from "../Layout";
 import { navigate, today } from "../router";
 import { WorkdayTable } from "../WorkdayTable";
 
@@ -27,6 +27,8 @@ export function Workdays({ date }: { date: string }) {
         title="Jornadas"
         description={longDate(date)}
         actions={
+          <>
+          <DemoChip />
           <TextField
             label="Día"
             type="date"
@@ -35,6 +37,7 @@ export function Workdays({ date }: { date: string }) {
             onChange={(e) => e.target.value && navigate({ name: "workdays", date: e.target.value })}
             className="date-field"
           />
+          </>
         }
       />
       <Loadable
@@ -44,7 +47,11 @@ export function Workdays({ date }: { date: string }) {
         isEmpty={(items) => items.length === 0}
         empty={<EmptyState title="No hay jornadas ese día." description="Elegí otro día en el calendario." />}
       >
-        {(items) => <WorkdayTable workdays={items} now={now} caption={`Jornadas del ${longDate(date)}`} />}
+        {(items) => (
+          <section className="panel-card" aria-label="Jornadas del día">
+            <WorkdayTable workdays={items} now={now} caption={`Jornadas del ${longDate(date)}`} />
+          </section>
+        )}
       </Loadable>
     </>
   );

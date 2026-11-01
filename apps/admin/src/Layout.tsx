@@ -1,24 +1,26 @@
-import { Badge, Button } from "@routcontrol/ui";
+import { Avatar, Brand, IconDashboard, IconLogout, IconMap, IconUsers } from "@routcontrol/ui";
 import type { ReactNode } from "react";
 
-import { useAdmin } from "./adminApp";
-import { Brand } from "./Brand";
+import { useAdmin, useSession } from "./adminApp";
 import { href, type Route, today } from "./router";
 import { ROLE_LABEL, type SessionInfo } from "./session";
 
-const NAV: Array<{ label: string; route: Route; matches: Route["name"][] }> = [
-  { label: "Inicio", route: { name: "dashboard" }, matches: ["dashboard"] },
-  { label: "Jornadas", route: { name: "workdays", date: today() }, matches: ["workdays", "workday"] },
-  { label: "Repartidores", route: { name: "drivers" }, matches: ["drivers"] },
+const NAV: Array<{ label: string; route: Route; matches: Route["name"][]; icon: ReactNode }> = [
+  { label: "Inicio", route: { name: "dashboard" }, matches: ["dashboard"], icon: <IconDashboard /> },
+  { label: "Jornadas", route: { name: "workdays", date: today() }, matches: ["workdays", "workday"], icon: <IconMap /> },
+  { label: "Repartidores", route: { name: "drivers" }, matches: ["drivers"], icon: <IconUsers /> },
 ];
 
-/** Barra lateral + encabezado. En pantallas angostas la barra pasa arriba. */
+/** Barra lateral (Panel.dc.html). En pantallas angostas pasa arriba. */
 export function Layout({ route, session, children }: { route: Route; session: SessionInfo; children: ReactNode }) {
   const app = useAdmin();
+  const name = session.user.full_name || session.user.email;
   return (
     <div className="shell">
       <aside className="sidebar">
-        <Brand name={app.config.appName} subtitle="Panel" inverse />
+        <div className="sidebar__brand">
+          <Brand name={app.config.appName} markSize={40} textSize={19} hole="var(--rc-sidebar)" />
+        </div>
         <nav aria-label="Secciones">
           <ul className="sidebar__nav">
             {NAV.map((item) => {
@@ -26,6 +28,7 @@ export function Layout({ route, session, children }: { route: Route; session: Se
               return (
                 <li key={item.label}>
                   <a className="sidebar__link" href={href(item.route)} aria-current={current ? "page" : undefined}>
+                    {item.icon}
                     {item.label}
                   </a>
                 </li>
@@ -33,36 +36,60 @@ export function Layout({ route, session, children }: { route: Route; session: Se
             })}
           </ul>
         </nav>
-      </aside>
-      <div className="main">
-        <header className="header">
-          <div className="header__org">
-            <strong>{session.organization.name}</strong>
-            {session.organization.is_demo ? <Badge tone="warning">Datos de demostración</Badge> : null}
-          </div>
-          <div className="header__user">
-            <span>
-              {session.user.full_name || session.user.email} · <span className="rc-muted">{ROLE_LABEL[session.role]}</span>
+        <div className="user-card">
+          <Avatar name={name} size={40} ring />
+          <div className="user-card__text">
+            <span className="user-card__name">{name}</span>
+            <span className="user-card__role">
+              {ROLE_LABEL[session.role]} · {session.organization.name}
             </span>
-            <Button variant="ghost" size="sm" onClick={() => void app.session.logout()}>
-              Salir
-            </Button>
           </div>
-        </header>
-        <main className="content">{children}</main>
-      </div>
+          <button type="button" className="rc-icon-btn user-card__logout" aria-label="Salir" title="Salir" onClick={() => void app.session.logout()}>
+            <IconLogout />
+          </button>
+        </div>
+      </aside>
+      <main className="content">{children}</main>
     </div>
   );
 }
 
-export function PageTitle({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
+export function PageTitle({
+  eyebrow,
+  title,
+  description,
+  actions,
+  back,
+}: {
+  eyebrow?: ReactNode;
+  title: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  back?: ReactNode;
+}) {
   return (
     <div className="page-title">
-      <div>
-        <h1>{title}</h1>
-        {description ? <p className="rc-muted">{description}</p> : null}
+      <div className="page-title__main">
+        {back}
+        <div className="page-title__text">
+          {eyebrow ? <span className="rc-eyebrow">{eyebrow}</span> : null}
+          <h1>{title}</h1>
+          {description ? <div className="page-title__description">{description}</div> : null}
+        </div>
       </div>
-      {actions}
+      {actions ? <div className="page-title__actions">{actions}</div> : null}
     </div>
+  );
+}
+
+/** Marca de demostración: siempre visible arriba de cada página cuando la empresa es de demo. */
+export function DemoChip() {
+  const state = useSession();
+  if (state.status !== "authenticated" || !state.session.organization.is_demo) return null;
+  return (
+    <span className="rc-chip rc-chip--warn">
+      <span className="rc-chip__dot" aria-hidden="true" />
+      Datos de demostración
+    </span>
   );
 }

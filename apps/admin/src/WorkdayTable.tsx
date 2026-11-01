@@ -1,5 +1,5 @@
 import { isWithoutSignal, type WorkdayWithDriver } from "@routcontrol/domain";
-import { Badge, formatAgo, formatDuration, formatTime } from "@routcontrol/ui";
+import { Avatar, Badge, formatAgo, formatDuration, formatTime } from "@routcontrol/ui";
 
 import { navigate } from "./router";
 
@@ -32,9 +32,12 @@ export function WorkdayTable({ workdays, now, caption }: { workdays: WorkdayWith
             return (
               <tr key={w.id} className="rc-table__row--link" onClick={() => navigate({ name: "workday", id: w.id })}>
                 <td>
-                  <a href={`#/jornadas/${w.id}`} onClick={(e) => e.stopPropagation()}>
-                    {w.driver.name}
-                  </a>
+                  <span className="name-cell">
+                    <Avatar name={w.driver.name} size={32} />
+                    <a href={`#/jornadas/${w.id}`} onClick={(e) => e.stopPropagation()}>
+                      {w.driver.name}
+                    </a>
+                  </span>
                 </td>
                 <td>
                   <WorkdayStatus workday={w} now={now} />
