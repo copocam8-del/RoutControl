@@ -11,7 +11,11 @@ Cada `.dc.html` es una pantalla: el HTML y los estilos en línea son la especifi
 | `Inicio.dc.html` | Inicio sin jornada |
 | `Jornada.dc.html` | Jornada en curso |
 | `Recorrido.dc.html` | Mi recorrido (mapa) |
-| `Panel.dc.html` | Panel de administración: inicio |
+| `PanelBienvenida.dc.html` | Panel: bienvenida animada (igual que la app, en grande) → pasa al login |
+| `PanelLogin.dc.html` | Panel: ingresar (panel violeta con recorrido animado a la izquierda, formulario a la derecha) |
+| `Panel.dc.html` | Panel: inicio |
+| `PanelJornadas.dc.html` | Panel: jornadas (día, filtros, tabla y recorrido de la fila elegida) |
+| `PanelRepartidores.dc.html` | Panel: repartidores (buscador y una tarjeta por repartidor) |
 
 ## Tokens
 
@@ -19,7 +23,7 @@ Cada `.dc.html` es una pantalla: el HTML y los estilos en línea son la especifi
 |---|---|
 | Fondo | `#070B1F` |
 | Superficie | `#11183A` (tarjetas), `#1A2350` (chips y botones secundarios), `#0B1130` (barra lateral del panel), `#0C1230` (mapa) |
-| Bordes | `#1F2860`, `#2A3470` |
+| Bordes | `#1F2860`, `#2A3470` (tarjetas); `#5A67B0` en campos de formulario (contraste 3:1) |
 | Texto | `#F3F5FF` (principal), `#D5DBF7` (secundario fuerte), `#A3AED6` (secundario) |
 | Acción principal | violeta `#7C5CFF` con sombra `0 12px 32px rgba(124,92,255,.40)` |
 | Acento | violeta claro `#A78BFA` / `#C4B5FD`, azul `#4D8DFF` / `#7FB0FF` |
@@ -31,3 +35,7 @@ Cada `.dc.html` es una pantalla: el HTML y los estilos en línea son la especifi
 | Alturas | acción principal 60–64 px, campos 56 px, botones secundarios 56 px |
 
 Los datos de las maquetas (nombres, números, direcciones entre corchetes) son de ejemplo: en la app van los datos reales.
+
+## Panel (aprobado el 01/11/2026, 19:50)
+
+El panel usa solo datos que el sistema ya tiene en la etapa 0 (jornadas, ubicaciones, señal), así que se implementa **igual** a las maquetas. La bienvenida y el login del panel siguen las mismas reglas que en la app: la bienvenida dura unos 2 segundos, una vez por apertura, se saltea con un clic y respeta `prefers-reduced-motion`.

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel: bienvenida</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+@keyframes rcPop{0%{opacity:0;transform:scale(.6) rotate(-8deg)}12%{opacity:1;transform:scale(1.06) rotate(0)}18%{transform:scale(1)}82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.08)}}
+@keyframes rcRise{0%,14%{opacity:0;transform:translateY(22px)}26%{opacity:1;transform:translateY(0)}82%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+@keyframes rcFade{0%,30%{opacity:0}42%{opacity:1}82%{opacity:1}100%{opacity:0}}
+@keyframes rcGlow{0%,100%{opacity:.35;transform:scale(.9)}50%{opacity:.7;transform:scale(1.1)}}
+@keyframes rcDot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+@keyframes rcDraw{0%,10%{stroke-dashoffset:120}40%,100%{stroke-dashoffset:0}}
+@keyframes rcLines{0%{stroke-dashoffset:1600}60%,100%{stroke-dashoffset:0}}
+.rc-logo{animation:rcPop 4.2s cubic-bezier(.2,.8,.2,1) infinite}
+.rc-name{animation:rcRise 4.2s ease-out infinite}
+.rc-tag{animation:rcFade 4.2s ease-out infinite}
+.rc-glow{animation:rcGlow 4.2s ease-in-out infinite}
+.rc-route{stroke-dasharray:120;animation:rcDraw 4.2s ease-out infinite}
+.rc-bg{stroke-dasharray:1600;animation:rcLines 4.2s ease-out infinite}
+.rc-d1{animation:rcDot 1.2s ease-in-out infinite}
+.rc-d2{animation:rcDot 1.2s ease-in-out .2s infinite}
+.rc-d3{animation:rcDot 1.2s ease-in-out .4s infinite}
+</style>
+</helmet>
+<a href="PanelLogin.dc.html" aria-label="Continuar al ingreso" style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #070B1F; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #F3F5FF; text-decoration: none">
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" aria-hidden="true" style="position: absolute; inset: 0">
+<path class="rc-bg" d="M-40 720 C 220 640, 300 760, 520 640 S 860 520, 1040 600 S 1340 520, 1500 420" stroke="#1A2350" stroke-width="3"></path>
+<path class="rc-bg" d="M-40 200 C 200 260, 380 120, 600 200 S 980 320, 1180 220 S 1400 160, 1500 240" stroke="#1A2350" stroke-width="3"></path>
+<circle cx="520" cy="640" r="6" fill="#2A3470"></circle><circle cx="1040" cy="600" r="6" fill="#2A3470"></circle><circle cx="600" cy="200" r="6" fill="#2A3470"></circle><circle cx="1180" cy="220" r="6" fill="#2A3470"></circle>
+</svg>
+<div class="rc-glow" aria-hidden="true" style="position: absolute; width: 640px; height: 640px; left: 400px; top: 130px; border-radius: 50%; background: radial-gradient(closest-side, rgba(124,92,255,.50), rgba(77,141,255,.16) 55%, rgba(7,11,31,0) 100%)"></div>
+<div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 28px">
+<div class="rc-logo" style="width: 132px; height: 132px; border-radius: 38px; background: linear-gradient(140deg, #4D8DFF 0%, #7C5CFF 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 24px 64px rgba(124,92,255,.45)">
+<svg width="76" height="76" viewBox="0 0 60 60" fill="none" aria-hidden="true"><path class="rc-route" d="M14 44 C 14 30, 30 34, 30 24 S 44 16, 46 14" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"></path><circle cx="14" cy="44" r="6" fill="#FFFFFF"></circle><circle cx="46" cy="14" r="7" fill="#070B1F" stroke="#FFFFFF" stroke-width="4"></circle></svg>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+<div class="rc-name" style="font-size: 56px; font-weight: 800; letter-spacing: -0.03em">Route<span style="color: #A78BFA">Control</span></div>
+<div class="rc-tag" style="font-size: 20px; font-weight: 500; color: #A3AED6">Panel de operaciones</div>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; bottom: 96px; display: flex; gap: 10px">
+<span class="rc-d1" style="width: 10px; height: 10px; border-radius: 50%; background: #7C5CFF"></span>
+<span class="rc-d2" style="width: 10px; height: 10px; border-radius: 50%; background: #8B7BFF"></span>
+<span class="rc-d3" style="width: 10px; height: 10px; border-radius: 50%; background: #4D8DFF"></span>
+</div>
+</a>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
