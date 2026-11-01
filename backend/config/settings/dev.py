@@ -12,3 +12,5 @@ REFRESH_COOKIE_SECURE = env_bool("REFRESH_COOKIE_SECURE", False)
 # de mismo origen del refresh (ADR-005) funcione con cualquier URL de túnel, sin tocar
 # CSRF_TRUSTED_ORIGINS cada vez que la URL cambia. En producción lo define el despliegue.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+LOG_FAILED_LOGIN_SHAPE = env_bool("LOG_FAILED_LOGIN_SHAPE", True)

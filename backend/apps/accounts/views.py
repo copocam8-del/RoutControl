@@ -6,6 +6,8 @@ origen) y en producción con la API en ``api.<dominio>`` (mismo sitio, CORS con 
 
 from __future__ import annotations
 
+import logging
+import unicodedata
 import uuid
 from urllib.parse import urlsplit
 
@@ -21,6 +23,34 @@ from apps.tenancy.context import app_db, tenant_context
 from apps.tenancy.models import Membership
 
 from . import sessions
+from .backends import normalize_email
+
+logger = logging.getLogger("routcontrol.auth")
+
+
+def password_shape(password: str) -> dict:
+    """Describe la contraseña SIN revelarla: lo que cambia un teclado de teléfono."""
+    return {
+        "largo": len(password),
+        "espacio_al_inicio": password[:1].isspace(),
+        "espacio_al_final": password[-1:].isspace(),
+        "primera_es_mayuscula": password[:1].isupper(),
+        "mayusculas": sum(c.isupper() for c in password),
+        "no_ascii": [f"pos {i}: U+{ord(c):04X} {unicodedata.name(c, '?')}" for i, c in enumerate(password) if ord(c) > 127],
+    }
+
+
+def log_failed_login(request, raw_email, email: str, password: str) -> None:
+    from .models import User
+
+    logger.warning(
+        "login fallido | email recibido=%r | normalizado=%r | existe=%s | contraseña=%s | user-agent=%r",
+        raw_email,
+        email,
+        User.objects.filter(email__iexact=email).exists(),
+        password_shape(password),
+        request.headers.get("User-Agent", "")[:120],
+    )
 
 
 def active_membership_ids(user_id) -> list[tuple[uuid.UUID, uuid.UUID]]:
@@ -108,10 +138,12 @@ class LoginView(APIView):
     def post(self, request):
         data = LoginSerializer(data=request.data)
         data.is_valid(raise_exception=True)
-        user = authenticate(
-            request, username=data.validated_data["email"].lower(), password=data.validated_data["password"]
-        )
+        email = normalize_email(data.validated_data["email"])
+        password = data.validated_data["password"]
+        user = authenticate(request, username=email, password=password)
         if user is None:
+            if settings.LOG_FAILED_LOGIN_SHAPE:
+                log_failed_login(request, data.initial_data.get("email"), email, password)
             return Response({"detail": "Email o contraseña incorrectos."}, status=status.HTTP_401_UNAUTHORIZED)
 
         orgs = user_memberships(user.id)
