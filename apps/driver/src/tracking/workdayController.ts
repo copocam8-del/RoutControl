@@ -110,27 +110,42 @@ export class WorkdayController {
 
   // --- Iniciar jornada ------------------------------------------------------------------------
 
-  async start(): Promise<void> {
+  /**
+   * Iniciar jornada. Hay que llamarlo directamente desde el toque del botón: la ubicación se
+   * pide acá, ANTES de cualquier `await`. iOS solo muestra el pedido de permiso si la llamada
+   * sale del gesto del usuario; leer IndexedDB o esperar a `resume()` antes ya lo pierde.
+   */
+  start(): Promise<void> {
+    if (this.state.phase !== "idle" && this.state.phase !== "loading") return Promise.resolve();
+    // Sin ubicación no se puede iniciar (§8.3): es la ubicación garantizada del evento.
+    const location = this.deps.device.location.current().then(
+      (fix) => ({ ok: true as const, fix }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
+    return this.doStart(location);
+  }
+
+  private async doStart(location: Promise<{ ok: true; fix: PositionFix } | { ok: false; error: unknown }>): Promise<void> {
     const { db, api, device } = this.deps;
     await this.whenReady();
     if (this.state.phase !== "idle") return;
     this.set({ phase: "starting", error: null, conflict: null });
 
-    let fix: PositionFix;
-    try {
-      // Sin ubicación no se puede iniciar (§8.3): es la ubicación garantizada del evento.
-      fix = await device.location.current();
-    } catch (error) {
-      const denied = error instanceof LocationError && error.code === "permission_denied";
+    const result = await location;
+    if (!result.ok) {
+      const denied = result.error instanceof LocationError && result.error.code === "permission_denied";
+      // No se inicia nada: ni jornada en el servidor ni registro local.
       this.set({
         phase: "idle",
         gps: denied ? "denied" : "error",
         error: denied
-          ? "Para iniciar la jornada tenés que permitir el acceso a la ubicación."
-          : "No se pudo obtener la ubicación. Probá de nuevo al aire libre.",
+          ? "No se puede iniciar la jornada sin ubicación: el permiso está bloqueado."
+          : "No se pudo obtener la ubicación y la jornada no se inició. Revisá que la ubicación del teléfono esté activada y probá de nuevo al aire libre.",
       });
       return;
     }
+    const fix = result.fix;
+    if (this.state.gps === "denied" || this.state.gps === "error") this.set({ gps: "off" }); // ya hay ubicación
 
     // El mismo id en cada reintento: el servidor no crea dos jornadas.
     let workdayId = await getMeta<string>(db, PENDING_START_KEY);
@@ -277,7 +292,12 @@ export class WorkdayController {
     }
     this.stopWatch = device.location.watch(
       (fix) => void this.onFix(fix),
-      (error) => this.set({ gps: error.code === "permission_denied" ? "denied" : "error" }),
+      (error) => {
+        // Sin permiso el navegador no vuelve a intentar: se suelta el seguimiento para
+        // retomarlo cuando la app vuelve a primer plano (por ejemplo, después de ir a Ajustes).
+        if (error.code === "permission_denied") this.stopWatching("denied");
+        else this.set({ gps: "error" });
+      },
     );
     this.set({ gps: "watching" });
   }
@@ -288,7 +308,20 @@ export class WorkdayController {
     this.set({ gps });
   }
 
+  /**
+   * Al volver de Ajustes: si el permiso ya no figura como bloqueado, se saca el aviso para que
+   * el repartidor pueda volver a tocar "Iniciar jornada" (que es lo que dispara el pedido).
+   */
+  async recheckPermission(): Promise<void> {
+    if (this.state.phase !== "idle" || this.state.gps !== "denied") return;
+    const permission = await this.deps.device.location.permission();
+    if (permission !== "denied" && this.state.phase === "idle" && this.state.gps === "denied") {
+      this.set({ gps: "off", error: null });
+    }
+  }
+
   private async onVisibility(visible: boolean): Promise<void> {
+    if (visible && this.state.phase === "idle") return this.recheckPermission();
     if (this.state.phase !== "active") return;
     if (visible) {
       this.startWatching();

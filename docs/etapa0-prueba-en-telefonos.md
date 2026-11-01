@@ -53,7 +53,7 @@ Hay una sola jornada activa por repartidor, así que **cada teléfono usa un usu
 1. Abrí **Safari** (no Chrome) y entrá a la dirección del túnel.
 2. Tocá **Compartir** (el cuadrado con la flecha) → **Agregar a inicio** → **Agregar**.
 3. Abrí la app desde el ícono nuevo de la pantalla de inicio (no desde Safari).
-4. Revisá en **Ajustes → Privacidad y seguridad → Localización** que la localización esté activada.
+4. Revisá en **Ajustes → Privacidad y seguridad → Localización** que la localización esté activada y que **Sitios web de Safari** no esté en **Nunca** (elegí **Mientras se usa la app**). Si está en **Nunca**, el iPhone rechaza la ubicación sin preguntar.
 
 ## 4. Qué probar en cada teléfono (unos 20 minutos, afuera o cerca de una ventana)
 
@@ -61,6 +61,7 @@ Hay una sola jornada activa por repartidor, así que **cada teléfono usa un usu
 2. **Ingresar** con el usuario de ese teléfono.
 3. **Iniciar jornada:** aparece el aviso de privacidad → "Entendido" → el teléfono pide permiso de ubicación → elegí **"Mientras se usa la app"** (Android) o **"Permitir al usar la app"** (iPhone).
    - ✅ Esperado: el cronómetro corre, "Registrando recorrido (con la app abierta)" en verde, "Conectado y actualizado".
+   - Si el teléfono **no pregunta** y aparece "La ubicación está bloqueada para esta app", la app muestra los pasos para habilitarla (distintos en iPhone y en Android). La jornada **no** se inicia sin ubicación. Después de habilitarla, tocá "Ya lo habilité, iniciar jornada". Anotalo en Notas.
 4. **Caminar 3 minutos con la app abierta.**
    - ✅ Esperado: "Última ubicación hace pocos segundos". En **Diagnóstico**, los "Puntos pendientes de envío" bajan a 0 cada pocos segundos.
 5. **Modo avión:** activalo y caminá 3 minutos más con la app abierta.

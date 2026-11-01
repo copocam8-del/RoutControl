@@ -1,4 +1,5 @@
 import { Alert, Badge, Button, Card, formatAgo, formatElapsed, LoadingState, StatusLine, type StatusTone } from "@routcontrol/ui";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 
 import type { GpsState } from "../tracking/workdayController";
@@ -7,6 +8,7 @@ import { ConsentDialog } from "./ConsentDialog";
 import { Diagnostics } from "./Diagnostics";
 import { useApp, useNow, useStore } from "./hooks";
 import { InstallHint } from "./InstallHint";
+import { LocationHelp } from "./LocationHelp";
 import { SyncIndicator } from "./SyncIndicator";
 import { TrackScreen } from "./TrackScreen";
 
@@ -15,7 +17,7 @@ const CONSENT_KEY = "consent-accepted-v1";
 const GPS_TEXT: Record<GpsState, { tone: StatusTone; text: string; actionable: boolean }> = {
   watching: { tone: "ok", text: "Registrando recorrido (con la app abierta)", actionable: false },
   paused: { tone: "warn", text: "Recorrido en pausa: la app está en segundo plano", actionable: false },
-  denied: { tone: "error", text: "GPS detenido: falta el permiso de ubicación. Tocá para revisar", actionable: true },
+  denied: { tone: "error", text: "Ubicación bloqueada: falta el permiso. Tocá para ver el diagnóstico", actionable: true },
   error: { tone: "error", text: "GPS detenido: no hay señal de ubicación. Tocá para revisar", actionable: true },
   off: { tone: "idle", text: "GPS apagado (fuera de jornada)", actionable: false },
 };
@@ -29,6 +31,9 @@ export function HomeScreen() {
   const [askConsent, setAskConsent] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showTracks, setShowTracks] = useState(false);
+  // Se lee de antemano: al tocar "Iniciar jornada" no puede haber ningún await antes de pedir la
+  // ubicación (iOS solo muestra el pedido de permiso dentro del toque). null = todavía leyendo.
+  const consented = useLiveQuery(async () => Boolean((await app.db.meta.get(CONSENT_KEY))?.value), [app], null);
 
   if (session.status !== "authenticated") return null;
   if (showTracks) return <TrackScreen onBack={() => setShowTracks(false)} />;
@@ -36,15 +41,15 @@ export function HomeScreen() {
   const gps = GPS_TEXT[wd.gps];
   const canLogout = !active && sync.pending === 0;
 
-  async function onStartPressed() {
-    if ((await app.db.meta.get(CONSENT_KEY))?.value) return app.workday.start();
-    setAskConsent(true);
+  function onStartPressed() {
+    if (consented) void app.workday.start();
+    else setAskConsent(true);
   }
 
-  async function onConsent() {
-    await app.db.meta.put({ key: CONSENT_KEY, value: new Date().toISOString() });
+  function onConsent() {
+    void app.workday.start(); // primero, sincrónico: el pedido de permiso sale de este toque
     setAskConsent(false);
-    await app.workday.start();
+    void app.db.meta.put({ key: CONSENT_KEY, value: new Date().toISOString() });
   }
 
   return (
@@ -98,7 +103,16 @@ export function HomeScreen() {
       />
       <SyncIndicator status={sync} now={now} />
 
-      {wd.error ? <Alert tone="error">{wd.error}</Alert> : null}
+      {wd.gps === "denied" ? (
+        <LocationHelp
+          info={app.device.info()}
+          host={globalThis.location?.host ?? ""}
+          active={active}
+          onRetry={wd.phase === "idle" ? () => void app.workday.start() : undefined}
+        />
+      ) : null}
+      {/* Sin jornada, la ayuda ya explica el error de permiso; con jornada se muestran los dos. */}
+      {wd.error && !(wd.gps === "denied" && wd.phase === "idle") ? <Alert tone="error">{wd.error}</Alert> : null}
       {wd.conflict ? (
         <Alert tone="warning" title="Tenés otra jornada abierta">
           <p style={{ margin: "4px 0 12px" }}>
@@ -126,7 +140,7 @@ export function HomeScreen() {
           <Button
             size="lg"
             block
-            onClick={() => void onStartPressed()}
+            onClick={onStartPressed}
             disabled={wd.phase !== "idle" && wd.phase !== "starting"}
             loading={wd.phase === "starting"}
             loadingLabel="Obteniendo ubicación…"
@@ -148,7 +162,7 @@ export function HomeScreen() {
       {showDiagnostics ? <Diagnostics /> : null}
 
       {askConsent ? (
-        <ConsentDialog appName={app.config.appName} onAccept={() => void onConsent()} onCancel={() => setAskConsent(false)} />
+        <ConsentDialog appName={app.config.appName} onAccept={onConsent} onCancel={() => setAskConsent(false)} />
       ) : null}
     </main>
   );

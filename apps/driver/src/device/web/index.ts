@@ -81,12 +81,19 @@ interface WakeLockSentinelLike {
   release(): Promise<void>;
 }
 
-function describeDevice(ua: string): Pick<DeviceInfo, "model" | "os_version"> {
+export function describeDevice(ua: string, maxTouchPoints = 0): Pick<DeviceInfo, "model" | "os_version" | "platform"> {
   const android = /Android\s([\d.]+)(?:;\s([^;)]+))?/.exec(ua);
-  if (android) return { os_version: `Android ${android[1]}`, model: (android[2] ?? "Android").trim() };
-  const ios = /(iPhone|iPad); CPU (?:iPhone )?OS ([\d_]+)/.exec(ua);
-  if (ios) return { os_version: `iOS ${ios[2]!.replace(/_/g, ".")}`, model: ios[1]! };
-  return { os_version: "", model: "Navegador" };
+  if (android) return { os_version: `Android ${android[1]}`, model: (android[2] ?? "Android").trim(), platform: "android" };
+  const ios = /(iPhone|iPad|iPod); CPU (?:iPhone )?OS ([\d_]+)/.exec(ua);
+  if (ios) return { os_version: `iOS ${ios[2]!.replace(/_/g, ".")}`, model: ios[1]!, platform: "ios" };
+  // El iPad con iPadOS se presenta como una Mac; lo delata la pantalla táctil.
+  if (/Macintosh/.test(ua) && maxTouchPoints > 1) return { os_version: "iPadOS", model: "iPad", platform: "ios" };
+  return { os_version: "", model: "Navegador", platform: "other" };
+}
+
+function isStandalone(): boolean {
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return nav.standalone === true || Boolean(globalThis.matchMedia?.("(display-mode: standalone)").matches);
 }
 
 export function createWebDeviceServices(): DeviceServices {
@@ -153,6 +160,11 @@ export function createWebDeviceServices(): DeviceServices {
         return () => document.removeEventListener("visibilitychange", handler);
       },
     },
-    info: () => ({ runtime: "PWA", app_version: config.appVersion, ...describeDevice(navigator.userAgent) }),
+    info: () => ({
+      runtime: "PWA",
+      app_version: config.appVersion,
+      standalone: isStandalone(),
+      ...describeDevice(navigator.userAgent, navigator.maxTouchPoints),
+    }),
   };
 }

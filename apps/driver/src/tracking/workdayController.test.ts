@@ -28,7 +28,7 @@ describe("WorkdayController", () => {
     env.device.nextFix = new LocationError("permission_denied");
     await env.workday.start();
     expect(env.workday.getState()).toMatchObject({ phase: "idle", gps: "denied" });
-    expect(env.workday.getState().error).toContain("permitir el acceso a la ubicación");
+    expect(env.workday.getState().error).toContain("No se puede iniciar la jornada sin ubicación");
     expect(env.backend.workdays.size).toBe(0);
   });
 

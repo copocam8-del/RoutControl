@@ -41,9 +41,9 @@ describe("Inicio", () => {
     device.nextFix = new LocationError("permission_denied");
     await app.workday.start();
     withApp(app, <HomeScreen />);
-    await userEvent.click(screen.getByRole("button", { name: /GPS detenido: falta el permiso/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Ubicación bloqueada: falta el permiso/ }));
     expect(screen.getByRole("region", { name: "Diagnóstico" })).toBeTruthy();
-    expect(screen.getByRole("alert").textContent).toContain("permitir el acceso a la ubicación");
+    expect(screen.getByRole("alert").textContent).toContain("No se puede iniciar la jornada sin ubicación");
     app.workday.dispose();
   });
 });

@@ -62,6 +62,10 @@ export interface DeviceInfo {
   model: string;
   os_version: string;
   app_version: string;
+  /** Para mostrar los pasos de ajustes que corresponden a cada teléfono. */
+  platform: "ios" | "android" | "other";
+  /** Abierta como app instalada (pantalla de inicio) y no dentro del navegador. */
+  standalone: boolean;
 }
 
 export interface AppLifecycleService {

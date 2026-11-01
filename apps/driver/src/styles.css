@@ -198,3 +198,24 @@
   font-weight: 700;
   text-transform: capitalize;
 }
+
+/* Pasos para habilitar la ubicación (iPhone / Android). */
+.location-help__lead {
+  margin: 6px 0;
+}
+.location-help__platform {
+  margin: 12px 0 4px;
+  font-size: 16px;
+}
+.location-help__steps {
+  margin: 8px 0;
+  padding-left: 22px;
+  line-height: 1.5;
+}
+.location-help__steps li + li {
+  margin-top: 8px;
+}
+.location-help__note {
+  margin: 6px 0 12px;
+  font-size: 14px;
+}
