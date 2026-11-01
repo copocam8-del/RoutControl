@@ -11,7 +11,7 @@ export function formatDistance(meters: number): string {
 }
 
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 }
 
 export function formatDay(iso: string): string {
@@ -34,4 +34,24 @@ export function formatAgo(at: number | null, now: number): string {
   const m = Math.round(s / 60);
   if (m < 60) return `hace ${m} min`;
   return `hace ${Math.round(m / 60)} h`;
+}
+
+/** "Domingo 1 de noviembre" (con mayúscula inicial, como en las maquetas). */
+export function formatLongDate(at: string | number | Date): string {
+  const text = new Date(at).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }).replace(",", "");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Saludo según la hora del teléfono. */
+export function greeting(at: number | Date = Date.now()): string {
+  const h = new Date(at).getHours();
+  if (h >= 5 && h < 13) return "Buen día,";
+  if (h >= 13 && h < 20) return "Buenas tardes,";
+  return "Buenas noches,";
+}
+
+/** Duración entre dos momentos: "8 h 28 min". */
+export function formatSpan(fromIso: string, to: string | number): string {
+  const end = typeof to === "number" ? to : Date.parse(to);
+  return formatDuration(Math.max(0, (end - Date.parse(fromIso)) / 1000));
 }

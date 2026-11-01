@@ -4,7 +4,17 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   Alert,
+  Avatar,
   Button,
+  Chip,
+  formatLongDate,
+  formatSpan,
+  formatTime,
+  greeting,
+  initials,
+  ListItem,
+  splitName,
+  Wordmark,
   Checkbox,
   EmptyState,
   ErrorState,
@@ -193,5 +203,102 @@ describe("formatos", () => {
     expect([formatDistance(850.4), formatDistance(1234.5)]).toEqual(["850 m", "1,2 km"]);
     expect(formatElapsed("2026-11-01T12:00:00Z", Date.parse("2026-11-01T13:02:03Z"))).toBe("1:02:03");
     expect([formatAgo(null, 0), formatAgo(0, 30_000), formatAgo(0, 600_000)]).toEqual(["nunca", "hace 30 s", "hace 10 min"]);
+  });
+});
+
+describe("formatos de las maquetas", () => {
+  it("hora en 24 h, fecha larga con mayúscula, duración entre dos momentos y saludo", () => {
+    expect(formatTime(new Date(2026, 10, 1, 19, 5).toISOString())).toBe("19:05");
+    expect(formatLongDate(new Date(2026, 10, 1, 10))).toBe("Domingo 1 de noviembre");
+    expect(formatSpan("2026-11-01T08:12:00Z", "2026-11-01T16:40:00Z")).toBe("8 h 28 min");
+    expect([greeting(new Date(2026, 10, 1, 8)), greeting(new Date(2026, 10, 1, 15)), greeting(new Date(2026, 10, 1, 23))]).toEqual([
+      "Buen día,",
+      "Buenas tardes,",
+      "Buenas noches,",
+    ]);
+  });
+});
+
+describe("marca y avatar", () => {
+  it.each([
+    ["Juan Pérez", "JP"],
+    ["Repartidor 1 (demo)", "R1"],
+    ["repartidor1@norte.demo", "R1"],
+    ["Dueña Norte (demo)", "DN"],
+    ["camila", "CA"],
+  ])("iniciales de %s → %s", (name, expected) => expect(initials(name)).toBe(expected));
+
+  it("el nombre se parte en dos colores (Route + Control) y cualquier otro queda entero", () => {
+    expect(splitName("RouteControl")).toEqual(["Route", "Control"]);
+    expect(splitName("Repartos")).toEqual(["Repartos", ""]);
+    render(<Wordmark name="RouteControl" />);
+    expect(screen.getByText("Control").className).toBe("rc-brand__accent");
+  });
+
+  it("el avatar es decorativo (el nombre ya está escrito al lado)", () => {
+    const { container } = render(<Avatar name="Juan Pérez" />);
+    expect(container.firstElementChild?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
+describe("Chip y ListItem", () => {
+  it("una pastilla con onClick es un botón; sin onClick, no", async () => {
+    const onClick = vi.fn();
+    render(
+      <>
+        <Chip tone="ok">Conectado</Chip>
+        <Chip onClick={onClick}>Empresa</Chip>
+      </>,
+    );
+    expect(screen.queryByRole("button", { name: "Conectado" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Empresa" }));
+    expect(onClick).toHaveBeenCalled();
+  });
+
+  it("una fila solo es botón si hace algo", async () => {
+    const onClick = vi.fn();
+    render(
+      <>
+        <ListItem icon="i" title="Batería al 34%" detail="Llevá el cargador" />
+        <ListItem icon="i" title="Diagnóstico" onClick={onClick} />
+      </>,
+    );
+    expect(screen.queryByRole("button", { name: /Batería/ })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /Diagnóstico/ }));
+    expect(onClick).toHaveBeenCalled();
+  });
+});
+
+describe("TextField con ícono y botón", () => {
+  it("el botón queda dentro del campo y la etiqueta sigue asociada al input", () => {
+    render(<TextField label="Contraseña" icon={<svg />} trailing={<button type="button">Mostrar</button>} />);
+    const input = screen.getByLabelText("Contraseña");
+    expect(input.tagName).toBe("INPUT");
+    expect(input.closest(".rc-field")?.className).toContain("rc-field--trailing");
+    expect(screen.getByRole("button", { name: "Mostrar" })).toBeTruthy();
+  });
+});
+
+describe("useLoad con actualización periódica", () => {
+  const describeError = () => "falló";
+
+  it("vuelve a consultar sin pasar por 'cargando' y, si falla, deja los datos que había", async () => {
+    let n = 0;
+    const seen: unknown[] = [];
+    const load = async () => {
+      n += 1;
+      if (n === 3) throw new Error("corte");
+      return n;
+    };
+    const { result } = renderHook(() => {
+      const r = useLoad(load, describeError, 40);
+      seen.push(r[0]);
+      return r;
+    });
+    await waitFor(() => expect((result.current[0] as { data?: number }).data ?? 0).toBeGreaterThanOrEqual(4), { timeout: 2000 });
+    // Después del primer dato nunca volvió a "cargando" ni mostró el error del corte (el intento 3).
+    const firstReady = seen.findIndex((s) => (s as { status: string }).status === "ready");
+    expect(seen.slice(firstReady).every((s) => (s as { status: string }).status === "ready")).toBe(true);
+    expect(seen.some((s) => (s as { data?: number }).data === 3)).toBe(false);
   });
 });

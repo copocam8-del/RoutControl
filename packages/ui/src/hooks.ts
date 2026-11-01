@@ -10,6 +10,8 @@ import type { LoadState } from "./components/States";
 export function useLoad<T>(
   load: (() => Promise<T>) | null,
   describeError: (error: unknown) => string,
+  /** Si se pasa, vuelve a consultar cada tantos ms sin mostrar "Cargando…" (si falla, quedan los datos que había). */
+  refreshMs?: number,
 ): [LoadState<T>, () => void] {
   const [state, setState] = useState<LoadState<T>>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -29,6 +31,24 @@ export function useLoad<T>(
       current = false;
     };
   }, [load, describeError, attempt]);
+
+  useEffect(() => {
+    if (!load || !refreshMs) return;
+    let current = true;
+    const id = setInterval(() => {
+      load()
+        .then((data) => {
+          if (current) setState((s) => (s.status === "ready" ? { status: "ready", data } : s));
+        })
+        .catch(() => {
+          // Un corte momentáneo no borra lo que se está mostrando; el próximo intento lo corrige.
+        });
+    }, refreshMs);
+    return () => {
+      current = false;
+      clearInterval(id);
+    };
+  }, [load, refreshMs]);
 
   return [state, useCallback(() => setAttempt((n) => n + 1), [])];
 }

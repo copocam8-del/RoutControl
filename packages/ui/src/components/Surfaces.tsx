@@ -92,15 +92,124 @@ export function Badge({ tone = "neutral", children }: { tone?: BadgeTone; childr
   return <span className={`rc-badge rc-badge--${tone}`}>{children}</span>;
 }
 
-export function Stats({ label, items }: { label: string; items: Array<{ label: string; value: ReactNode }> }) {
+export interface StatItem {
+  label: string;
+  value: ReactNode;
+  tone?: "ok" | "warn";
+}
+
+/** Cifras en tarjetas chicas. `valueFirst`: el número arriba (Jornada); si no, la etiqueta arriba. */
+export function Stats({ label, items, valueFirst = false }: { label: string; items: StatItem[]; valueFirst?: boolean }) {
   return (
-    <section className="rc-card rc-stats" aria-label={label}>
+    <section className="rc-stats" aria-label={label}>
       {items.map((item) => (
-        <div key={item.label}>
-          <strong className="rc-stat__value">{item.value}</strong>
-          <span className="rc-stat__label">{item.label}</span>
+        <div
+          key={item.label}
+          className={["rc-stat", item.tone && `rc-stat--${item.tone}`, valueFirst && "rc-stat--value-first"].filter(Boolean).join(" ")}
+        >
+          {valueFirst ? (
+            <>
+              <strong className="rc-stat__value">{item.value}</strong>
+              <span className="rc-stat__label">{item.label}</span>
+            </>
+          ) : (
+            <>
+              <span className="rc-stat__label">{item.label}</span>
+              <strong className="rc-stat__value">{item.value}</strong>
+            </>
+          )}
         </div>
       ))}
     </section>
+  );
+}
+
+export type ChipTone = "neutral" | "ok" | "warn" | "error" | "busy";
+
+/** Pastilla de estado (conexión, GPS, empresa). Con `live`, el punto late (registrando). */
+export function Chip({
+  tone = "neutral",
+  dot = tone !== "neutral",
+  live = false,
+  icon,
+  children,
+  onClick,
+  title,
+}: {
+  tone?: ChipTone;
+  dot?: boolean;
+  live?: boolean;
+  icon?: ReactNode;
+  children: ReactNode;
+  onClick?: () => void;
+  title?: string;
+}) {
+  const className = ["rc-chip", tone !== "neutral" && `rc-chip--${tone}`, live && "rc-chip--live"].filter(Boolean).join(" ");
+  const content = (
+    <>
+      {dot ? <span className="rc-chip__dot" aria-hidden="true" /> : null}
+      {icon}
+      {children}
+    </>
+  );
+  return onClick ? (
+    <button type="button" className={className} onClick={onClick} title={title}>
+      {content}
+    </button>
+  ) : (
+    <span className={className} title={title}>
+      {content}
+    </span>
+  );
+}
+
+export type ItemTone = "ok" | "info" | "warn" | "gap" | "error" | "accent";
+
+/** Fila con ícono, título y detalle (las tarjetas chicas de las maquetas). */
+export function ListItem({
+  icon,
+  tone = "info",
+  title,
+  detail,
+  trailing,
+  onClick,
+  href,
+  className,
+}: {
+  icon: ReactNode;
+  tone?: ItemTone;
+  title: ReactNode;
+  detail?: ReactNode;
+  trailing?: ReactNode;
+  onClick?: () => void;
+  href?: string;
+  className?: string;
+}) {
+  const classes = ["rc-item", className].filter(Boolean).join(" ");
+  const content = (
+    <>
+      <span className={`rc-item__icon rc-item__icon--${tone}`} aria-hidden="true">
+        {icon}
+      </span>
+      <span className="rc-item__body">
+        <span className="rc-item__title">{title}</span>
+        {detail ? <span className="rc-item__detail">{detail}</span> : null}
+      </span>
+      {trailing}
+    </>
+  );
+  if (href) {
+    return (
+      <a className={classes} href={href}>
+        {content}
+      </a>
+    );
+  }
+  return onClick ? (
+    <button type="button" className={classes} onClick={onClick}>
+      {content}
+    </button>
+  ) : (
+    <div className={classes}>{content}</div>
   );
 }

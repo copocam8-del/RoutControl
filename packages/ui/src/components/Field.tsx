@@ -4,25 +4,37 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   label: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
+  /** Ícono a la izquierda, dentro del campo (decorativo). */
+  icon?: ReactNode;
+  /** Botón a la derecha, dentro del campo (por ejemplo, mostrar la contraseña). */
+  trailing?: ReactNode;
 }
 
 /** Campo de texto con etiqueta, ayuda y error asociados (aria-describedby / aria-invalid). */
-export function TextField({ label, hint, error, className, ...input }: TextFieldProps) {
+export function TextField({ label, hint, error, icon, trailing, className, ...input }: TextFieldProps) {
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   return (
-    <div className={["rc-field", className].filter(Boolean).join(" ")}>
+    <div className={["rc-field", icon && "rc-field--icon", trailing && "rc-field--trailing", className].filter(Boolean).join(" ")}>
       <label className="rc-field__label" htmlFor={id}>
         {label}
       </label>
-      <input
-        {...input}
-        id={id}
-        className="rc-field__input"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
-      />
+      <div className="rc-field__control">
+        {icon ? (
+          <span className="rc-field__icon" aria-hidden="true">
+            {icon}
+          </span>
+        ) : null}
+        <input
+          {...input}
+          id={id}
+          className="rc-field__input"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
+        />
+        {trailing ? <span className="rc-field__trailing">{trailing}</span> : null}
+      </div>
       {hint ? (
         <span id={hintId} className="rc-field__hint">
           {hint}

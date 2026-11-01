@@ -1,6 +1,6 @@
 # RouteControl — Paso 1: Análisis y planificación
 
-**Versión:** 0.5 (borrador para revisión)
+**Versión:** 0.5.2 (borrador para revisión)
 **Fecha:** 31/10/2026
 **Estado:** pendiente de aprobación final. Es la **única fuente de verdad** del proyecto: cualquier otro documento de planificación queda reemplazado por este.
 
@@ -9,6 +9,7 @@
 |---|---|
 | 0.1 | Primera propuesta (app móvil con React Native/Expo). |
 | 0.2 | Decisiones del cliente: SaaS multitenant desde el inicio; app del repartidor como PWA. Análisis de limitaciones reales de las PWA. |
+| 0.5.2 | §10.1: **tema oscuro de las maquetas aprobadas** (`docs/diseno/`), con violeta `#7C5CFF` para las acciones principales y Plus Jakarta Sans. Reemplaza a la 0.5.1. Ver ADR-007 v2. |
 | 0.5.1 | §10.1: paleta azul (principal) y violeta (acento), en lugar del ámbar. Ver ADR-007. |
 | 0.5 | **Primero la PWA, sin tiendas.** Se desarrolla y se lanza RouteControl como PWA para no depender de Google Play ni App Store al principio. La app nativa con Capacitor (y la subida a las tiendas) pasa a una etapa posterior. Mientras tanto el GPS funciona dentro de los límites de la PWA (§4). La etapa 0 pasa a ser la validación de la PWA en teléfonos reales: no requiere Mac ni cuentas de las tiendas. |
 | 0.4 | **La PWA es provisoria.** El destino final de la app del repartidor son Google Play y App Store. La PWA solo se usa mientras se esperan las aprobaciones de las tiendas, y después deja de ser el canal de los repartidores. Se agregó el plan de lanzamiento (§14.1). |
@@ -352,32 +353,49 @@ Siempre en el backend, después del filtro por empresa.
 ## 10. Experiencia de usuario y diseño visual
 
 ### 10.1 Tokens visuales
-> Actualizado el 01/11/2026 (ADR-007): **azul como color principal y violeta como acento**, en lugar del ámbar. La fuente de verdad es `packages/ui/src/tokens.ts`; las pruebas verifican el contraste de cada par (WCAG AA como mínimo y 7:1 en el texto que se lee en la calle, por la luz del sol).
+> Actualizado el 01/11/2026 (v0.5.2, ADR-007 v2): **tema oscuro de las maquetas aprobadas por el cliente** (`docs/diseno/`, que son la especificación visual obligatoria). Reemplaza la paleta clara de la v0.5.1.
+>
+> La fuente de verdad es `packages/ui/src/tokens.ts`. Las pruebas verifican:
+> - el contraste de cada par: WCAG AA como mínimo, y 7:1 en el texto principal y secundario;
+> - que estén todos los colores del README de las maquetas.
 
 | Token | Valor | Uso | Contraste |
 |---|---|---|---|
-| Azul 950 | `#0B1F4D` | Marca, barra lateral, cifras destacadas | Blanco encima: 15,9:1 |
-| Azul 700 | `#1D4ED8` | **Acción principal** (botones), enlaces | Blanco encima: 6,7:1 |
-| Azul 800 | `#1E40AF` | Acción principal presionada | Blanco encima: 8,7:1 |
-| Azul 50 / 100 | `#EFF6FF` / `#DBEAFE` | Fondos suaves, aviso informativo | — |
-| Violeta 700 | `#6D28D9` | **Acento**: botón de acento, recorrido en el mapa, texto destacado | 7,1:1 sobre blanco |
-| Violeta 600 | `#7C3AED` | Anillo de foco, ítem activo de la barra lateral | 5,7:1 |
-| Violeta 100 | `#EDE9FE` | Insignias de acento (texto `#5B21B6`, 7,6:1) | — |
-| Tinta | `#0F172A` | Texto principal | 16,5:1 sobre el fondo |
-| Texto 2 | `#334155` | Texto secundario | 9,6:1 |
-| Apagado | `#475569` | Texto de apoyo | 7,0:1 |
-| Borde fuerte | `#64748B` | Borde de campos | 4,8:1 (componentes: ≥3:1) |
-| Fondo / Tarjeta | `#F4F6FA` / `#FFFFFF` | Fondos | — |
-| Éxito | `#15803D` (texto `#14532D` sobre `#DCFCE7`) | Estados correctos | 8,3:1 |
-| Advertencia | `#B45309` (texto `#713F12` sobre `#FEF3C7`) | Sin conexión, en pausa, huecos en el mapa | 7,8:1 |
-| Error | `#B91C1C` (texto `#7F1D1D` sobre `#FEE2E2`) | Errores, finalizar jornada | 8,2:1 |
+| Fondo | `#070B1F` | Fondo de las pantallas | Texto principal encima: 17,9:1 |
+| Superficie | `#11183A` | Tarjetas, campos, barra inferior | Texto secundario encima: 7,9:1 |
+| Superficie 2 | `#1A2350` | Chips, botones secundarios, avatares | — |
+| Barra lateral / mapa | `#0B1130` / `#0C1230` | Panel / fondo del mapa | — |
+| Bordes | `#1F2860`, `#2A3470` | Separadores y contorno de campos | 1,5:1 (ver ADR-007, punto abierto) |
+| Texto principal | `#F3F5FF` | Títulos, cifras | 17,9:1 |
+| Texto secundario fuerte | `#D5DBF7` | Etiquetas | 12,6:1 sobre la tarjeta |
+| Texto secundario | `#A3AED6` | Detalles | 8,9:1 sobre el fondo |
+| **Acción principal** | violeta `#7C5CFF` (presionado y botones chicos: `#6B4BF0`) | Botones principales, foco | Blanco: 4,3:1 (texto grande, ≥ 19 px en negrita); 5,4:1 en `#6B4BF0` |
+| Acentos | violeta claro `#A78BFA` / `#C4B5FD`; azul `#4D8DFF` / `#7FB0FF` | Enlaces, ítem activo, etiquetas | 7,2:1 / 9,4:1 / — / 7,9:1 |
+| Marca | `linear-gradient(140deg, #4D8DFF, #7C5CFF)` | Solo logo, avatares y tarjeta destacada | — |
+| Éxito | `#34D399` / texto `#6EE7B7` | Registrando, conectado, permitido | 11,3:1 |
+| Atención | `#FBBF24` / texto `#FCD34D` | Sin señal, en pausa, pendientes | 12,0:1 |
+| Sin datos (huecos) | `#FB923C` / texto `#FDBA74` | Huecos en el mapa y en los resúmenes | 8,1:1 sobre el mapa |
+| Error | `#F87171` / texto `#FCA5A5` | Errores (no está en las maquetas, ADR-007) | 9,1:1 |
+| Recorrido en el mapa | `#8B5CF6` | Tramos registrados | 4,3:1 sobre el mapa (gráfico: ≥ 3:1) |
 
-Tipografía Inter (variable, empaquetada con la app para que funcione sin conexión), con números tabulares en cronómetros y cifras. Texto base de 16 px; los campos usan 17 px para que iOS no haga zoom al enfocarlos.
+**Tipografía y forma:**
+- **Fuente:** Plus Jakarta Sans de 400 a 800, empaquetada con la app para que funcione sin conexión. Los cronómetros y las cifras usan números tabulares.
+- **Tamaños:** el texto base es de 15 a 16 px. Los campos usan 17 px para que iOS no haga zoom al enfocarlos.
+- **Radios:** 16 px en los campos, 18 px en los botones y las tarjetas chicas, y 24 px en las tarjetas grandes y la barra inferior.
+- **Alturas:** 60 a 64 px en la acción principal; 56 px en los campos y los botones secundarios.
+
+**Animaciones:**
+- bienvenida de unos 2 s: el logo, la ruta que se dibuja, el nombre y el lema;
+- entrada suave del login;
+- pulso del botón "Iniciar jornada";
+- punto "en vivo" mientras se registra el recorrido.
+
+Con "reducir movimiento" (`prefers-reduced-motion`) no hay animaciones.
 
 ### 10.2 App para usar en la calle
 - Botones principales de al menos 56 px en la zona del pulgar; texto de 16 px como mínimo; alto contraste.
 - Flujo de visita en 3 toques.
-- Estado del GPS ("Registrando recorrido" / "GPS detenido: tocá para revisar") y de la sincronización siempre visibles.
+- Estado del GPS ("Registrando recorrido", "Recorrido en pausa", "Ubicación bloqueada") y de la sincronización siempre visibles, como pastillas en el encabezado.
 - **Pantalla de diagnóstico** en Perfil: permisos, optimización de batería, puntos pendientes de envío, última sincronización. Sirve para soporte.
 
 ### 10.3 Panel

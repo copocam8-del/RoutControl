@@ -1,5 +1,7 @@
+export * from "./components/Brand";
 export * from "./components/Button";
 export * from "./components/Field";
+export * from "./components/Icons";
 export * from "./components/States";
 export * from "./components/Surfaces";
 export * from "./format";

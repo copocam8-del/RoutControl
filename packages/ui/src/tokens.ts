@@ -1,107 +1,125 @@
 /**
- * Tokens del sistema de diseño (ADR-007, §10.1 de la planificación).
+ * Tokens del sistema de diseño (ADR-007 v2, §10.1 de la planificación).
  *
- * Fuente de verdad de colores, tipografía, espaciados, radios y sombras. `styles.css` los expone
- * como variables CSS con los mismos valores (una prueba lo verifica), y los contrastes de cada par
- * texto/fondo se verifican contra WCAG en `tokens.test.ts`.
+ * Fuente: las maquetas aprobadas por el cliente el 01/11/2026 (`docs/diseno/README.md`). Tema
+ * oscuro, violeta para las acciones principales y azul/violeta claro como acentos.
  *
- * Criterio de color: AA como mínimo y, en todo texto que se lee en la calle, apuntar a AAA (7:1),
- * porque al sol el contraste percibido baja mucho.
+ * `styles.css` expone estos valores como variables CSS (una prueba verifica que coincidan) y los
+ * contrastes de cada par texto/fondo se verifican contra WCAG en `tokens.test.ts`.
  */
 
 export const color = {
-  // Azul: color principal (acciones, marca).
-  blue950: "#0B1F4D", // barra lateral, marca, títulos fuertes
-  blue900: "#1E3A8A",
-  blue800: "#1E40AF", // botón principal presionado
-  blue700: "#1D4ED8", // botón principal, enlaces
-  blue600: "#2563EB",
-  blue200: "#BFDBFE",
-  blue100: "#DBEAFE",
-  blue50: "#EFF6FF",
+  // Fondos y superficies.
+  background: "#070B1F", // fondo de las pantallas
+  surface: "#11183A", // tarjetas, campos, barra inferior
+  surface2: "#1A2350", // chips, botones secundarios, avatares
+  sidebar: "#0B1130", // barra lateral del panel
+  mapBg: "#0C1230", // fondo del mapa
+  headerTop: "#121A45", // degradado del encabezado (arriba)
+  heroFrom: "#2B1F7A", // tarjeta destacada (degradado)
+  heroTo: "#1B2A7A",
+  heroBorder: "#3B3FA0",
 
-  // Violeta: acento (elemento activo, foco, destacados). Reemplaza al ámbar de la versión 0.5.
-  violet800: "#5B21B6",
-  violet700: "#6D28D9", // botón de acento, texto de acento
-  violet600: "#7C3AED", // anillo de foco, ítem activo de la barra lateral
-  violet100: "#EDE9FE",
-  violet50: "#F5F3FF",
+  // Bordes.
+  border: "#1F2860",
+  borderStrong: "#2A3470",
 
-  // Neutros (pizarra fría).
-  ink: "#0F172A", // texto principal
-  text2: "#334155", // texto secundario
-  muted: "#475569", // texto de apoyo (7:1 sobre el fondo: legible al sol)
-  borderStrong: "#64748B", // borde de campos (3:1 para componentes de interfaz)
-  border: "#CBD5E1", // separadores (decorativo)
-  surface: "#FFFFFF",
-  background: "#F4F6FA",
+  // Texto.
+  text: "#F3F5FF", // principal
+  text2: "#D5DBF7", // secundario fuerte (etiquetas)
+  muted: "#A3AED6", // secundario
+  placeholder: "#7F8AB8",
+  white: "#FFFFFF",
 
-  // Estados: texto oscuro sobre fondo suave, más un color fuerte para íconos y bordes.
-  success: "#15803D",
-  successText: "#14532D",
-  successBg: "#DCFCE7",
-  warning: "#B45309",
-  warningText: "#713F12",
-  warningBg: "#FEF3C7",
-  danger: "#B91C1C",
-  dangerText: "#7F1D1D",
-  dangerBg: "#FEE2E2",
-  infoText: "#1E3A8A",
-  infoBg: "#DBEAFE",
+  // Acción principal y acentos.
+  primary: "#7C5CFF", // botón principal (texto blanco ≥ 18,66 px en negrita: texto grande)
+  primaryStrong: "#6B4BF0", // presionado y botones chicos (texto blanco < 18,66 px)
+  violet300: "#A78BFA", // enlaces, marca "Control"
+  violet200: "#C4B5FD", // ítem activo, etiquetas de acento
+  violet100: "#E9E3FF", // texto del ítem activo de la barra lateral
+  blue: "#4D8DFF",
+  blueLight: "#7FB0FF",
+
+  // Estados: color fuerte (puntos, íconos) y claro (texto sobre fondo translúcido).
+  success: "#34D399",
+  successText: "#6EE7B7",
+  warning: "#FBBF24",
+  warningText: "#FCD34D",
+  gap: "#FB923C", // huecos sin datos
+  gapText: "#FDBA74",
+  // El rojo no está en las maquetas: se eligió dentro de la misma familia (Tailwind 400/300).
+  danger: "#F87171",
+  dangerText: "#FCA5A5",
+
+  // Mapa.
+  route: "#8B5CF6",
 } as const;
 
 export type ColorToken = keyof typeof color;
 
-/** Pares texto/fondo que se usan en la interfaz, con el contraste mínimo que tienen que cumplir. */
+/** Degradado de marca: solo en el logo, los avatares y la tarjeta destacada. */
+export const brandGradient = `linear-gradient(140deg, ${color.blue} 0%, ${color.primary} 100%)`;
+
+/**
+ * Pares texto/fondo que se usan en la interfaz, con el contraste mínimo que tienen que cumplir
+ * (WCAG AA: 4,5:1 texto normal, 3:1 texto grande y componentes de interfaz).
+ */
 export const contrastPairs: Array<{ use: string; fg: ColorToken; bg: ColorToken; min: number }> = [
-  { use: "texto principal", fg: "ink", bg: "background", min: 7 },
-  { use: "texto principal en tarjeta", fg: "ink", bg: "surface", min: 7 },
-  { use: "texto secundario", fg: "text2", bg: "background", min: 7 },
-  { use: "texto de apoyo", fg: "muted", bg: "background", min: 7 },
-  { use: "texto de apoyo en tarjeta", fg: "muted", bg: "surface", min: 7 },
-  { use: "botón principal", fg: "surface", bg: "blue700", min: 4.5 },
-  { use: "botón principal presionado", fg: "surface", bg: "blue800", min: 7 },
-  { use: "botón de acento", fg: "surface", bg: "violet700", min: 7 },
-  { use: "botón de peligro", fg: "surface", bg: "danger", min: 4.5 },
-  { use: "enlace / botón secundario", fg: "blue700", bg: "surface", min: 4.5 },
-  { use: "texto de acento", fg: "violet700", bg: "surface", min: 7 },
-  { use: "insignia de acento", fg: "violet800", bg: "violet100", min: 7 },
-  { use: "barra lateral", fg: "surface", bg: "blue950", min: 7 },
-  { use: "barra lateral, texto de apoyo", fg: "blue200", bg: "blue950", min: 7 },
-  { use: "barra lateral, ítem activo", fg: "surface", bg: "violet600", min: 4.5 },
-  { use: "aviso de éxito", fg: "successText", bg: "successBg", min: 7 },
-  { use: "aviso de advertencia", fg: "warningText", bg: "warningBg", min: 7 },
-  { use: "aviso de error", fg: "dangerText", bg: "dangerBg", min: 7 },
-  { use: "aviso informativo", fg: "infoText", bg: "infoBg", min: 7 },
+  { use: "texto principal", fg: "text", bg: "background", min: 7 },
+  { use: "texto principal en tarjeta", fg: "text", bg: "surface", min: 7 },
+  { use: "texto secundario fuerte en tarjeta", fg: "text2", bg: "surface", min: 7 },
+  { use: "texto secundario", fg: "muted", bg: "background", min: 7 },
+  { use: "texto secundario en tarjeta", fg: "muted", bg: "surface", min: 7 },
+  { use: "texto secundario en chip", fg: "muted", bg: "surface2", min: 4.5 },
+  { use: "texto en chip", fg: "text2", bg: "surface2", min: 7 },
+  { use: "barra lateral, texto secundario", fg: "muted", bg: "sidebar", min: 7 },
+  { use: "placeholder del campo", fg: "placeholder", bg: "surface", min: 4.5 },
+  { use: "botón principal (texto grande)", fg: "white", bg: "primary", min: 3 },
+  { use: "botón principal chico / presionado", fg: "white", bg: "primaryStrong", min: 4.5 },
+  { use: "enlace", fg: "violet300", bg: "background", min: 4.5 },
+  { use: "enlace en tarjeta", fg: "violet300", bg: "surface", min: 4.5 },
+  { use: "etiqueta de acento en tarjeta", fg: "violet200", bg: "surface", min: 7 },
+  { use: "tarjeta destacada: título", fg: "text", bg: "heroFrom", min: 7 },
+  { use: "tarjeta destacada: texto", fg: "text2", bg: "heroTo", min: 7 },
+  { use: "tarjeta destacada: etiqueta", fg: "violet200", bg: "heroTo", min: 4.5 },
+  { use: "botón blanco de la tarjeta destacada", fg: "heroFrom", bg: "white", min: 7 },
+  { use: "estado: éxito", fg: "successText", bg: "surface", min: 7 },
+  { use: "estado: atención", fg: "warningText", bg: "surface", min: 7 },
+  { use: "estado: hueco", fg: "gapText", bg: "surface", min: 7 },
+  { use: "estado: error", fg: "dangerText", bg: "surface", min: 7 },
+  { use: "acento azul", fg: "blueLight", bg: "surface", min: 4.5 },
   // Componentes de interfaz (WCAG 1.4.11): 3:1.
-  { use: "borde de campo", fg: "borderStrong", bg: "surface", min: 3 },
-  { use: "anillo de foco", fg: "violet600", bg: "surface", min: 3 },
+  { use: "anillo de foco", fg: "primary", bg: "surface", min: 3 },
+  { use: "anillo de foco sobre el fondo", fg: "primary", bg: "background", min: 3 },
   { use: "punto de estado: éxito", fg: "success", bg: "surface", min: 3 },
-  { use: "punto de estado: advertencia", fg: "warning", bg: "surface", min: 3 },
+  { use: "punto de estado: atención", fg: "warning", bg: "surface", min: 3 },
   { use: "punto de estado: error", fg: "danger", bg: "surface", min: 3 },
+  { use: "recorrido en el mapa", fg: "route", bg: "mapBg", min: 3 },
+  { use: "hueco en el mapa", fg: "gap", bg: "mapBg", min: 3 },
 ];
 
 export const font = {
-  family: '"Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  family: '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   mono: 'ui-monospace, "Cascadia Mono", Menlo, monospace',
-  // Escala: el mínimo para leer es 16 px (§10.2); 14 px solo para datos secundarios.
-  size: { xs: "13px", sm: "14px", base: "16px", lg: "18px", xl: "22px", "2xl": "28px", "3xl": "36px", display: "48px" },
+  size: { xs: "12px", sm: "13px", md: "14px", base: "15px", lg: "17px", xl: "20px", "2xl": "26px", "3xl": "32px", display: "44px" },
   weight: { regular: 400, medium: 500, semibold: 600, bold: 700, black: 800 },
-  lineHeight: { tight: 1.2, normal: 1.5 },
+  lineHeight: { tight: 1.15, normal: 1.5 },
 } as const;
 
-/** Espaciados en múltiplos de 4 px. */
-export const space = { 0: "0", 1: "4px", 2: "8px", 3: "12px", 4: "16px", 5: "20px", 6: "24px", 8: "32px", 10: "40px", 12: "48px" } as const;
+/** Espaciados en múltiplos de 2 y 4 px, los que usan las maquetas. */
+export const space = { 0: "0", 1: "4px", 2: "8px", 3: "12px", 4: "16px", 5: "20px", 6: "24px", 7: "28px", 8: "32px", 10: "40px" } as const;
 
-export const radius = { sm: "8px", md: "12px", lg: "16px", xl: "20px", full: "999px" } as const;
+/** Radios de las maquetas: 16 campos, 18 botones y tarjetas chicas, 24 tarjetas grandes y barra inferior. */
+export const radius = { sm: "12px", md: "16px", lg: "18px", xl: "20px", "2xl": "24px", full: "999px" } as const;
 
 export const shadow = {
-  card: "0 1px 2px rgb(15 23 42 / 6%), 0 1px 3px rgb(15 23 42 / 8%)",
-  raised: "0 4px 12px rgb(15 23 42 / 12%)",
+  primary: "0 12px 32px rgba(124,92,255,.40)",
+  logo: "0 18px 50px rgba(124,92,255,.45)",
+  focus: "0 0 0 4px rgba(124,92,255,.28)",
 } as const;
 
-/** Tamaños táctiles mínimos (§10.2): 56 px para las acciones principales en la calle. */
-export const touch = { min: "44px", comfortable: "56px", big: "72px" } as const;
+/** Alturas: acción principal 60–64 px, campos y botones secundarios 56 px. */
+export const touch = { min: "44px", comfortable: "56px", big: "60px", hero: "64px" } as const;
 
 // --- Contraste (WCAG 2.x) ---------------------------------------------------------------------------
 
