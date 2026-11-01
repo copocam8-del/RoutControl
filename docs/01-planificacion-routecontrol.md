@@ -9,6 +9,7 @@
 |---|---|
 | 0.1 | Primera propuesta (app móvil con React Native/Expo). |
 | 0.2 | Decisiones del cliente: SaaS multitenant desde el inicio; app del repartidor como PWA. Análisis de limitaciones reales de las PWA. |
+| 0.5.1 | §10.1: paleta azul (principal) y violeta (acento), en lugar del ámbar. Ver ADR-007. |
 | 0.5 | **Primero la PWA, sin tiendas.** Se desarrolla y se lanza RouteControl como PWA para no depender de Google Play ni App Store al principio. La app nativa con Capacitor (y la subida a las tiendas) pasa a una etapa posterior. Mientras tanto el GPS funciona dentro de los límites de la PWA (§4). La etapa 0 pasa a ser la validación de la PWA en teléfonos reales: no requiere Mac ni cuentas de las tiendas. |
 | 0.4 | **La PWA es provisoria.** El destino final de la app del repartidor son Google Play y App Store. La PWA solo se usa mientras se esperan las aprobaciones de las tiendas, y después deja de ser el canal de los repartidores. Se agregó el plan de lanzamiento (§14.1). |
 | 0.3 | **El recorrido GPS continuo es obligatorio.** La app del repartidor pasa a ser **PWA + Capacitor**: un único código React que se publica como PWA y como app nativa de Android e iOS con ubicación en segundo plano. Backend Django sin cambios. La etapa 0 pasa a ser la **prueba de concepto de GPS continuo** en dispositivos reales. Se descartan Expo/React Native y NestJS/Prisma. |
@@ -351,18 +352,27 @@ Siempre en el backend, después del filtro por empresa.
 ## 10. Experiencia de usuario y diseño visual
 
 ### 10.1 Tokens visuales
-| Token | Valor | Uso |
-|---|---|---|
-| Navy 900 | `#0B1F3A` | Marca, barra lateral |
-| Navy 700 | `#16335C` | Estados activos |
-| Grafito | `#2B2F36` | Texto principal |
-| Gris 500 | `#6B7280` | Texto secundario |
-| Gris 100 | `#F3F4F6` | Fondos |
-| Blanco | `#FFFFFF` | Tarjetas |
-| Acento | `#F59E0B` | Acción principal |
-| Estados | `#16A34A` · `#EAB308` · `#DC2626` · `#9CA3AF` | Estados e indicador de domicilio |
+> Actualizado el 01/11/2026 (ADR-007): **azul como color principal y violeta como acento**, en lugar del ámbar. La fuente de verdad es `packages/ui/src/tokens.ts`; las pruebas verifican el contraste de cada par (WCAG AA como mínimo y 7:1 en el texto que se lee en la calle, por la luz del sol).
 
-Tipografía Inter, con números tabulares.
+| Token | Valor | Uso | Contraste |
+|---|---|---|---|
+| Azul 950 | `#0B1F4D` | Marca, barra lateral, cifras destacadas | Blanco encima: 15,9:1 |
+| Azul 700 | `#1D4ED8` | **Acción principal** (botones), enlaces | Blanco encima: 6,7:1 |
+| Azul 800 | `#1E40AF` | Acción principal presionada | Blanco encima: 8,7:1 |
+| Azul 50 / 100 | `#EFF6FF` / `#DBEAFE` | Fondos suaves, aviso informativo | — |
+| Violeta 700 | `#6D28D9` | **Acento**: botón de acento, recorrido en el mapa, texto destacado | 7,1:1 sobre blanco |
+| Violeta 600 | `#7C3AED` | Anillo de foco, ítem activo de la barra lateral | 5,7:1 |
+| Violeta 100 | `#EDE9FE` | Insignias de acento (texto `#5B21B6`, 7,6:1) | — |
+| Tinta | `#0F172A` | Texto principal | 16,5:1 sobre el fondo |
+| Texto 2 | `#334155` | Texto secundario | 9,6:1 |
+| Apagado | `#475569` | Texto de apoyo | 7,0:1 |
+| Borde fuerte | `#64748B` | Borde de campos | 4,8:1 (componentes: ≥3:1) |
+| Fondo / Tarjeta | `#F4F6FA` / `#FFFFFF` | Fondos | — |
+| Éxito | `#15803D` (texto `#14532D` sobre `#DCFCE7`) | Estados correctos | 8,3:1 |
+| Advertencia | `#B45309` (texto `#713F12` sobre `#FEF3C7`) | Sin conexión, en pausa, huecos en el mapa | 7,8:1 |
+| Error | `#B91C1C` (texto `#7F1D1D` sobre `#FEE2E2`) | Errores, finalizar jornada | 8,2:1 |
+
+Tipografía Inter (variable, empaquetada con la app para que funcione sin conexión), con números tabulares en cronómetros y cifras. Texto base de 16 px; los campos usan 17 px para que iOS no haga zoom al enfocarlos.
 
 ### 10.2 App para usar en la calle
 - Botones principales de al menos 56 px en la zona del pulgar; texto de 16 px como mínimo; alto contraste.
