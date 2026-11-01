@@ -13,7 +13,13 @@ export const driverSummary = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]),
   membership_status: z.enum(["ACTIVE", "DISABLED"]),
   active_workday: z
-    .object({ id: z.uuid(), started_at: isoDateTimeWithZone, last_point_at: isoDateTimeWithZone.nullable() })
+    .object({
+      id: z.uuid(),
+      started_at: isoDateTimeWithZone,
+      last_point_at: isoDateTimeWithZone.nullable(),
+      /** Última ubicación conocida (null si todavía no llegó ningún punto). */
+      last_location: z.object({ lat: z.number(), lng: z.number() }).nullable().default(null),
+    })
     .nullable(),
   last_workday: z
     .object({

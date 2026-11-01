@@ -37,6 +37,7 @@ class DriverListView(APIView):
                 active_id=Subquery(active.values("id")[:1]),
                 active_started_at=Subquery(active.values("started_at")[:1]),
                 active_last_point_at=Subquery(last_point.values("recorded_at")[:1]),
+                active_last_location=Subquery(last_point.values("location")[:1]),
                 last_id=Subquery(latest.values("id")[:1]),
                 last_date=Subquery(latest.values("date")[:1]),
                 last_started_at=Subquery(latest.values("started_at")[:1]),
@@ -63,6 +64,12 @@ class DriverListView(APIView):
                     "id": str(d.active_id),
                     "started_at": iso_utc(d.active_started_at),
                     "last_point_at": iso_utc(d.active_last_point_at),
+                    # Última ubicación conocida (mapa de la operación del panel); null sin puntos.
+                    "last_location": (
+                        {"lat": d.active_last_location.y, "lng": d.active_last_location.x}
+                        if d.active_last_location is not None
+                        else None
+                    ),
                 }
                 if d.active_id
                 else None
