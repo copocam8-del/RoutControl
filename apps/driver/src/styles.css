@@ -383,3 +383,15 @@ body {
   border-radius: 50%;
   vertical-align: middle;
 }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.check input {
+  width: 22px;
+  height: 22px;
+}

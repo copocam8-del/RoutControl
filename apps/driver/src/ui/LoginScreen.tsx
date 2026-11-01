@@ -8,12 +8,14 @@ export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      await session.login(email.trim(), password);
+      // El servidor también normaliza el email; la contraseña se manda tal cual.
+      await session.login(email.trim().toLowerCase(), password);
     } finally {
       setBusy(false);
     }
@@ -43,8 +45,13 @@ export function LoginScreen() {
           <span>Email</span>
           <input
             type="email"
+            name="email"
             autoComplete="username"
             inputMode="email"
+            // Los teclados de los teléfonos ponen mayúscula inicial y "corrigen" palabras.
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -53,12 +60,20 @@ export function LoginScreen() {
         <label className="field">
           <span>Contraseña</span>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
+            name="password"
             autoComplete="current-password"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+        </label>
+        <label className="check">
+          <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+          <span>Mostrar contraseña</span>
         </label>
         {state.status === "anonymous" && state.error ? (
           <p className="alert alert--error" role="alert">
