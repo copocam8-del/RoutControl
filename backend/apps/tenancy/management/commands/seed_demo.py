@@ -22,6 +22,11 @@ DEMO = [
             ("duenio@norte.demo", "Dueña Norte (demo)", Membership.Role.OWNER),
             ("repartidor1@norte.demo", "Repartidor 1 Norte (demo)", Membership.Role.DRIVER),
             ("repartidor2@norte.demo", "Repartidor 2 Norte (demo)", Membership.Role.DRIVER),
+            # Uno por teléfono de prueba (§15.1: varios Android, iPhone 15 y 13): hay una sola
+            # jornada activa por repartidor, así que dos teléfonos no pueden usar el mismo.
+            ("repartidor3@norte.demo", "Repartidor 3 Norte (demo)", Membership.Role.DRIVER),
+            ("repartidor4@norte.demo", "Repartidor 4 Norte (demo)", Membership.Role.DRIVER),
+            ("repartidor5@norte.demo", "Repartidor 5 Norte (demo)", Membership.Role.DRIVER),
         ],
     },
     {

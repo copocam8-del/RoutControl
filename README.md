@@ -46,7 +46,7 @@ Contraseña: el valor de `DEMO_PASSWORD` (por defecto `routcontrol-demo`).
 
 | Empresa | Usuarios |
 |---|---|
-| Demo Norte | `duenio@norte.demo`, `repartidor1@norte.demo`, `repartidor2@norte.demo` |
+| Demo Norte | `duenio@norte.demo`, `repartidor1@norte.demo` … `repartidor5@norte.demo` |
 | Demo Sur | `duenio@sur.demo`, `repartidor1@sur.demo` |
 | Las dos | `supervisor@ambas.demo` (al hacer login tiene que elegir empresa) |
 
