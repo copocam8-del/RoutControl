@@ -195,3 +195,51 @@ class CurrentWorkdayView(APIView):
         driver = current_driver(request)
         workday = Workday.objects.filter(driver=driver, status=Workday.Status.ACTIVE).first() if driver else None
         return Response({"workday": workday_payload(workday) if workday else None})
+
+
+# --- Consulta de jornadas y recorrido (mapa) ------------------------------------------------------
+
+VIEWER_ROLES = (Membership.Role.OWNER, Membership.Role.ADMIN, Membership.Role.SUPERVISOR)
+
+
+def visible_workdays(request):
+    """§8: dueño, admin y supervisor ven todas las jornadas de su empresa; el repartidor, solo las
+    propias. Otra empresa no aparece nunca (RLS + TenantManager)."""
+    membership = request._request.tenant.membership
+    qs = Workday.objects.select_related("driver__membership__user")
+    if membership.role in VIEWER_ROLES:
+        return qs
+    return qs.filter(driver__membership=membership)
+
+
+def workday_with_driver(w: Workday) -> dict:
+    user = w.driver.membership.user
+    return {**workday_payload(w), "driver": {"id": str(w.driver_id), "name": user.full_name or user.email}}
+
+
+class DateQuerySerializer(serializers.Serializer):
+    date = serializers.DateField(required=False)
+
+
+class WorkdayListView(APIView):
+    """GET /api/v1/workdays?date=AAAA-MM-DD — jornadas visibles para el usuario (las últimas 50)."""
+
+    def get(self, request):
+        query = DateQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        qs = visible_workdays(request).order_by("-started_at")
+        if query.validated_data.get("date"):
+            qs = qs.filter(date=query.validated_data["date"])
+        return Response({"workdays": [workday_with_driver(w) for w in qs[:50]]})
+
+
+class WorkdayTrackView(APIView):
+    """GET /api/v1/workdays/{id}/track — recorrido para el mapa, partido en tramos por los huecos."""
+
+    def get(self, request, workday_id):
+        from .track import build_track
+
+        workday = visible_workdays(request).filter(id=workday_id).first()
+        if workday is None:
+            return Response({"detail": "Jornada no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"workday": workday_with_driver(workday), **build_track(workday)})

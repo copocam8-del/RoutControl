@@ -28,6 +28,9 @@ Lo que se decidió dejar para la etapa 1 durante la etapa 0. Cada punto remite a
 - **Cierre automático por duración máxima** (`AUTO_CLOSED`) con una tarea periódica de Celery (ADR-003). Hoy el token vence a las 14 h, pero la jornada queda `ACTIVE`.
 - **Ingesta asíncrona y particionado** de `LocationPoint` cuando el volumen lo justifique (ADR-003).
 
+- **Auditar el acceso a los recorridos** (§8 y §11): `GET /workdays/{id}/track` ya respeta los permisos por rol, pero todavía no deja registro en `AuditLog`, que no existe aún.
+- **Recorridos muy largos:** `track` devuelve todos los puntos de la jornada. Si una jornada supera unos miles de puntos, conviene simplificarlos (`ST_Simplify`) o paginarlos.
+
 ## Datos
 
 - `DriverProfile.document_number` cifrado (§7.2): se dejó fuera de la etapa 0.

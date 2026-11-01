@@ -131,3 +131,26 @@ def test_same_point_id_in_two_orgs_does_not_collide(org_a, org_b, workday_a):
     rb = tracking_client(workday_b["tracking_token"]).post("/api/v1/tracking/batch", [point], format="json")
     assert ra.json()["accepted"] == [point["point_id"]]
     assert rb.json()["accepted"] == [point["point_id"]]  # no es "duplicado": es de otra empresa
+
+
+@covers("workday-track")
+def test_track_of_another_orgs_workday_is_404_for_every_role(org_a, org_b, workday_a):
+    """Ni el dueño ni el repartidor de B ven el recorrido de una jornada de A (por id)."""
+    workday_id = workday_a["workday"]["id"]
+    tracking_client(workday_a["tracking_token"]).post(
+        "/api/v1/tracking/batch", [make_point(now_utc() - timedelta(seconds=30))], format="json"
+    )
+    for user in (org_b.owner, org_b.driver):
+        response = client_for(user, org_b.org).get(f"/api/v1/workdays/{workday_id}/track")
+        assert response.status_code == 404, response.content
+    # Control: dentro de A, el dueño sí lo ve.
+    assert client_for(org_a.owner, org_a.org).get(f"/api/v1/workdays/{workday_id}/track").status_code == 200
+
+
+@covers("workday-list")
+def test_workday_list_never_includes_another_org(org_a, org_b, workday_a):
+    workday_b = start_workday(org_b.driver, org_b.org)
+    listed = client_for(org_b.owner, org_b.org).get("/api/v1/workdays/").json()["workdays"]
+    assert [w["id"] for w in listed] == [workday_b["workday"]["id"]]
+    listed_a = client_for(org_a.owner, org_a.org).get("/api/v1/workdays/").json()["workdays"]
+    assert [w["id"] for w in listed_a] == [workday_a["workday"]["id"]]
