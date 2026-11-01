@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel: ingresar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+@keyframes rcIn{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes rcTrace{0%{stroke-dashoffset:1400}100%{stroke-dashoffset:0}}
+.rc-in{animation:rcIn .6s ease-out both}
+.rc-trace{stroke-dasharray:1400;animation:rcTrace 3s ease-out both}
+input::placeholder{color:#7F8AB8}
+input:focus{outline:none;border-color:#7C5CFF !important;box-shadow:0 0 0 4px rgba(124,92,255,.28)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #070B1F; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #F3F5FF; display: flex">
+<section style="flex: 1 1 0; position: relative; overflow: hidden; margin: 24px 0 24px 24px; border-radius: 32px; background: linear-gradient(150deg, #2B1F7A 0%, #14205E 60%, #0B1130 100%); padding: 56px; display: flex; flex-direction: column; justify-content: space-between">
+<svg width="720" height="852" viewBox="0 0 720 852" fill="none" aria-hidden="true" style="position: absolute; right: 0; top: 0; opacity: .9">
+<g stroke="rgba(255,255,255,.06)" stroke-width="10"><path d="M0 300 H720"></path><path d="M0 520 H720"></path><path d="M180 0 V852"></path><path d="M420 0 V852"></path><path d="M600 0 V852"></path></g>
+<path class="rc-trace" d="M120 760 L180 760 L180 520 L420 520 L420 300 L600 300 L600 140" stroke="#A78BFA" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="120" cy="760" r="14" fill="#34D399" stroke="#14205E" stroke-width="5"></circle>
+<circle cx="600" cy="140" r="16" fill="#FFFFFF" stroke="#7C5CFF" stroke-width="7"></circle>
+<circle cx="420" cy="520" r="9" fill="#FFFFFF"></circle><circle cx="180" cy="520" r="9" fill="#FFFFFF"></circle><circle cx="420" cy="300" r="9" fill="#FFFFFF"></circle>
+</svg>
+<div style="position: relative; display: flex; align-items: center; gap: 14px">
+<div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(140deg, #4D8DFF 0%, #7C5CFF 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 32px rgba(0,0,0,.25)"><svg width="30" height="30" viewBox="0 0 60 60" fill="none" aria-hidden="true"><path d="M14 44 C 14 30, 30 34, 30 24 S 44 16, 46 14" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"></path><circle cx="14" cy="44" r="7" fill="#FFFFFF"></circle><circle cx="46" cy="14" r="8" fill="#14205E" stroke="#FFFFFF" stroke-width="5"></circle></svg></div>
+<div style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Route<span style="color: #C4B5FD">Control</span></div>
+</div>
+<div style="position: relative; display: flex; flex-direction: column; gap: 16px; max-width: 460px">
+<h2 style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em">Toda tu operación, en un solo lugar.</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #D5DBF7">Seguí a tus repartidores en el día, revisá cada recorrido y detectá a tiempo lo que no va bien.</p>
+</div>
+</section>
+<section style="flex: 0 0 600px; display: flex; align-items: center; justify-content: center; padding: 48px">
+<div class="rc-in" style="width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h1 style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -0.02em">Hola de nuevo</h1>
+<p style="margin: 0; font-size: 17px; line-height: 1.5; color: #A3AED6">Ingresá con tu cuenta de administrador o supervisor.</p>
+</div>
+<form style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="pemail" style="font-size: 14px; font-weight: 600; color: #D5DBF7">Email</label>
+<div style="position: relative">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A3AED6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 16px; top: 18px"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="m4 7 8 6 8-6"></path></svg>
+<input id="pemail" type="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nombre@empresa.com" value="duenio@norte.demo" style="width: 100%; box-sizing: border-box; height: 56px; border-radius: 16px; border: 1.5px solid #5A67B0; background: #11183A; color: #F3F5FF; font-family: inherit; font-size: 17px; padding: 0 16px 0 48px">
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="ppass" style="font-size: 14px; font-weight: 600; color: #D5DBF7">Contraseña</label>
+<div style="position: relative">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A3AED6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 16px; top: 18px"><rect x="4" y="10" width="16" height="11" rx="3"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+<input id="ppass" type="{{passType}}" value="routcontrol-demo" style="width: 100%; box-sizing: border-box; height: 56px; border-radius: 16px; border: 1.5px solid #5A67B0; background: #11183A; color: #F3F5FF; font-family: inherit; font-size: 17px; padding: 0 64px 0 48px">
+<button type="button" onClick="{{toggle}}" aria-label="{{toggleLabel}}" style="position: absolute; right: 6px; top: 6px; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: #A3AED6; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+</div>
+</div>
+</form>
+<a href="Panel.dc.html" style="height: 60px; border-radius: 18px; background: #7C5CFF; color: #FFFFFF; font-size: 19px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; box-shadow: 0 12px 32px rgba(124,92,255,.40)">Ingresar
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg></a>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #A3AED6">¿Sos repartidor? Usá la app en tu celular.</p>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { show: false };
+}
+renderVals() {
+const show = this.state.show;
+return {
+passType: show ? 'text' : 'password',
+toggleLabel: show ? 'Ocultar contraseña' : 'Mostrar contraseña',
+toggle: () => this.setState({ show: !show })
+};
+}
+}
+</script>
+</body>
+</html>
