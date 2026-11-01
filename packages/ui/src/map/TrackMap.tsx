@@ -200,32 +200,26 @@ export interface MapPosition {
   lat: number;
   /** Sin señal reciente: se marca en amarillo. */
   stale: boolean;
+  /** Etiqueta corta junto al punto (iniciales). */
+  short?: string;
 }
 
 /** Última ubicación conocida de cada repartidor en jornada (panel). */
 export function PositionsMap({ positions, styleUrl, height = 340 }: { positions: MapPosition[]; styleUrl: string; height?: number }) {
   const { container, failed, retry } = useMap(
     styleUrl,
-    (_maplibre, map) => {
-      map.addSource("positions", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: positions.map((p) => ({
-            type: "Feature" as const,
-            geometry: { type: "Point" as const, coordinates: [p.lng, p.lat] },
-            properties: { id: p.id, label: p.label, stale: p.stale },
-          })),
-        },
-      });
-      const fill = ["case", ["get", "stale"], MAP_COLORS.stale, MAP_COLORS.live] as unknown as string;
-      map.addLayer({ id: "halo", type: "circle", source: "positions", paint: { "circle-radius": 22, "circle-color": fill, "circle-opacity": 0.25 } });
-      map.addLayer({
-        id: "dot",
-        type: "circle",
-        source: "positions",
-        paint: { "circle-radius": 11, "circle-color": fill, "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 3 },
-      });
+    (maplibre, map) => {
+      // Marcadores HTML (como la maqueta): punto violeta que "late" con señal, amarillo sin señal
+      // reciente, y las iniciales del repartidor al lado.
+      for (const p of positions) {
+        const el = document.createElement("div");
+        el.className = `rc-pin${p.stale ? " rc-pin--stale" : ""}`;
+        el.setAttribute("aria-hidden", "true");
+        el.innerHTML = `${p.stale ? "" : '<span class="rc-pin__ping"></span>'}<span class="rc-pin__dot"></span><span class="rc-pin__label"></span>`;
+        el.querySelector(".rc-pin__label")!.textContent = p.short ?? p.label;
+        el.title = p.label;
+        new maplibre.Marker({ element: el, anchor: "center" }).setLngLat([p.lng, p.lat]).addTo(map);
+      }
     },
     (maplibre) => {
       if (positions.length === 0) return { center: [-58.38, -34.6], zoom: 11 };

@@ -19,7 +19,7 @@ import { describeLoadError, useAdmin } from "../adminApp";
 import { useNow } from "../hooks";
 import { DemoChip, PageTitle } from "../Layout";
 import { href } from "../router";
-import { WorkdayStatus } from "../WorkdayTable";
+import { WorkdayBadge as WorkdayStatus } from "./Workdays";
 
 // MapLibre (~1 MB) se carga recién al abrir un recorrido.
 const TrackMap = lazy(() => import("@routcontrol/ui/map").then((m) => ({ default: m.TrackMap })));

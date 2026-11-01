@@ -23,6 +23,7 @@ export const color = {
   // Bordes.
   border: "#1F2860",
   borderStrong: "#2A3470",
+  fieldBorder: "#5A67B0", // contorno de los campos de formulario (3:1, WCAG 1.4.11)
 
   // Texto.
   text: "#F3F5FF", // principal
@@ -89,6 +90,8 @@ export const contrastPairs: Array<{ use: string; fg: ColorToken; bg: ColorToken;
   { use: "estado: error", fg: "dangerText", bg: "surface", min: 7 },
   { use: "acento azul", fg: "blueLight", bg: "surface", min: 4.5 },
   // Componentes de interfaz (WCAG 1.4.11): 3:1.
+  { use: "contorno de campo", fg: "fieldBorder", bg: "surface", min: 3 },
+  { use: "contorno de campo sobre el fondo", fg: "fieldBorder", bg: "background", min: 3 },
   { use: "anillo de foco", fg: "primary", bg: "surface", min: 3 },
   { use: "anillo de foco sobre el fondo", fg: "primary", bg: "background", min: 3 },
   { use: "punto de estado: éxito", fg: "success", bg: "surface", min: 3 },

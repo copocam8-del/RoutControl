@@ -18,6 +18,7 @@
   /* Bordes */
   --rc-border: #1F2860;
   --rc-border-strong: #2A3470;
+  --rc-field-border: #5A67B0;
   /* Texto */
   --rc-text: #F3F5FF;
   --rc-text-2: #D5DBF7;
@@ -332,7 +333,7 @@ a:hover {
   font-size: 17px; /* ≥16 px: iOS no hace zoom al enfocar */
   height: var(--rc-touch-comfortable);
   padding: 0 16px;
-  border: 1.5px solid var(--rc-border-strong);
+  border: 1.5px solid var(--rc-field-border);
   border-radius: var(--rc-radius-md);
   background: var(--rc-surface);
   color: var(--rc-text);
@@ -907,4 +908,47 @@ a.rc-item {
 .rc-map-frame--flat {
   border-radius: 0;
   border: 0;
+}
+
+/* Marcadores de la última ubicación (panel: "Dónde están ahora"). */
+.rc-pin {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+
+.rc-pin__dot,
+.rc-pin__ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--rc-primary);
+}
+
+.rc-pin__dot {
+  border: 3px solid var(--rc-white);
+}
+
+.rc-pin__ping {
+  animation: rc-ping 1.8s ease-out infinite;
+}
+
+.rc-pin--stale .rc-pin__dot {
+  background: var(--rc-warning);
+}
+
+.rc-pin__label {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: 700 13px var(--rc-font);
+  color: var(--rc-text);
+  text-shadow: 0 1px 3px rgba(7, 11, 31, 0.9);
+  white-space: nowrap;
+}
+
+@keyframes rc-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(2.7); opacity: 0; }
 }

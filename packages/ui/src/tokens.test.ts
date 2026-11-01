@@ -31,6 +31,12 @@ describe("styles.css refleja tokens.ts", () => {
     expect(match?.[1]?.toUpperCase(), `falta o no coincide --rc-${kebab(name)}`).toBe(value.toUpperCase());
   });
 
+  it("los campos (de la app y del panel) tienen el contorno de formulario #5A67B0, no el de las tarjetas", () => {
+    const rule = /\.rc-field__input \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(rule).toContain("border: 1.5px solid var(--rc-field-border)");
+    expect(color.fieldBorder).toBe("#5A67B0");
+  });
+
   it("usa Plus Jakarta Sans empaquetada (no una fuente de Google en línea)", () => {
     expect(css).toContain('@import "@fontsource-variable/plus-jakarta-sans"');
     expect(css).not.toContain("fonts.googleapis.com");

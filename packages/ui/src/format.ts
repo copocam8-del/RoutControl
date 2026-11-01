@@ -42,6 +42,15 @@ export function formatLongDate(at: string | number | Date): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/** "Hoy 17:20", "Ayer 17:20" o "30/10 17:20" (para "última señal" y "última jornada"). */
+export function formatDayTime(iso: string, now: number = Date.now()): string {
+  const at = new Date(iso);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(new Date(now)) - day(at)) / 86_400_000);
+  const prefix = diff === 0 ? "Hoy" : diff === 1 ? "Ayer" : at.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+  return `${prefix} ${formatTime(iso)}`;
+}
+
 /** Saludo según la hora del teléfono. */
 export function greeting(at: number | Date = Date.now()): string {
   const h = new Date(at).getHours();

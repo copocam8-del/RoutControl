@@ -11,6 +11,8 @@ export const workdayWithDriver = workday.extend({
   /** Actividad registrada: cantidad de puntos y hora (del teléfono) del último. */
   point_count: z.number().default(0),
   last_point_at: isoDateTimeWithZone.nullable().default(null),
+  /** Huecos (tramos sin datos) registrados en la jornada. */
+  gap_count: z.number().default(0),
 });
 export type WorkdayWithDriver = z.infer<typeof workdayWithDriver>;
 

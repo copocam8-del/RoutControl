@@ -127,6 +127,7 @@ export function workday(overrides: Partial<WorkdayWithDriver> = {}): WorkdayWith
     device_id: "0192f3a0-0000-7000-8000-00000000c001",
     driver: { id: `0192f3a0-0000-7000-8000-${String(seq + 500).padStart(12, "0")}`, name: `Repartidor ${seq} (demo)` },
     point_count: 12,
+    gap_count: 0,
     last_point_at: new Date(Date.now() - 2 * 60_000).toISOString(),
     ...overrides,
   };

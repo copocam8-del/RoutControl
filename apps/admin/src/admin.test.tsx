@@ -1,25 +1,34 @@
 import { ApiClient } from "@routcontrol/api-client";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAdminApp } from "./adminApp";
 import { App } from "./App";
+import { dayLabel, shiftDate } from "./pages/Workdays";
 import { parseRoute, today } from "./router";
 import { NOT_STAFF } from "./session";
 import { driver, FakeApi, workday } from "./test/fakeApi";
 
 vi.mock("@routcontrol/ui/map", () => ({
-  TrackMap: () => <div data-testid="map">mapa</div>,
-  PositionsMap: ({ positions }: { positions: Array<{ label: string; stale: boolean }> }) => (
-    <div data-testid="positions">{positions.map((p) => `${p.label}${p.stale ? " (sin señal)" : ""}`).join(", ")}</div>
+  TrackMap: ({ track }: { track: { workday: { driver: { name: string } } } }) => <div data-testid="map">mapa de {track.workday.driver.name}</div>,
+  PositionsMap: ({ positions }: { positions: Array<{ label: string; short?: string; stale: boolean }> }) => (
+    <div data-testid="positions">{positions.map((p) => `${p.short} ${p.label}${p.stale ? " (sin señal)" : ""}`).join(", ")}</div>
   ),
 }));
 
-function renderPanel(api = new FakeApi()) {
+beforeEach(() => {
+  window.location.hash = "";
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function renderPanel(api = new FakeApi(), welcomeMs = 0) {
   const app = createAdminApp({ api: new ApiClient("/api/v1", api.fetch, { getRetryDelayMs: 0 }) });
-  render(<App app={app} />);
-  return { api, user: userEvent.setup() };
+  const view = render(<App app={app} welcomeMs={welcomeMs} />);
+  return { api, app, view, user: userEvent.setup() };
 }
 
 async function login(user: ReturnType<typeof userEvent.setup>, email = "duenio@norte.demo") {
@@ -28,7 +37,60 @@ async function login(user: ReturnType<typeof userEvent.setup>, email = "duenio@n
   await user.click(screen.getByRole("button", { name: "Ingresar" }));
 }
 
+describe("bienvenida del panel", () => {
+  it("se ve al abrir y pasa al login", async () => {
+    renderPanel(new FakeApi(), 80);
+    expect(screen.getByText("Panel de operaciones")).toBeTruthy();
+    expect(screen.queryByLabelText("Email")).toBeNull();
+    expect(await screen.findByLabelText("Email", {}, { timeout: 2000 })).toBeTruthy();
+  });
+
+  it("un clic la saltea", async () => {
+    renderPanel(new FakeApi(), 60_000);
+    await new Promise((r) => setTimeout(r, 20)); // que termine de consultar la sesión
+    fireEvent.click(screen.getByRole("button", { name: /Hacé clic para continuar/ }));
+    expect(await screen.findByLabelText("Email")).toBeTruthy();
+  });
+
+  it("una sola vez por apertura", async () => {
+    const { app, view } = renderPanel(new FakeApi(), 60);
+    await screen.findByLabelText("Email", {}, { timeout: 2000 });
+    view.unmount();
+    render(<App app={app} welcomeMs={60} />);
+    expect(screen.queryByText("Panel de operaciones")).toBeNull();
+  });
+
+  it("con 'reducir movimiento' no hay espera", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduce"), media: q, addEventListener() {}, removeEventListener() {} }));
+    renderPanel(new FakeApi(), 60_000);
+    expect(await screen.findByLabelText("Email", {}, { timeout: 500 })).toBeTruthy();
+  });
+
+  it("con sesión guardada pasa directo al inicio", async () => {
+    const api = new FakeApi();
+    await new ApiClient("/api/v1", api.fetch).login("duenio@norte.demo", "demo"); // deja la "cookie"
+    renderPanel(api, 80);
+    expect(screen.getByText("Panel de operaciones")).toBeTruthy();
+    expect(await screen.findByRole("navigation", { name: "Secciones" }, { timeout: 2000 })).toBeTruthy();
+  });
+});
+
 describe("login del panel", () => {
+  it("dos columnas: el mensaje del producto y el formulario, sin 'olvidé mi contraseña'", async () => {
+    renderPanel();
+    expect(await screen.findByRole("heading", { name: "Toda tu operación, en un solo lugar." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Hola de nuevo" })).toBeTruthy();
+    expect(screen.getByText("¿Sos repartidor? Usá la app en tu celular.")).toBeTruthy();
+    expect(screen.queryByText(/Olvidaste/)).toBeNull();
+  });
+
+  it("'Mostrar contraseña' deja ver lo que se escribió", async () => {
+    const { user } = renderPanel();
+    const password = (await screen.findByLabelText("Contraseña")) as HTMLInputElement;
+    await user.click(screen.getByRole("button", { name: "Mostrar contraseña" }));
+    expect(password.type).toBe("text");
+  });
+
   it("un repartidor no entra: el panel es para el personal", async () => {
     const { user } = renderPanel();
     await login(user, "repartidor1@norte.demo");
@@ -53,38 +115,40 @@ describe("login del panel", () => {
   });
 });
 
-describe("inicio (jornadas de hoy)", () => {
-  it("resume la operación con los datos del backend, y lista las jornadas", async () => {
+describe("inicio", () => {
+  it("saluda y resume la operación con los datos del backend", async () => {
     const api = new FakeApi();
     const day = today();
     api.workdays = [
       workday({ date: day, point_count: 10 }),
       workday({ date: day, point_count: 5, last_point_at: new Date(Date.now() - 30 * 60_000).toISOString() }), // sin señal
-      workday({ date: day, point_count: 7, status: "FINISHED", ended_at: new Date().toISOString() }),
+      workday({ date: day, point_count: 1277, status: "FINISHED", ended_at: new Date().toISOString() }),
     ];
     api.drivers = [driver("Ana (demo)", true), driver("Beto (demo)", true, true), driver("Carla (demo)", false)];
     const { user } = renderPanel(api);
     await login(user);
+    expect(await screen.findByRole("heading", { level: 1, name: /^(Buen día|Buenas tardes|Buenas noches), Dueña$/ })).toBeTruthy();
     const summary = await screen.findByRole("region", { name: "Resumen de hoy" });
-    expect(summary.textContent).toContain("Repartidores en jornada2 de 3");
+    expect(summary.textContent).toContain("En jornada ahora2 de 3 repartidores");
     expect(summary.textContent).toContain("Jornadas finalizadas1");
-    expect(summary.textContent).toContain("Ubicaciones registradas22");
-    expect(summary.textContent).toContain("Sin señal hace +10 min1");
-    expect(screen.getAllByRole("row")).toHaveLength(4); // encabezado + 3
+    expect(summary.textContent).toMatch(/Ubicaciones registradas1.?292/);
+    expect(summary.textContent).toContain("Sin señal hace más de 10 min1");
+    expect(screen.getByText(/^Actualizado \d{2}:\d{2}$/)).toBeTruthy();
     expect(api.calls).toContain(`GET /workdays/?date=${day}`);
     expect(api.calls).toContain("GET /drivers/");
   });
 
-  it("mapa de la operación: la última ubicación real de cada uno, en amarillo si no hay señal", async () => {
+  it("'Dónde están ahora': la última ubicación real de cada uno, con sus iniciales y en amarillo si no hay señal", async () => {
     const api = new FakeApi();
-    api.drivers = [driver("Ana (demo)", true), driver("Beto (demo)", true, true), driver("Carla (demo)", false)];
+    api.drivers = [driver("Ana (demo)", true), driver("Beto Gómez (demo)", true, true), driver("Carla (demo)", false)];
     const { user } = renderPanel(api);
     await login(user);
-    expect((await screen.findByTestId("positions")).textContent).toBe("Ana (demo), Beto (demo) (sin señal)");
+    expect((await screen.findByTestId("positions")).textContent).toBe("AN Ana (demo), BG Beto Gómez (demo) (sin señal)");
     const people = screen.getByRole("region", { name: "Repartidores" });
     expect(people.textContent).toContain("En jornada");
     expect(people.textContent).toContain("Sin señal");
     expect(people.textContent).toContain("Todavía no empezó");
+    expect(within(people).getByRole("link", { name: "Ver todos" }).getAttribute("href")).toBe("#/repartidores");
   });
 
   it("sin nadie en jornada, el mapa explica por qué está vacío", async () => {
@@ -103,15 +167,6 @@ describe("inicio (jornadas de hoy)", () => {
     expect(screen.queryByText(/Asignar paquetes/)).toBeNull();
     expect(screen.queryByText(/Entregados|Pendientes/)).toBeNull();
     expect(screen.queryByText("En vivo")).toBeNull();
-    expect(screen.getByText(/^Actualizado \d{2}:\d{2}$/)).toBeTruthy();
-  });
-
-  it("sin jornadas: estado vacío con un acceso real a repartidores", async () => {
-    const { user } = renderPanel();
-    await login(user);
-    expect(await screen.findByText("Hoy todavía no empezó ninguna jornada.")).toBeTruthy();
-    await user.click(screen.getByRole("button", { name: "Ver repartidores" }));
-    await waitFor(() => expect(window.location.hash).toBe("#/repartidores"));
   });
 
   it("si falla la carga: solo el error y 'Reintentar'", async () => {
@@ -127,64 +182,140 @@ describe("inicio (jornadas de hoy)", () => {
   });
 });
 
-describe("jornadas y recorrido", () => {
-  it("una fila abre el recorrido con su resumen, el mapa y los huecos", async () => {
+describe("jornadas", () => {
+  function day() {
+    const d = today();
     const api = new FakeApi();
-    const w = workday({ date: today() });
-    api.workdays = [w];
+    api.workdays = [
+      workday({ date: d, point_count: 412, gap_count: 1 }),
+      workday({ date: d, point_count: 0, last_point_at: null }),
+      workday({ date: d, status: "FINISHED", ended_at: new Date().toISOString(), gap_count: 0 }),
+    ];
+    window.location.hash = `#/jornadas?fecha=${d}`;
+    return api;
+  }
+
+  it("la tabla con horario, duración, ubicaciones y huecos; la primera fila muestra su recorrido al costado", async () => {
+    const api = day();
     const { user } = renderPanel(api);
     await login(user);
-    await user.click(await screen.findByRole("link", { name: w.driver.name }));
-    expect(await screen.findByTestId("map")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Resumen del recorrido" }).textContent).toContain("2,5 km");
-    expect(screen.getByRole("region", { name: "Huecos del recorrido" }).textContent).toContain("15 min");
+    const rows = await screen.findAllByRole("row");
+    expect(rows).toHaveLength(4); // encabezado + 3
+    expect(rows[1]!.textContent).toContain("412");
+    expect(rows[1]!.textContent).toMatch(/\d{2}:\d{2} – ahora/);
+    expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
+    const side = screen.getByRole("region", { name: "Recorrido de la jornada elegida" });
+    expect(await within(side).findByTestId("map")).toHaveProperty("textContent", `mapa de ${api.workdays[0]!.driver.name}`);
+    expect(within(side).getByRole("group", { name: "Resumen del recorrido" }).textContent).toContain("Distancia2,5 km");
+  });
+
+  it("al hacer clic en una fila, su recorrido pasa al costado", async () => {
+    const api = day();
+    const { user } = renderPanel(api);
+    await login(user);
+    const target = api.workdays[2]!;
+    await user.click(await screen.findByRole("button", { name: target.driver.name }));
+    const side = screen.getByRole("region", { name: "Recorrido de la jornada elegida" });
+    expect(await within(side).findByTestId("map")).toHaveProperty("textContent", `mapa de ${target.driver.name}`);
+    expect(within(side).getByRole("link", { name: "Ver el recorrido completo" }).getAttribute("href")).toBe(`#/jornadas/${target.id}`);
   });
 
   it("una jornada sin ubicaciones no muestra un mapa vacío", async () => {
+    const api = day();
+    const { user } = renderPanel(api);
+    await login(user);
+    await user.click(await screen.findByRole("button", { name: api.workdays[1]!.driver.name }));
+    expect(await screen.findByText("Sin ubicaciones registradas.")).toBeTruthy();
+    expect(screen.queryByTestId("map")).toBeNull();
+  });
+
+  it("filtros: todas, en curso y finalizadas, con su cantidad", async () => {
+    const api = day();
+    const { user } = renderPanel(api);
+    await login(user);
+    await user.click(await screen.findByRole("button", { name: "Finalizadas · 1" }));
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: "En curso · 2" }));
+    expect(screen.getAllByRole("row")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Todas · 3" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("las flechas cambian de día; mañana no se puede elegir", async () => {
+    const api = day();
+    const { user } = renderPanel(api);
+    await login(user);
+    expect((await screen.findByRole("button", { name: "Día siguiente" })).hasAttribute("disabled")).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Día anterior" }));
+    expect(await screen.findByText("No hay jornadas ese día.")).toBeTruthy();
+    expect(api.calls).toContain(`GET /workdays/?date=${shiftDate(today(), -1)}`);
+  });
+
+  it("nombres de los días", () => {
+    const now = new Date(2026, 10, 1, 15);
+    expect(dayLabel("2026-11-01", now)).toBe("Hoy, domingo 1 de noviembre");
+    expect(dayLabel("2026-10-31", now)).toBe("Ayer, sábado 31 de octubre");
+    expect(dayLabel("2026-10-30", now)).toBe("Viernes 30 de octubre");
+    expect(shiftDate("2026-11-01", -1)).toBe("2026-10-31");
+  });
+
+  it("el recorrido completo: resumen, mapa y huecos", async () => {
     const api = new FakeApi();
-    const w = workday({ point_count: 0, last_point_at: null });
+    const w = workday({ date: today() });
     api.workdays = [w];
     window.location.hash = `#/jornadas/${w.id}`;
     const { user } = renderPanel(api);
     await login(user);
-    expect(await screen.findByText("Esta jornada no tiene ubicaciones registradas.")).toBeTruthy();
-    expect(screen.queryByTestId("map")).toBeNull();
-  });
-
-  it("el calendario filtra por día", async () => {
-    const api = new FakeApi();
-    api.workdays = [workday({ date: "2026-10-30" })];
-    window.location.hash = "#/jornadas?fecha=2026-10-29";
-    const { user } = renderPanel(api);
-    await login(user);
-    expect(await screen.findByText("No hay jornadas ese día.")).toBeTruthy();
-    window.location.hash = "#/jornadas?fecha=2026-10-30";
-    expect(await screen.findByRole("link", { name: api.workdays[0]!.driver.name })).toBeTruthy();
-    expect(api.calls).toContain("GET /workdays/?date=2026-10-30");
+    expect(await screen.findByTestId("map")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Resumen del recorrido" }).textContent).toContain("2,5 km");
+    expect(screen.getByRole("region", { name: "Huecos del recorrido" }).textContent).toContain("15 min");
   });
 });
 
 describe("repartidores", () => {
-  it("muestra en jornada, sin señal, sin jornada y de baja, con enlaces a las jornadas", async () => {
+  it("una tarjeta por repartidor: en jornada, sin señal, sin jornada y de baja, con su acción real", async () => {
     const api = new FakeApi();
-    const base = { employee_code: "", vehicle_type: "", status: "ACTIVE" as const, membership_status: "ACTIVE" as const, last_workday: null };
-    const started = new Date(Date.now() - 3600_000).toISOString();
-    api.drivers = [
-      { ...base, id: "0192f3a0-0000-7000-8000-0000000000d1", name: "Ana (demo)", email: "ana@norte.demo", active_workday: { id: "0192f3a0-0000-7000-8000-0000000000e1", started_at: started, last_point_at: new Date().toISOString(), last_location: null } },
-      { ...base, id: "0192f3a0-0000-7000-8000-0000000000d2", name: "Beto (demo)", email: "beto@norte.demo", active_workday: { id: "0192f3a0-0000-7000-8000-0000000000e2", started_at: started, last_point_at: null, last_location: null } },
-      { ...base, id: "0192f3a0-0000-7000-8000-0000000000d3", name: "Carla (demo)", email: "carla@norte.demo", active_workday: null },
-      { ...base, id: "0192f3a0-0000-7000-8000-0000000000d4", name: "Dani (demo)", email: "dani@norte.demo", active_workday: null, status: "INACTIVE" },
-    ];
+    const off = {
+      ...driver("Carla (demo)", false),
+      last_workday: {
+        id: "0192f3a0-0000-7000-8000-0000000000e3",
+        date: "2026-10-31",
+        started_at: new Date(Date.now() - 86_400_000).toISOString(),
+        ended_at: new Date(Date.now() - 80_000_000).toISOString(),
+        status: "FINISHED" as const,
+      },
+    };
+    const gone = { ...driver("Dani (demo)", false), status: "INACTIVE" as const };
+    const ana = driver("Ana (demo)", true);
+    api.drivers = [ana, driver("Beto (demo)", true, true), off, gone];
     window.location.hash = "#/repartidores";
     const { user } = renderPanel(api);
     await login(user);
-    const rows = await screen.findAllByRole("row");
-    const text = rows.slice(1).map((r) => r.textContent);
-    expect(text[0]).toContain("En jornada");
-    expect(text[1]).toContain("En jornada · sin señal");
-    expect(text[2]).toContain("Sin jornada");
-    expect(text[3]).toContain("De baja");
-    expect(within(rows[1]!).getByRole("link").getAttribute("href")).toBe("#/jornadas/0192f3a0-0000-7000-8000-0000000000e1");
+    expect(await screen.findByText("4 repartidores en Demo Norte (DATOS DE DEMOSTRACIÓN)")).toBeTruthy();
+    const card = (name: string) => screen.getByRole("article", { name });
+    expect(card("Ana (demo)").textContent).toContain("En jornada");
+    expect(within(card("Ana (demo)")).getByRole("link", { name: "Ver recorrido de hoy" }).getAttribute("href")).toBe(
+      `#/jornadas/${ana.active_workday!.id}`,
+    );
+    expect(card("Beto (demo)").textContent).toContain("Sin señal");
+    expect(card("Carla (demo)").textContent).toContain("Sin jornada");
+    expect(card("Carla (demo)").textContent).toMatch(/Última jornada(Ayer|Hoy) \d{2}:\d{2}/);
+    expect(within(card("Carla (demo)")).getByRole("link", { name: "Ver última jornada" })).toBeTruthy();
+    expect(card("Dani (demo)").textContent).toContain("De baja");
+    expect(within(card("Dani (demo)")).queryByRole("link")).toBeNull(); // nunca trabajó: sin botón que no lleva a nada
+  });
+
+  it("el buscador filtra por nombre o email", async () => {
+    const api = new FakeApi();
+    api.drivers = [driver("Ana (demo)", true), driver("Beto (demo)", false)];
+    window.location.hash = "#/repartidores";
+    const { user } = renderPanel(api);
+    await login(user);
+    await user.type(await screen.findByLabelText("Buscar repartidor"), "beto@");
+    expect(screen.queryByRole("article", { name: "Ana (demo)" })).toBeNull();
+    expect(screen.getByRole("article", { name: "Beto (demo)" })).toBeTruthy();
+    await user.clear(screen.getByLabelText("Buscar repartidor"));
+    await user.type(screen.getByLabelText("Buscar repartidor"), "zzz");
+    expect(screen.getByText("Ningún repartidor coincide con “zzz”.")).toBeTruthy();
   });
 
   it("sin repartidores: estado vacío", async () => {

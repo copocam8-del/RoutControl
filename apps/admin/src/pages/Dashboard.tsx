@@ -1,12 +1,26 @@
 import { type DriverSummary, isWithoutSignal, NO_SIGNAL_MINUTES, type WorkdayWithDriver } from "@routcontrol/domain";
-import { Avatar, Badge, Button, EmptyState, formatAgo, formatLongDate, formatTime, Loadable, LoadingState, useLoad } from "@routcontrol/ui";
+import {
+  Avatar,
+  Badge,
+  EmptyState,
+  formatAgo,
+  formatLongDate,
+  formatTime,
+  greeting,
+  IconCheck,
+  IconPin,
+  IconSync,
+  initials,
+  Loadable,
+  LoadingState,
+  useLoad,
+} from "@routcontrol/ui";
 import { lazy, Suspense, useCallback } from "react";
 
-import { describeLoadError, useAdmin } from "../adminApp";
+import { describeLoadError, useAdmin, useSession } from "../adminApp";
 import { useNow } from "../hooks";
 import { DemoChip, PageTitle } from "../Layout";
-import { href, navigate, today } from "../router";
-import { WorkdayTable } from "../WorkdayTable";
+import { href, today } from "../router";
 
 // MapLibre (~1 MB) se descarga aparte.
 const PositionsMap = lazy(() => import("@routcontrol/ui/map").then((m) => ({ default: m.PositionsMap })));
@@ -22,37 +36,38 @@ interface Today {
   at: number;
 }
 
-/** Inicio (Panel.dc.html): así va la operación hoy, con los datos reales del backend. */
+/** Primer nombre para el saludo ("Dueña Norte (demo)" → "Dueña"; un email → la parte antes de @). */
+function firstName(nameOrEmail: string): string {
+  return nameOrEmail.split("@")[0]!.replace(/\(.*?\)/g, "").trim().split(/\s+/)[0] ?? nameOrEmail;
+}
+
+/** Inicio (Panel.dc.html), con los datos reales del backend. */
 export function Dashboard() {
   const { api } = useAdmin();
+  const session = useSession();
   const date = today();
-  const load = useCallback(
-    async (): Promise<Today> => {
-      const [workdays, drivers] = await Promise.all([api.listWorkdays(date), api.listDrivers()]);
-      return { workdays, drivers, at: Date.now() };
-    },
-    [api, date],
-  );
+  const load = useCallback(async (): Promise<Today> => {
+    const [workdays, drivers] = await Promise.all([api.listWorkdays(date), api.listDrivers()]);
+    return { workdays, drivers, at: Date.now() };
+  }, [api, date]);
   const [state, reload] = useLoad<Today>(load, describe, REFRESH_MS);
   const now = useNow(30_000);
+  const user = session.status === "authenticated" ? session.session.user : null;
 
   return (
     <>
       <PageTitle
         eyebrow={formatLongDate(now)}
-        title="Así va la operación hoy"
+        title={user ? `${greeting(now)} ${firstName(user.full_name || user.email)}` : "Inicio"}
         actions={
           <>
             <DemoChip />
             {state.status === "ready" ? (
-              <span className="rc-chip rc-chip--ok updated-chip" title={`Se actualiza sola cada ${REFRESH_MS / 1000} s`}>
-                <span className="rc-chip__dot" aria-hidden="true" />
+              <span className="updated-chip" title={`Se actualiza sola cada ${REFRESH_MS / 1000} s`}>
+                <IconSync size={16} />
                 Actualizado {formatTime(new Date(state.data.at).toISOString())}
               </span>
             ) : null}
-            <Button variant="secondary" size="sm" onClick={reload}>
-              Actualizar
-            </Button>
           </>
         }
       />
@@ -76,6 +91,7 @@ function Operation({ data, now }: { data: Today; now: number }) {
           {
             id: d.id,
             label: d.name,
+            short: initials(d.name),
             ...d.active_workday!.last_location,
             stale: isWithoutSignal(d.active_workday!.last_point_at, d.active_workday!.started_at, now),
           },
@@ -85,32 +101,47 @@ function Operation({ data, now }: { data: Today; now: number }) {
 
   return (
     <>
-      <section className="kpis" aria-label="Resumen de hoy">
-        <div className="kpi">
-          <span className="kpi__label">Repartidores en jornada</span>
+      <section className="kpis rc-in" aria-label="Resumen de hoy" style={{ animationDelay: ".05s" }}>
+        <div className="kpi kpi--hero">
+          <span className="kpi__label">En jornada ahora</span>
           <span className="kpi__value">
-            {working.length} <span className="kpi__of">de {enabled.length}</span>
+            {working.length} <span className="kpi__of">de {enabled.length} repartidores</span>
           </span>
         </div>
         <div className="kpi">
-          <span className="kpi__label">Jornadas finalizadas</span>
-          <span className="kpi__value kpi__value--ok">{workdays.length - active.length}</span>
+          <span className="kpi__label">
+            <span className="kpi__icon kpi__icon--ok" aria-hidden="true">
+              <IconCheck size={18} />
+            </span>
+            Jornadas finalizadas
+          </span>
+          <span className="kpi__value">{workdays.length - active.length}</span>
         </div>
         <div className="kpi">
-          <span className="kpi__label">Ubicaciones registradas</span>
+          <span className="kpi__label">
+            <span className="kpi__icon kpi__icon--info" aria-hidden="true">
+              <IconPin size={18} />
+            </span>
+            Ubicaciones registradas
+          </span>
           <span className="kpi__value">{workdays.reduce((n, w) => n + w.point_count, 0).toLocaleString("es-AR")}</span>
         </div>
-        <div className="kpi">
-          <span className="kpi__label">Sin señal hace +{NO_SIGNAL_MINUTES} min</span>
-          <span className="kpi__value kpi__value--warn">{silent.length}</span>
+        <div className="kpi kpi--warn">
+          <span className="kpi__label">
+            <span className="kpi__icon kpi__icon--warn" aria-hidden="true">
+              <IconNoSignal />
+            </span>
+            Sin señal hace más de {NO_SIGNAL_MINUTES} min
+          </span>
+          <span className="kpi__value">{silent.length}</span>
         </div>
       </section>
 
-      <div className="split">
-        <section className="panel-card panel-card--map" aria-label="Mapa de la operación">
+      <div className="split rc-in" style={{ animationDelay: ".1s" }}>
+        <section className="panel-card panel-card--map" aria-label="Dónde están ahora">
           <div className="panel-card__head">
-            <h2>Mapa de la operación</h2>
-            <span className="rc-muted">Última ubicación de cada repartidor</span>
+            <h2>Dónde están ahora</h2>
+            <span className="rc-muted">Última ubicación de cada repartidor en jornada</span>
           </div>
           {positions.length === 0 ? (
             <EmptyState
@@ -119,13 +150,16 @@ function Operation({ data, now }: { data: Today; now: number }) {
             />
           ) : (
             <Suspense fallback={<LoadingState label="Cargando mapa…" />}>
-              <PositionsMap positions={positions} styleUrl={config.mapStyleUrl} />
+              <PositionsMap positions={positions} styleUrl={config.mapStyleUrl} height={360} />
             </Suspense>
           )}
         </section>
 
         <section className="panel-card" aria-label="Repartidores">
-          <h2 className="panel-card__title">Repartidores</h2>
+          <div className="panel-card__title-row">
+            <h2>Repartidores</h2>
+            <a href={href({ name: "drivers" })}>Ver todos</a>
+          </div>
           {enabled.length === 0 ? (
             <EmptyState title="Todavía no hay repartidores en esta empresa." />
           ) : (
@@ -139,24 +173,17 @@ function Operation({ data, now }: { data: Today; now: number }) {
           )}
         </section>
       </div>
-
-      <section className="panel-card" aria-label="Jornadas de hoy">
-        <h2 className="panel-card__title">Jornadas de hoy</h2>
-        {workdays.length === 0 ? (
-          <EmptyState
-            title="Hoy todavía no empezó ninguna jornada."
-            description="Cuando un repartidor toque “Iniciar jornada” en la app, aparece acá."
-            action={
-              <Button variant="secondary" onClick={() => navigate({ name: "drivers" })}>
-                Ver repartidores
-              </Button>
-            }
-          />
-        ) : (
-          <WorkdayTable workdays={workdays} now={now} caption="Jornadas de hoy" />
-        )}
-      </section>
     </>
+  );
+}
+
+function IconNoSignal() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 8.8a15 15 0 0 1 20 0" />
+      <path d="M5.5 12.4a10 10 0 0 1 13 0" />
+      <path d="M3 3l18 18" />
+    </svg>
   );
 }
 
@@ -172,7 +199,9 @@ function DriverRow({ driver, workdays, now }: { driver: DriverSummary; workdays:
       detail = active.last_point_at ? `Última señal ${formatAgo(Date.parse(active.last_point_at), now)}` : "Todavía no mandó ubicaciones";
       badge = <Badge tone="warning">Sin señal</Badge>;
     } else {
-      detail = `Desde las ${formatTime(active.started_at)}`;
+      detail = active.last_point_at
+        ? `Desde ${formatTime(active.started_at)} · señal ${formatAgo(Date.parse(active.last_point_at), now)}`
+        : `Desde ${formatTime(active.started_at)} · todavía sin ubicaciones`;
       badge = <Badge tone="success">En jornada</Badge>;
     }
   } else {
@@ -183,7 +212,7 @@ function DriverRow({ driver, workdays, now }: { driver: DriverSummary; workdays:
   }
   return (
     <a className="person" href={link}>
-      <Avatar name={driver.name} size={38} />
+      <Avatar name={driver.name} size={40} />
       <span className="person__text">
         <span className="person__name">{driver.name}</span>
         <span className="person__detail">{detail}</span>

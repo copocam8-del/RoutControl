@@ -9,12 +9,14 @@ export interface AdminApp {
   config: AdminConfig;
   api: ApiClient;
   session: AdminSession;
+  /** Estado de la interfaz que dura lo que dura esta apertura del panel (no se guarda). */
+  ui: { splashShown: boolean };
 }
 
 export function createAdminApp(overrides: Partial<Pick<AdminApp, "api" | "config">> = {}): AdminApp {
   const config = overrides.config ?? defaultConfig;
   const api = overrides.api ?? new ApiClient(config.apiBase);
-  return { config, api, session: new AdminSession(api) };
+  return { config, api, session: new AdminSession(api), ui: { splashShown: false } };
 }
 
 export const AdminContext = createContext<AdminApp | null>(null);

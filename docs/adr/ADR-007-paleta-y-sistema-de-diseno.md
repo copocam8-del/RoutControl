@@ -5,6 +5,7 @@
 - **Historial:**
   - **v1** (01/11/2026, a la mañana): tema claro con azul `#1D4ED8` como color principal y violeta `#6D28D9` como acento, fuente Inter.
   - **v2** (01/11/2026, a la noche): **reemplaza a la v1.** El cliente aprobó las maquetas de `docs/diseno/`: tema oscuro, violeta `#7C5CFF` para las acciones principales y Plus Jakarta Sans.
+  - **v2.1** (01/11/2026): maquetas del panel aprobadas (`PanelBienvenida`, `PanelLogin`, `Panel`, `PanelJornadas`, `PanelRepartidores`) y borde de los campos en `#5A67B0`.
 - **Contexto:** las maquetas aprobadas (`docs/diseno/README.md` y los `.dc.html`) son la especificación visual obligatoria de la PWA y del panel: colores, tamaños, espaciados, radios, sombras y animaciones.
 
 ## Decisión
@@ -29,10 +30,9 @@ Son los del README de las maquetas, sin cambios. Las cifras y los contrastes est
 2. **Rojo para los errores:** `#F87171` (puntos e íconos) y `#FCA5A5` (texto). Las maquetas no muestran errores; elegí estos tonos dentro de la misma familia de colores.
 3. **El mapa en tema oscuro:** el estilo "dark" de OpenFreeMap, configurable con `VITE_MAP_STYLE_URL`, y los controles de MapLibre adaptados.
 
-### Punto abierto (para el cliente)
-- **Bordes de los campos:** `#2A3470` sobre `#11183A` da 1,5:1, debajo del 3:1 que WCAG 1.4.11 pide para el contorno de un campo.
-  - Cada campo igual se identifica por su etiqueta visible, su ícono y el fondo de la tarjeta, y al enfocarlo el borde pasa a violeta (3,97:1) con un halo.
-  - Respeté la maqueta. Si se quiere AA estricto, alcanza con subir el borde a `#5A67B0` (3,3:1).
+### Bordes de los campos (resuelto el 01/11/2026)
+- Los campos de formulario de la app y del panel usan **`#5A67B0`** (`fieldBorder`): 3,3:1 sobre la tarjeta y 3,7:1 sobre el fondo, como pide WCAG 1.4.11. Lo aprobó el cliente con las maquetas del panel.
+- Las tarjetas siguen con `#1F2860` y `#2A3470`, que son decorativas.
 
 ### Sistema de diseño (`packages/ui`)
 
@@ -60,7 +60,7 @@ Para no poner botones sin función, quedan **fuera hasta la etapa 1**:
 - las notificaciones;
 - "¿Olvidaste tu contraseña?";
 - "Mapa de tu zona guardado";
-- "Asignar paquetes" y "En vivo" en el panel. El panel se actualiza solo cada 30 s y lo dice: "Actualizado 19:05".
+- "Asignar paquetes" y "En vivo" de la primera maqueta del panel. Las maquetas nuevas del panel ya no los tienen: el inicio se actualiza solo cada 30 s y lo dice ("Actualizado 19:05").
 
 En su lugar se muestran datos reales: el permiso de ubicación, la batería (solo si el navegador la informa), los envíos pendientes, la precisión y la hora de la última ubicación, y en el panel las jornadas finalizadas y las ubicaciones registradas.
 

@@ -2,7 +2,8 @@ from zoneinfo import ZoneInfo
 
 from django.contrib.gis.geos import Point
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Max
+from django.db.models import Count, IntegerField, Max, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +16,7 @@ from apps.tenancy.models import Membership
 from apps.tenancy.permissions import HasTenantContext, role_required
 from apps.tenancy.timefmt import iso_utc
 from apps.tracking import services as tracking
+from apps.tracking.models import TrackingGap
 from apps.tracking.serializers import AwareDateTimeField
 
 from .models import Workday
@@ -207,8 +209,17 @@ def visible_workdays(request):
     """§8: dueño, admin y supervisor ven todas las jornadas de su empresa; el repartidor, solo las
     propias. Otra empresa no aparece nunca (RLS + TenantManager)."""
     membership = request._request.tenant.membership
+    # Los huecos van en una subconsulta: un segundo JOIN multiplicaría el conteo de puntos.
+    gaps = (
+        TrackingGap.objects.filter(workday=OuterRef("pk"))
+        .values("workday")
+        .annotate(n=Count("id"))
+        .values("n")[:1]
+    )
     qs = Workday.objects.select_related("driver__membership__user").annotate(
-        point_count=Count("points"), last_point_at=Max("points__recorded_at")
+        point_count=Count("points"),
+        last_point_at=Max("points__recorded_at"),
+        gap_count=Coalesce(Subquery(gaps, output_field=IntegerField()), Value(0)),
     )
     if membership.role in VIEWER_ROLES:
         return qs
@@ -223,6 +234,7 @@ def workday_with_driver(w: Workday) -> dict:
         "driver": {"id": str(w.driver_id), "name": user.full_name or user.email},
         "point_count": getattr(w, "point_count", 0),
         "last_point_at": iso_utc(getattr(w, "last_point_at", None)),
+        "gap_count": getattr(w, "gap_count", 0),
     }
 
 

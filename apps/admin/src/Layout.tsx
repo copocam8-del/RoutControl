@@ -19,7 +19,7 @@ export function Layout({ route, session, children }: { route: Route; session: Se
     <div className="shell">
       <aside className="sidebar">
         <div className="sidebar__brand">
-          <Brand name={app.config.appName} markSize={40} textSize={19} hole="var(--rc-sidebar)" />
+          <Brand name={app.config.appName} markSize={42} textSize={19} hole="var(--rc-sidebar)" />
         </div>
         <nav aria-label="Secciones">
           <ul className="sidebar__nav">
@@ -36,16 +36,19 @@ export function Layout({ route, session, children }: { route: Route; session: Se
             })}
           </ul>
         </nav>
-        <div className="user-card">
-          <Avatar name={name} size={40} ring />
-          <div className="user-card__text">
-            <span className="user-card__name">{name}</span>
-            <span className="user-card__role">
-              {ROLE_LABEL[session.role]} · {session.organization.name}
-            </span>
+        <div className="sidebar__foot">
+          <div className="user-card">
+            <Avatar name={name} size={40} ring />
+            <div className="user-card__text">
+              <span className="user-card__name">{name}</span>
+              <span className="user-card__role">
+                {ROLE_LABEL[session.role]} · {session.organization.name}
+              </span>
+            </div>
           </div>
-          <button type="button" className="rc-icon-btn user-card__logout" aria-label="Salir" title="Salir" onClick={() => void app.session.logout()}>
-            <IconLogout />
+          <button type="button" className="sidebar__logout" onClick={() => void app.session.logout()}>
+            <IconLogout size={18} />
+            Salir
           </button>
         </div>
       </aside>

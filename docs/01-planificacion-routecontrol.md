@@ -365,7 +365,8 @@ Siempre en el backend, después del filtro por empresa.
 | Superficie | `#11183A` | Tarjetas, campos, barra inferior | Texto secundario encima: 7,9:1 |
 | Superficie 2 | `#1A2350` | Chips, botones secundarios, avatares | — |
 | Barra lateral / mapa | `#0B1130` / `#0C1230` | Panel / fondo del mapa | — |
-| Bordes | `#1F2860`, `#2A3470` | Separadores y contorno de campos | 1,5:1 (ver ADR-007, punto abierto) |
+| Bordes | `#1F2860`, `#2A3470` | Tarjetas y separadores (decorativos) | — |
+| Borde de campos | `#5A67B0` | Contorno de los campos de formulario | 3,3:1 sobre la tarjeta (≥ 3:1) |
 | Texto principal | `#F3F5FF` | Títulos, cifras | 17,9:1 |
 | Texto secundario fuerte | `#D5DBF7` | Etiquetas | 12,6:1 sobre la tarjeta |
 | Texto secundario | `#A3AED6` | Detalles | 8,9:1 sobre el fondo |
