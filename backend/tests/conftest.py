@@ -21,6 +21,7 @@ from apps.accounts.models import User
 from apps.drivers.models import DriverProfile
 from apps.tenancy.context import tenant_context
 from apps.tenancy.models import Membership, Organization
+from apps.tenancy.services import create_organization
 
 DATABASES = ["default", "app"]
 
@@ -51,7 +52,7 @@ def make_user(email: str, password: str = "pw-test") -> User:
 
 
 def make_org(slug: str, n_drivers: int = 1) -> OrgFixture:
-    org = Organization.objects.create(name=f"Org {slug}", slug=slug)
+    org = create_organization(name=f"Org {slug}", slug=slug)
     owner = make_user(f"owner@{slug}.test")
     fx = OrgFixture(org=org, owner=owner)
     with tenant_context(org.id):

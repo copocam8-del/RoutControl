@@ -1,6 +1,7 @@
 """Crea dos empresas de DEMOSTRACIÓN con usuarios de prueba. Idempotente. Solo con DEBUG."""
 
 import os
+import uuid
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -8,7 +9,10 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.accounts.models import User
 from apps.drivers.models import DriverProfile
 from apps.tenancy.context import tenant_context
-from apps.tenancy.models import Membership, Organization
+from apps.tenancy.models import Membership
+from apps.tenancy.services import create_organization, get_organization
+
+DEMO_NAMESPACE = uuid.UUID("6f1c2b0e-5d0a-4c55-9a51-2f3c8d0e7a10")
 
 DEMO = [
     {
@@ -50,8 +54,11 @@ class Command(BaseCommand):
 
         multi = user(*MULTI[:2])
         for spec in DEMO:
-            org, _ = Organization.objects.get_or_create(
-                slug=spec["slug"], defaults={"name": spec["name"], "is_demo": True}
+            # Id determinista: con RLS no se puede buscar una empresa por slug sin estar en su
+            # contexto, así que un segundo seed la encuentra por id.
+            org_id = uuid.uuid5(DEMO_NAMESPACE, spec["slug"])
+            org = get_organization(org_id) or create_organization(
+                id=org_id, slug=spec["slug"], name=spec["name"], is_demo=True
             )
             with tenant_context(org.id):
                 for email, name, role in [*spec["users"], MULTI]:

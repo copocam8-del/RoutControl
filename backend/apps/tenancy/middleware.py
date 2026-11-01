@@ -89,7 +89,13 @@ def _load_tracking_context(token_hash: str, org_id: uuid.UUID, workday_id: uuid.
 
 
 def _active_membership(user_id: uuid.UUID):
-    """Debe llamarse dentro de tenant_context: el ORM y el RLS limitan a la empresa del token."""
+    """Debe llamarse dentro de tenant_context: el ORM y el RLS limitan a la empresa del token.
+
+    Exige membresía, empresa y usuario activos: un usuario desactivado pierde el acceso en la
+    request siguiente, aunque su access token todavía no haya vencido.
+    """
+    from apps.accounts.models import User
+
     from .models import Membership, Organization
 
     return (
@@ -97,6 +103,7 @@ def _active_membership(user_id: uuid.UUID):
             user_id=user_id,
             status=Membership.Status.ACTIVE,
             organization__status=Organization.Status.ACTIVE,
+            user__status=User.Status.ACTIVE,
         )
         .select_related("organization", "user")
         .first()

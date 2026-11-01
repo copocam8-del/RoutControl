@@ -89,8 +89,9 @@ def test_global_grace_is_configurable(org_a):
 
 
 def test_grace_can_be_overridden_per_org(org_a):
-    org_a.org.settings = {"tracking_token_grace_hours": 2}
-    org_a.org.save()
+    with tenant_context(org_a.id):  # la tabla de empresas tiene RLS
+        org_a.org.settings = {"tracking_token_grace_hours": 2}
+        org_a.org.save()
     body = start_workday(org_a.driver, org_a.org)
     client_for(org_a.driver, org_a.org).post(
         f"/api/v1/workdays/{body['workday']['id']}/end", {"ended_at": iso(now_utc())}, format="json"

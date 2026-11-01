@@ -87,6 +87,19 @@ def apply_tenant_security(using: str = "default") -> None:
             ),
         ]
 
+    # La tabla de empresas también: rc_app solo ve (y modifica) la empresa del contexto. Para crear
+    # una empresa se entra primero a su contexto (apps.tenancy.services.create_organization).
+    # Las FK hacia esta tabla no se ven afectadas: los chequeos de integridad ignoran el RLS.
+    from .models import Organization
+
+    org_table = qn(Organization._meta.db_table)
+    statements += [
+        f"ALTER TABLE {org_table} ENABLE ROW LEVEL SECURITY",
+        f"ALTER TABLE {org_table} FORCE ROW LEVEL SECURITY",
+        f"DROP POLICY IF EXISTS {POLICY_NAME} ON {org_table}",
+        f"CREATE POLICY {POLICY_NAME} ON {org_table} USING (id = rc_current_org()) WITH CHECK (id = rc_current_org())",
+    ]
+
     # Las FK compuestas van después de crear todos los UNIQUE de destino.
     for model in models:
         table = model._meta.db_table

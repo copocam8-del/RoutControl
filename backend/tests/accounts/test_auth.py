@@ -112,6 +112,37 @@ def test_access_token_stops_working_when_membership_is_disabled(org_a):
     assert client.get("/api/v1/auth/me").status_code == 403
 
 
+def test_disabled_user_with_unexpired_access_token_gets_no_context(org_a):
+    """Desactivar al usuario corta el acceso en la request siguiente, sin esperar a que venza el token."""
+    from django.http import HttpResponse
+    from django.test import RequestFactory
+
+    from apps.accounts.models import User
+    from apps.tenancy.middleware import TenantContextMiddleware
+
+    client = APIClient()
+    access = login(client, org_a.driver.email).json()["access"]
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+    assert client.get("/api/v1/auth/me").status_code == 200
+
+    User.objects.filter(id=org_a.driver.id).update(status=User.Status.DISABLED)
+
+    # 1) El middleware no fija contexto de empresa (la membresía sigue activa: el que falla es el usuario).
+    seen = {}
+
+    def view(request):
+        seen["tenant"] = request.tenant
+        return HttpResponse()
+
+    TenantContextMiddleware(view)(RequestFactory().get("/x", HTTP_AUTHORIZATION=f"Bearer {access}"))
+    assert seen["tenant"] is None
+    # 2) Y la API lo rechaza.
+    assert client.get("/api/v1/auth/me").status_code in (401, 403)
+    assert client.get("/api/v1/workdays/current").status_code in (401, 403)
+    # 3) Tampoco puede renovar la sesión con la cookie.
+    assert client.post(REFRESH).status_code == 401
+
+
 def test_logout_blacklists_refresh_and_clears_cookie(org_a):
     client = APIClient()
     login(client, org_a.driver.email)
