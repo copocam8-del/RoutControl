@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cargar paquetes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+@keyframes rcScan{0%{top:10%}50%{top:86%}100%{top:10%}}
+@keyframes rcFlash{0%{opacity:0;transform:scale(.8)}20%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.1)}}
+@keyframes rcRowIn{0%{opacity:0;transform:translateY(-10px)}100%{opacity:1;transform:translateY(0)}}
+.rc-scan{animation:rcScan 2.2s ease-in-out infinite}
+.rc-flash{animation:rcFlash 1.2s ease-out infinite}
+.rc-row{animation:rcRowIn .35s ease-out both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #02040C; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #F3F5FF">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(120% 60% at 50% 32%, #1A2350 0%, #070B1F 55%, #02040C 100%)"></div>
+<div aria-hidden="true" style="position: absolute; left: 30px; top: 150px; width: 330px; height: 300px">
+<div style="position: absolute; left: 6px; top: 20px; width: 128px; height: 96px; border-radius: 8px; background: #E9E4D6; transform: rotate(-6deg); display: flex; align-items: center; justify-content: center"><div style="width: 56px; height: 56px; background: repeating-linear-gradient(90deg, #111 0 4px, transparent 4px 7px), repeating-linear-gradient(0deg, #111 0 4px, transparent 4px 7px); border: 4px solid #111; box-sizing: border-box"></div></div>
+<div style="position: absolute; left: 170px; top: 6px; width: 140px; height: 104px; border-radius: 8px; background: #E9E4D6; transform: rotate(5deg); display: flex; align-items: center; justify-content: center"><div style="width: 60px; height: 60px; background: repeating-linear-gradient(90deg, #111 0 5px, transparent 5px 8px), repeating-linear-gradient(0deg, #111 0 3px, transparent 3px 8px); border: 4px solid #111; box-sizing: border-box"></div></div>
+<div style="position: absolute; left: 60px; top: 150px; width: 150px; height: 110px; border-radius: 8px; background: #E9E4D6; transform: rotate(2deg); display: flex; align-items: center; justify-content: center"><div style="width: 62px; height: 62px; background: repeating-linear-gradient(90deg, #111 0 3px, transparent 3px 7px), repeating-linear-gradient(0deg, #111 0 5px, transparent 5px 8px); border: 4px solid #111; box-sizing: border-box"></div></div>
+<div style="position: absolute; left: 228px; top: 168px; width: 96px; height: 96px; border-radius: 8px; background: #E9E4D6; transform: rotate(-8deg)"></div>
+<span class="rc-flash" style="position: absolute; left: 50px; top: 46px; width: 44px; height: 44px; border-radius: 12px; background: rgba(52,211,153,.9); display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#04211A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span>
+<span style="position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-left: 5px solid #A78BFA; border-top: 5px solid #A78BFA; border-top-left-radius: 20px"></span>
+<span style="position: absolute; right: 0; top: 0; width: 40px; height: 40px; border-right: 5px solid #A78BFA; border-top: 5px solid #A78BFA; border-top-right-radius: 20px"></span>
+<span style="position: absolute; left: 0; bottom: 0; width: 40px; height: 40px; border-left: 5px solid #A78BFA; border-bottom: 5px solid #A78BFA; border-bottom-left-radius: 20px"></span>
+<span style="position: absolute; right: 0; bottom: 0; width: 40px; height: 40px; border-right: 5px solid #A78BFA; border-bottom: 5px solid #A78BFA; border-bottom-right-radius: 20px"></span>
+<span class="rc-scan" style="position: absolute; left: 14px; right: 14px; height: 3px; border-radius: 3px; background: #A78BFA; box-shadow: 0 0 18px 4px rgba(167,139,250,.65)"></span>
+</div>
+<header style="position: relative; padding: 56px 20px 0; display: flex; align-items: center; justify-content: space-between">
+<a href="Paquetes.dc.html" aria-label="Cerrar" style="width: 48px; height: 48px; border-radius: 16px; background: rgba(17,24,58,.85); border: 1px solid #2A3470; color: #F3F5FF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: rgba(17,24,58,.9); border: 1px solid #2A3470; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums"><span style="width: 9px; height: 9px; border-radius: 50%; background: #34D399"></span>{{count}} de 24 cargados</span>
+<button type="button" aria-label="Encender linterna" style="width: 48px; height: 48px; border-radius: 16px; background: rgba(17,24,58,.85); border: 1px solid #2A3470; color: #F3F5FF; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2h10v5l-3 4v11h-4V11L7 7z"></path></svg></button>
+</header>
+<p style="position: absolute; left: 0; right: 0; top: 462px; margin: 0; text-align: center; font-size: 15px; font-weight: 600; color: #D5DBF7">Pasá el celular por encima de los paquetes.<br>Se cargan solos, de a varios.</p>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 24px; border-radius: 24px; background: #11183A; border: 1px solid #2A3470; padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 -10px 40px rgba(0,0,0,.4)">
+<div role="progressbar" aria-valuenow="{{count}}" aria-valuemin="0" aria-valuemax="24" aria-label="Paquetes cargados" style="height: 8px; border-radius: 999px; background: #1A2350; overflow: hidden"><div style="width: {{pct}}; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4D8DFF, #7C5CFF); transition: width .4s"></div></div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{recent}}" as="r" hint-placeholder-count="3">
+<div class="rc-row" style="display: flex; align-items: center; gap: 10px; font-size: 14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg><span style="font-weight: 700">{{r.addr}}</span><span style="margin-left: auto; color: #A3AED6; font-size: 12px">{{r.code}}</span></div>
+</sc-for>
+</div>
+<a href="Ruta.dc.html" style="height: 60px; border-radius: 18px; background: #7C5CFF; color: #FFFFFF; font-size: 18px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; box-shadow: 0 12px 32px rgba(124,92,255,.40)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="2.5"></circle><circle cx="18" cy="5" r="2.5"></circle><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"></path></svg>Armar mi ruta ({{count}})</a>
+<a href="Escanear.dc.html" style="align-self: center; font-size: 14px; font-weight: 700; padding: 2px 8px">Escribir un código a mano</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { count: 9 };
+}
+componentDidMount() {
+this.t = setInterval(() => this.setState({ count: this.state.count >= 24 ? 9 : this.state.count + 1 }), 900);
+}
+componentWillUnmount() {
+clearInterval(this.t);
+}
+renderVals() {
+const pool = ['Av. San Martín 1450', 'Belgrano 322', 'Rivadavia 980', 'Mitre 77', 'Sarmiento 2210', 'Moreno 455', 'Laprida 1801', 'Alsina 640', 'Urquiza 1120'];
+const c = this.state.count;
+const recent = [0, 1, 2].map((k) => ({ addr: pool[(c - k + 90) % pool.length], code: '…' + String(2258 + (c - k) * 37).slice(-4) }));
+return { count: c, pct: Math.round((c / 24) * 100) + '%', recent };
+}
+}
+</script>
+</body>
+</html>

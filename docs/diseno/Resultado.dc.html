@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Resultado de la visita</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+textarea::placeholder{color:#7F8AB8}
+textarea:focus{outline:none;border-color:#7C5CFF !important;box-shadow:0 0 0 4px rgba(124,92,255,.28)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #070B1F; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #F3F5FF; display: flex; flex-direction: column">
+<header style="padding: 56px 20px 12px; display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">¿Cómo te fue?</h1>
+<span style="font-size: 14px; color: #A3AED6">Av. San Martín 1450 · visita de {{duration}}</span>
+</header>
+<main style="flex-grow: 1; overflow-y: auto; padding: 4px 20px 12px; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="7">
+<button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="min-height: 56px; padding: 10px 14px; border-radius: 16px; border: 1.5px solid {{o.border}}; background: {{o.bg}}; color: #F3F5FF; font-family: inherit; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer">
+<span style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 11px; background: {{o.iconBg}}; color: {{o.iconFg}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800">{{o.mark}}</span>
+<span style="flex-grow: 1">{{o.label}}</span>
+<span style="width: 22px; height: 22px; border-radius: 50%; border: 2px solid {{o.radio}}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{o.dot}}"></span></span>
+</button>
+</sc-for>
+<sc-if value="{{needsPhoto}}" hint-placeholder-val="{{ true }}">
+<div style="margin-top: 6px; display: flex; flex-direction: column; gap: 10px">
+<label for="obs" style="font-size: 14px; font-weight: 600; color: #D5DBF7">Observaciones</label>
+<textarea id="obs" rows="2" placeholder="Por ejemplo: toqué timbre dos veces" style="box-sizing: border-box; width: 100%; border-radius: 14px; border: 1.5px solid #5A67B0; background: #11183A; color: #F3F5FF; font-family: inherit; font-size: 15px; padding: 12px 14px; resize: none"></textarea>
+<button type="button" style="height: 88px; border-radius: 16px; border: 1.5px dashed #5A67B0; background: rgba(124,92,255,.08); color: #D5DBF7; font-family: inherit; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C4B5FD" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>Sacar foto como comprobante</button>
+</div>
+</sc-if>
+</main>
+<div style="padding: 10px 20px 28px; background: linear-gradient(180deg, rgba(7,11,31,0) 0%, #070B1F 30%)">
+<a href="Paquetes.dc.html" style="height: 64px; border-radius: 18px; background: {{saveBg}}; color: #FFFFFF; font-size: 19px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; box-shadow: 0 12px 32px rgba(124,92,255,.35)">Guardar resultado</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { pick: 'absent' };
+}
+renderVals() {
+const defs = [
+['ok', 'Entregado', '✓', 'rgba(52,211,153,.16)', '#34D399'],
+['absent', 'Destinatario ausente', '!', 'rgba(251,191,36,.16)', '#FBBF24'],
+['noanswer', 'Nadie responde', '!', 'rgba(251,191,36,.16)', '#FBBF24'],
+['address', 'Dirección incorrecta', '?', 'rgba(77,141,255,.18)', '#7FB0FF'],
+['access', 'Acceso imposible', '×', 'rgba(77,141,255,.18)', '#7FB0FF'],
+['resched', 'Pide otro día u horario', '↻', 'rgba(167,139,250,.18)', '#C4B5FD'],
+['other', 'Otro inconveniente', '…', '#1A2350', '#D5DBF7']
+];
+const sel = this.state.pick;
+return {
+duration: '3 min 12 s',
+needsPhoto: sel !== 'ok',
+saveBg: '#7C5CFF',
+opts: defs.map(([k, label, mark, iconBg, iconFg]) => ({
+label, mark, iconBg, iconFg,
+pressed: sel === k ? 'true' : 'false',
+border: sel === k ? '#7C5CFF' : '#2A3470',
+bg: sel === k ? 'rgba(124,92,255,.16)' : '#11183A',
+radio: sel === k ? '#A78BFA' : '#5A67B0',
+dot: sel === k ? '#A78BFA' : 'transparent',
+pick: () => this.setState({ pick: k })
+}))
+};
+}
+}
+</script>
+</body>
+</html>
