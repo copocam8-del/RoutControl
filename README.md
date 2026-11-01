@@ -9,7 +9,11 @@ SaaS multitenant de gestión de repartos de última milla. "RouteControl" es un 
 ## Requisitos
 
 - **Docker Desktop**. El backend, PostGIS y Redis corren en contenedores ([ADR-004](docs/adr/ADR-004-django-en-docker.md)), así que no hace falta instalar Python, GDAL ni PostgreSQL en Windows.
-- **pnpm** (opcional, para los atajos): `corepack enable && corepack prepare pnpm@latest --activate`.
+- **pnpm 10** (necesario para el front, y para los atajos `pnpm …`). Dos formas:
+  - `corepack enable`, en una terminal como administrador, porque escribe en la carpeta de Node;
+  - o `npm install -g pnpm@10`, sin permisos de administrador.
+
+  La versión exacta la fija `packageManager` en `package.json`.
 - El repo tiene que estar en una ruta corta y sin espacios (por ejemplo `C:\dev\routcontrol`).
 
 ## Correr las pruebas (un solo comando)
@@ -49,6 +53,25 @@ Contraseña: el valor de `DEMO_PASSWORD` (por defecto `routcontrol-demo`).
 | Demo Norte | `duenio@norte.demo`, `repartidor1@norte.demo` … `repartidor5@norte.demo` |
 | Demo Sur | `duenio@sur.demo`, `repartidor1@sur.demo` |
 | Las dos | `supervisor@ambas.demo` (al hacer login tiene que elegir empresa) |
+
+## App del repartidor (PWA, `apps/driver`)
+
+No necesita Docker para desarrollar ni para correr sus pruebas.
+
+```bash
+pnpm install
+pnpm test:front          # Vitest: packages/domain + apps/driver
+pnpm typecheck
+pnpm driver:dev          # http://localhost:5173 (con el backend corriendo, /api va por proxy a :8000)
+```
+
+- **Proxy, solo en desarrollo:** Vite reenvía `/api` a Django (`VITE_API_PROXY_TARGET`, por defecto `http://localhost:8000`). La PWA y la API quedan en el mismo origen. En producción la API está en `API_URL` (`https://api.<dominio>`) y no hay proxy ([ADR-005](docs/adr/ADR-005-sesion-web.md)).
+- **En el teléfono:** la geolocalización y el Service Worker exigen HTTPS. Pasos:
+  1. Compilar y servir con `pnpm driver:build && pnpm driver:preview` (puerto 4173).
+  2. Abrir un túnel: `cloudflared tunnel --url http://localhost:4173`.
+  3. Agregar la URL del túnel a `CSRF_TRUSTED_ORIGINS` en `.env` (por ejemplo `https://xxxx.trycloudflare.com`), para que el backend acepte el refresh de sesión que llega desde ese origen.
+- **Íconos:** `pnpm --filter @routcontrol/driver icons` los regenera desde `public/favicon.svg`.
+- Qué se guarda en el teléfono y por qué: [ADR-006](docs/adr/ADR-006-almacenamiento-local-pwa.md).
 
 ## API (etapa 0)
 

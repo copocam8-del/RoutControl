@@ -1,0 +1,21 @@
+{
+  "name": "@routcontrol/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tipos, esquemas zod y reglas compartidas entre la app del repartidor, el panel y el contrato de la API.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

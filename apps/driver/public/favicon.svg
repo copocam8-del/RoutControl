@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ícono genérico (pin sobre un recorrido), sin texto de marca: el nombre es provisorio. -->
+  <rect width="512" height="512" rx="96" fill="#0B1F3A"/>
+  <path d="M120 392 C 180 300, 250 360, 300 270 S 380 170, 400 150" fill="none" stroke="#F3F4F6" stroke-width="22" stroke-linecap="round" stroke-dasharray="2 44"/>
+  <path d="M256 92c-54 0-98 43-98 97 0 72 98 175 98 175s98-103 98-175c0-54-44-97-98-97z" fill="#F59E0B"/>
+  <circle cx="256" cy="189" r="38" fill="#0B1F3A"/>
+</svg>

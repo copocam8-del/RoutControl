@@ -8,6 +8,11 @@
     "backend:dev": "docker compose -f infra/docker-compose.yml up backend",
     "backend:migrate": "docker compose -f infra/docker-compose.yml run --rm backend python manage.py migrate",
     "backend:seed": "docker compose -f infra/docker-compose.yml run --rm backend python manage.py seed_demo",
-    "test:backend": "docker compose -f infra/docker-compose.yml run --rm backend pytest"
+    "test:backend": "docker compose -f infra/docker-compose.yml run --rm backend pytest",
+    "driver:dev": "pnpm --filter @routcontrol/driver dev",
+    "driver:build": "pnpm --filter @routcontrol/driver build",
+    "driver:preview": "pnpm --filter @routcontrol/driver preview",
+    "test:front": "pnpm -r --filter ./packages/* --filter ./apps/* test",
+    "typecheck": "pnpm -r --filter ./packages/* --filter ./apps/* typecheck"
   }
 }
