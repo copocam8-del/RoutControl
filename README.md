@@ -67,10 +67,10 @@ pnpm driver:dev          # http://localhost:5173 (con el backend corriendo, /api
 
 - **Contra el Django real** (por el proxy de Vite): con `pnpm backend:dev`, `pnpm backend:seed` y `pnpm driver:dev` corriendo, `pnpm --filter @routcontrol/driver test:real`. Usa las piezas reales de la app (cliente, cola de envío y jornada) y simula solo el teléfono.
 - **Proxy, solo en desarrollo:** Vite reenvía `/api` a Django (`VITE_API_PROXY_TARGET`, por defecto `http://localhost:8000`). La PWA y la API quedan en el mismo origen. En producción la API está en `API_URL` (`https://api.<dominio>`) y no hay proxy ([ADR-005](docs/adr/ADR-005-sesion-web.md)).
-- **En el teléfono:** la geolocalización y el Service Worker exigen HTTPS. Pasos:
+- **En el teléfono:** guía completa, con la lista de pruebas, en [`docs/etapa0-prueba-en-telefonos.md`](docs/etapa0-prueba-en-telefonos.md). La geolocalización y el Service Worker exigen HTTPS. Resumen:
   1. Compilar y servir con `pnpm driver:build && pnpm driver:preview` (puerto 4173).
   2. Abrir un túnel: `cloudflared tunnel --url http://localhost:4173`.
-  3. Agregar la URL del túnel a `CSRF_TRUSTED_ORIGINS` en `.env` (por ejemplo `https://xxxx.trycloudflare.com`), para que el backend acepte el refresh de sesión que llega desde ese origen.
+  3. Abrir en el teléfono la URL `https://…trycloudflare.com` que muestra cloudflared. No hace falta tocar `CSRF_TRUSTED_ORIGINS`: en desarrollo Django toma el esquema de `X-Forwarded-Proto`.
 - **Íconos:** `pnpm --filter @routcontrol/driver icons` los regenera desde `public/favicon.svg`.
 - Qué se guarda en el teléfono y por qué: [ADR-006](docs/adr/ADR-006-almacenamiento-local-pwa.md).
 
