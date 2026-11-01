@@ -37,6 +37,8 @@ export class FakeBackend {
   online = true;
   /** Próximas respuestas forzadas, por ruta (por ejemplo, un 500). */
   forced = new Map<string, number[]>();
+  /** Cortes de red puntuales por ruta (como el corte del túnel): cuántas veces falla antes de andar. */
+  networkFailures = new Map<string, number>();
   users: FakeUser[] = [{ email: "repartidor@demo.test", password: "secreta", role: "DRIVER" }];
   points = new Map<string, Record<string, unknown>>();
   workdays = new Map<string, FakeWorkday>();
@@ -56,6 +58,11 @@ export class FakeBackend {
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     this.calls.push({ method: init?.method ?? "GET", path, body, headers });
     if (!this.online) throw new TypeError("Failed to fetch");
+    const failures = this.networkFailures.get(path) ?? 0;
+    if (failures > 0) {
+      this.networkFailures.set(path, failures - 1);
+      throw new TypeError("Failed to fetch (corte simulado)");
+    }
     const forced = this.forced.get(path)?.shift();
     if (forced) return json(forced, { detail: `forzado ${forced}` });
     return this.route(init?.method ?? "GET", path, body, headers);

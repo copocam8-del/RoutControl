@@ -77,10 +77,15 @@ export class ApiClient {
   private accessToken: string | null = null;
   private refreshing: Promise<boolean> | null = null;
 
+  private readonly getRetryDelayMs: number;
+
   constructor(
     private readonly base: string,
     private readonly fetchImpl: Fetch = (...args) => globalThis.fetch(...args),
-  ) {}
+    options: { getRetryDelayMs?: number } = {},
+  ) {
+    this.getRetryDelayMs = options.getRetryDelayMs ?? 800;
+  }
 
   get hasAccessToken(): boolean {
     return this.accessToken !== null;
@@ -196,6 +201,21 @@ export class ApiClient {
   }
 
   private async raw(path: string, init: RequestInit_, bearer?: string | null): Promise<Response> {
+    // Las lecturas (GET) son idempotentes: si falla la red o el túnel/proxy no llega al servidor
+    // (502/503/504, 530 de Cloudflare), se reintenta UNA vez después de un instante. Los cortes de
+    // pocos segundos ni se notan. Las escrituras no: tienen su propia cola con reintentos.
+    if (init.method !== "GET") return this.send(path, init, bearer);
+    try {
+      const response = await this.send(path, init, bearer);
+      if (!GATEWAY_ERRORS.has(response.status)) return response;
+    } catch (error) {
+      if (!(error instanceof NetworkError)) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, this.getRetryDelayMs));
+    return this.send(path, init, bearer);
+  }
+
+  private async send(path: string, init: RequestInit_, bearer?: string | null): Promise<Response> {
     const headers: Record<string, string> = { Accept: "application/json", ...init.headers };
     if (init.body !== undefined) headers["Content-Type"] = "application/json";
     if (bearer) headers.Authorization = `Bearer ${bearer}`;
@@ -211,6 +231,9 @@ export class ApiClient {
     }
   }
 }
+
+/** Respuestas de un intermediario (proxy, túnel) que no llegó al servidor. */
+const GATEWAY_ERRORS = new Set([502, 503, 504, 530]);
 
 interface RequestInit_ {
   method: "GET" | "POST";

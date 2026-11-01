@@ -19,7 +19,7 @@ vi.mock("./TrackMap", () => ({
 async function setupWithWorkday() {
   const backend = new FakeBackend();
   const device = new FakeDevice();
-  const app = createApp({ db: freshDb(), api: new ApiClient("/api/v1", backend.fetch), device });
+  const app = createApp({ db: freshDb(), api: new ApiClient("/api/v1", backend.fetch, { getRetryDelayMs: 0 }), device });
   await app.api.login("repartidor@demo.test", "secreta");
   await app.workday.resume();
   await app.workday.start();
@@ -59,6 +59,73 @@ describe("Mis recorridos", () => {
       </AppContext.Provider>,
     );
     expect(await screen.findByText("Todavía no hay jornadas registradas.")).toBeTruthy();
+  });
+});
+
+function renderTrackScreen(app: Awaited<ReturnType<typeof setupWithWorkday>>["app"]) {
+  render(
+    <AppContext.Provider value={app}>
+      <TrackScreen onBack={() => {}} />
+    </AppContext.Provider>,
+  );
+}
+
+describe("Mis recorridos: si falla la carga (iPhone, 12:59: se cortó el túnel)", () => {
+  it("muestra SOLO el error, sin 'Cargando…', y 'Reintentar' lo vuelve a pedir", async () => {
+    const { app, backend } = await setupWithWorkday();
+    const user = userEvent.setup();
+    renderTrackScreen(app);
+    const workdayId = [...backend.workdays.keys()][0]!;
+    // Más cortes que el reintento automático: la pantalla tiene que mostrar el error.
+    backend.networkFailures.set(`/workdays/${workdayId}/track`, 2);
+
+    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Sin conexión con el servidor: no se pudo cargar el recorrido.");
+    expect(screen.queryByText(/Cargando/)).toBeNull();
+    expect(screen.queryByTestId("map")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findByTestId("map")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText(/Cargando/)).toBeNull();
+    app.workday.dispose();
+  });
+
+  it("un corte breve (una sola falla) no llega a mostrarse: la lectura se reintenta sola", async () => {
+    const { app, backend } = await setupWithWorkday();
+    const user = userEvent.setup();
+    renderTrackScreen(app);
+    const workdayId = [...backend.workdays.keys()][0]!;
+    backend.networkFailures.set(`/workdays/${workdayId}/track`, 1);
+    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    expect(await screen.findByTestId("map")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+    app.workday.dispose();
+  });
+
+  it("un error del servidor muestra el código y también ofrece reintentar", async () => {
+    const { app, backend } = await setupWithWorkday();
+    const user = userEvent.setup();
+    renderTrackScreen(app);
+    const workdayId = [...backend.workdays.keys()][0]!;
+    backend.forced.set(`/workdays/${workdayId}/track`, [500]);
+    await user.click(await screen.findByRole("button", { name: /en curso/ }));
+    expect((await screen.findByRole("alert")).textContent).toBe("No se pudo cargar el recorrido (error 500).");
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeTruthy();
+    app.workday.dispose();
+  });
+
+  it("si falla el listado, también: solo el error y 'Reintentar'", async () => {
+    const { app, backend } = await setupWithWorkday();
+    backend.networkFailures.set("/workdays/", 2);
+    const user = userEvent.setup();
+    renderTrackScreen(app);
+    expect((await screen.findByRole("alert")).textContent).toContain("no se pudo cargar las jornadas");
+    expect(screen.queryByText(/Cargando/)).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findByRole("button", { name: /en curso/ })).toBeTruthy();
+    app.workday.dispose();
   });
 });
 

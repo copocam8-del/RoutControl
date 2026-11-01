@@ -77,6 +77,36 @@ describe("ApiClient", () => {
     await expect(api.login("a@b.c", "x")).rejects.toBeInstanceOf(NetworkError);
   });
 
+  it("una lectura (GET) que falla por la red se reintenta UNA vez", async () => {
+    const backend = new FakeBackend();
+    const api = new ApiClient("/api/v1", backend.fetch, { getRetryDelayMs: 0 });
+    await api.login("repartidor@demo.test", "secreta");
+    backend.networkFailures.set("/workdays/current", 1);
+    expect(await api.currentWorkday()).toBeNull();
+    expect(backend.callsTo("/workdays/current")).toHaveLength(2);
+
+    backend.networkFailures.set("/workdays/current", 2);
+    await expect(api.currentWorkday()).rejects.toBeInstanceOf(NetworkError);
+  });
+
+  it("también ante un 530/502 del túnel o del proxy, pero no ante un 500 del servidor", async () => {
+    const backend = new FakeBackend();
+    const api = new ApiClient("/api/v1", backend.fetch, { getRetryDelayMs: 0 });
+    await api.login("repartidor@demo.test", "secreta");
+    backend.forced.set("/workdays/current", [530]);
+    expect(await api.currentWorkday()).toBeNull();
+    backend.forced.set("/workdays/current", [500]);
+    await expect(api.currentWorkday()).rejects.toMatchObject({ status: 500 });
+  });
+
+  it("las escrituras (POST) no se reintentan solas: tienen su propia cola", async () => {
+    const backend = new FakeBackend();
+    const api = new ApiClient("/api/v1", backend.fetch, { getRetryDelayMs: 0 });
+    backend.networkFailures.set("/auth/login", 1);
+    await expect(api.login("repartidor@demo.test", "secreta")).rejects.toBeInstanceOf(NetworkError);
+    expect(backend.callsTo("/auth/login")).toHaveLength(1);
+  });
+
   it("el lote viaja con el token de seguimiento, no con la sesión", async () => {
     const { api, backend } = make();
     await api.postBatch("tok", { points: [] }).catch(() => undefined);
