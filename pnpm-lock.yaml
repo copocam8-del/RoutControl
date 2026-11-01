@@ -13,6 +13,9 @@ importers:
       '@routcontrol/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@routcontrol/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       dexie:
         specifier: ^4.4.7
         version: 4.4.7

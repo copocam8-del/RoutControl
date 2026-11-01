@@ -1,3 +1,4 @@
+import { Alert, Button } from "@routcontrol/ui";
 import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -32,17 +33,17 @@ export function InstallHint() {
   if (installed) return null;
   if (deferred) {
     return (
-      <button className="btn btn--secondary" onClick={() => void deferred.prompt().then(() => setDeferred(null))}>
+      <Button variant="accent" block onClick={() => void deferred.prompt().then(() => setDeferred(null))}>
         Instalar la app en el teléfono
-      </button>
+      </Button>
     );
   }
   if (isIos()) {
     return (
-      <p className="alert alert--info">
-        Para instalarla en el iPhone: tocá <strong>Compartir</strong> y después <strong>Agregar a inicio</strong>. Instalada,
-        los datos guardados no se borran.
-      </p>
+      <Alert tone="info" title="Instalá la app en el iPhone">
+        Tocá <strong>Compartir</strong> y después <strong>Agregar a inicio</strong>. Instalada, los datos guardados no se
+        borran.
+      </Alert>
     );
   }
   return null;

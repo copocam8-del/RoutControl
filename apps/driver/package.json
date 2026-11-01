@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@routcontrol/domain": "workspace:*",
+    "@routcontrol/ui": "workspace:*",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "maplibre-gl": "^6.16.0",

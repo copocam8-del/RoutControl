@@ -1,9 +1,10 @@
+import { Alert, Button, Card, formatAgo, formatElapsed, LoadingState, StatusLine, type StatusTone } from "@routcontrol/ui";
 import { useState } from "react";
 
 import type { GpsState } from "../tracking/workdayController";
+import { Brand } from "./Brand";
 import { ConsentDialog } from "./ConsentDialog";
 import { Diagnostics } from "./Diagnostics";
-import { ago, elapsed } from "./format";
 import { useApp, useNow, useStore } from "./hooks";
 import { InstallHint } from "./InstallHint";
 import { SyncIndicator } from "./SyncIndicator";
@@ -11,12 +12,12 @@ import { TrackScreen } from "./TrackScreen";
 
 const CONSENT_KEY = "consent-accepted-v1";
 
-const GPS_TEXT: Record<GpsState, { tone: "ok" | "warn" | "error" | "busy"; text: string }> = {
-  watching: { tone: "ok", text: "Registrando recorrido (con la app abierta)" },
-  paused: { tone: "warn", text: "Recorrido en pausa: la app está en segundo plano" },
-  denied: { tone: "error", text: "GPS detenido: falta el permiso de ubicación. Tocá para revisar" },
-  error: { tone: "error", text: "GPS detenido: no hay señal de ubicación. Tocá para revisar" },
-  off: { tone: "busy", text: "GPS apagado (fuera de jornada)" },
+const GPS_TEXT: Record<GpsState, { tone: StatusTone; text: string; actionable: boolean }> = {
+  watching: { tone: "ok", text: "Registrando recorrido (con la app abierta)", actionable: false },
+  paused: { tone: "warn", text: "Recorrido en pausa: la app está en segundo plano", actionable: false },
+  denied: { tone: "error", text: "GPS detenido: falta el permiso de ubicación. Tocá para revisar", actionable: true },
+  error: { tone: "error", text: "GPS detenido: no hay señal de ubicación. Tocá para revisar", actionable: true },
+  off: { tone: "idle", text: "GPS apagado (fuera de jornada)", actionable: false },
 };
 
 export function HomeScreen() {
@@ -33,6 +34,7 @@ export function HomeScreen() {
   if (showTracks) return <TrackScreen onBack={() => setShowTracks(false)} />;
   const active = wd.phase === "active" || wd.phase === "ending";
   const gps = GPS_TEXT[wd.gps];
+  const canLogout = !active && sync.pending === 0;
 
   async function onStartPressed() {
     if ((await app.db.meta.get(CONSENT_KEY))?.value) return app.workday.start();
@@ -45,83 +47,101 @@ export function HomeScreen() {
     await app.workday.start();
   }
 
-  const canLogout = !active && sync.pending === 0;
-
   return (
     <main className="screen">
       <header className="topbar">
         <div>
-          <div className="brand brand--small">{app.config.appName}</div>
-          <div className="muted">{session.session.organization.name}</div>
+          <Brand name={app.config.appName} small />
+          <div className="topbar__org">{session.session.organization.name}</div>
         </div>
-        <button
-          className="btn btn--ghost btn--small"
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => void app.session.logout()}
           disabled={!canLogout}
           title={canLogout ? "Cerrar sesión" : "Finalizá la jornada y esperá a que se envíe todo"}
         >
           Salir
-        </button>
+        </Button>
       </header>
 
-      <section className="card">
-        <div className="muted">Hola, {session.session.user.full_name || session.session.user.email}</div>
-        {active && wd.workday ? (
-          <>
-            <div className="timer" aria-label="Tiempo de jornada">
-              {elapsed(wd.workday.started_at, now)}
-            </div>
-            <div className="muted">Jornada iniciada · modo {wd.workday.tracking_mode === "EVENTS_ONLY" ? "PWA (por eventos)" : "continuo"}</div>
-          </>
-        ) : (
-          <div className="timer timer--idle">Sin jornada</div>
-        )}
-      </section>
+      {wd.phase === "loading" ? (
+        <Card label="Jornada">
+          <LoadingState label="Recuperando tu jornada…" />
+        </Card>
+      ) : (
+        <Card label="Jornada" className="workday-card">
+          <span className="workday-card__hello">Hola, {session.session.user.full_name || session.session.user.email}</span>
+          {active && wd.workday ? (
+            <>
+              <span className="timer" aria-label="Tiempo de jornada">
+                {formatElapsed(wd.workday.started_at, now)}
+              </span>
+              <span className="rc-muted">
+                Jornada en curso · {wd.workday.tracking_mode === "EVENTS_ONLY" ? "ubicación con la app abierta" : "recorrido continuo"}
+              </span>
+            </>
+          ) : (
+            <span className="timer timer--idle">Sin jornada</span>
+          )}
+        </Card>
+      )}
 
-      <button className={`status status--${gps.tone} status--button`} onClick={() => setShowDiagnostics(true)}>
-        <span className="status__dot" aria-hidden="true" />
-        <div>
-          <div className="status__title">{gps.text}</div>
-          <div className="status__detail">Última ubicación {ago(wd.lastFixAt, now)}</div>
-        </div>
-      </button>
-
+      <StatusLine
+        tone={gps.tone}
+        title={gps.text}
+        detail={`Última ubicación ${formatAgo(wd.lastFixAt, now)}`}
+        onClick={gps.actionable ? () => setShowDiagnostics(true) : undefined}
+      />
       <SyncIndicator status={sync} now={now} />
 
-      {wd.error ? (
-        <p className="alert alert--error" role="alert">
-          {wd.error}
-        </p>
-      ) : null}
+      {wd.error ? <Alert tone="error">{wd.error}</Alert> : null}
       {wd.conflict ? (
-        <button className="btn btn--secondary" onClick={() => void app.workday.closeServerConflict()}>
-          Cerrar la jornada anterior (iniciada {new Date(wd.conflict.started_at).toLocaleString("es-AR")})
-        </button>
+        <Alert tone="warning" title="Tenés otra jornada abierta">
+          <p style={{ margin: "4px 0 12px" }}>
+            Empezó el {new Date(wd.conflict.started_at).toLocaleString("es-AR")}, probablemente en otro teléfono.
+          </p>
+          <Button variant="secondary" block onClick={() => void app.workday.closeServerConflict()}>
+            Cerrar la jornada anterior
+          </Button>
+        </Alert>
       ) : null}
 
       <div className="thumb-zone">
-        {active ? (
-          <button
-            className="btn btn--danger btn--big"
+        {wd.phase === "loading" ? null : active ? (
+          <Button
+            variant="danger"
+            size="lg"
+            block
             onClick={() => void app.workday.end()}
-            disabled={wd.phase === "ending"}
+            loading={wd.phase === "ending"}
+            loadingLabel="Finalizando…"
           >
-            {wd.phase === "ending" ? "Finalizando… (se envía al volver la señal)" : "Finalizar jornada"}
-          </button>
+            Finalizar jornada
+          </Button>
         ) : (
-          <button className="btn btn--primary btn--big" onClick={() => void onStartPressed()} disabled={wd.phase !== "idle"}>
-            {wd.phase === "starting" ? "Obteniendo ubicación…" : "Iniciar jornada"}
-          </button>
+          <Button
+            size="lg"
+            block
+            onClick={() => void onStartPressed()}
+            disabled={wd.phase !== "idle" && wd.phase !== "starting"}
+            loading={wd.phase === "starting"}
+            loadingLabel="Obteniendo ubicación…"
+          >
+            Iniciar jornada
+          </Button>
         )}
       </div>
 
-      <button className="btn btn--secondary" onClick={() => setShowTracks(true)}>
-        Mis recorridos
-      </button>
+      <div className="secondary-actions">
+        <Button variant="secondary" onClick={() => setShowTracks(true)}>
+          Mis recorridos
+        </Button>
+        <Button variant="secondary" onClick={() => setShowDiagnostics((v) => !v)} aria-expanded={showDiagnostics}>
+          {showDiagnostics ? "Ocultar diagnóstico" : "Diagnóstico"}
+        </Button>
+      </div>
       <InstallHint />
-      <button className="btn btn--ghost" onClick={() => setShowDiagnostics((v) => !v)}>
-        {showDiagnostics ? "Ocultar diagnóstico" : "Diagnóstico"}
-      </button>
       {showDiagnostics ? <Diagnostics /> : null}
 
       {askConsent ? (

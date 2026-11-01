@@ -1,3 +1,5 @@
+import { Button } from "@routcontrol/ui";
+
 /**
  * Aviso destacado antes de pedir la ubicación (§5.4 y §11): qué se registra, para qué, cuándo
  * empieza y cuándo termina. Es un texto provisorio: requiere revisión legal (Ley 25.326).
@@ -16,16 +18,16 @@ export function ConsentDialog({ appName, onAccept, onCancel }: { appName: string
           <li>
             <strong>Solo durante la jornada:</strong> el registro termina cuando tocás “Finalizar jornada”.
           </li>
-          <li>Con la app cerrada o la pantalla bloqueada no se registra el recorrido; esos tramos quedan como huecos.</li>
+          <li>Con la app cerrada o la pantalla bloqueada no se registra el recorrido: esos tramos quedan como huecos.</li>
         </ul>
-        <p className="muted">A continuación el teléfono te va a pedir permiso para usar la ubicación.</p>
-        <div className="stack">
-          <button className="btn btn--primary" onClick={onAccept}>
+        <p className="rc-muted">A continuación, el teléfono te va a pedir permiso para usar la ubicación.</p>
+        <div className="rc-stack">
+          <Button size="lg" block onClick={onAccept}>
             Entendido, iniciar jornada
-          </button>
-          <button className="btn btn--ghost" onClick={onCancel}>
+          </Button>
+          <Button variant="ghost" block onClick={onCancel}>
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     </div>

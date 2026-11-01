@@ -9,10 +9,12 @@ import { FakeBackend } from "../test/fakeBackend";
 import { FakeDevice } from "../test/fakeDevice";
 import { freshDb, settle } from "../test/helpers";
 import { AppContext } from "./hooks";
-import { formatDistance, formatDuration, TrackScreen } from "./TrackScreen";
+import { formatDistance, formatDuration } from "@routcontrol/ui";
+
+import { TrackScreen } from "./TrackScreen";
 
 // MapLibre necesita WebGL (no existe en jsdom): se reemplaza por un doble que muestra qué recibió.
-vi.mock("./TrackMap", () => ({
+vi.mock("@routcontrol/ui/map", () => ({
   TrackMap: ({ track }: { track: WorkdayTrack }) => <div data-testid="map">mapa con {track.points.features.length} puntos</div>,
 }));
 

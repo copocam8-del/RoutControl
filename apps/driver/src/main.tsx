@@ -1,3 +1,4 @@
+import "@routcontrol/ui/styles.css";
 import "./styles.css";
 
 import { StrictMode } from "react";

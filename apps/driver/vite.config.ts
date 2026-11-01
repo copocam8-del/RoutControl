@@ -55,7 +55,18 @@ export default defineConfig(({ mode }) => {
           globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
           // MapLibre (~1 MB) solo se usa en "Mis recorridos" y el mapa igual necesita red para las
           // teselas: no se descarga al instalar la app (datos móviles), sino al abrir el mapa.
-          globIgnores: ["**/maplibre-gl-*.js", "**/maplibre-gl-*.css", "**/TrackMap-*.js", "**/TrackMap-*.css"],
+          globIgnores: [
+            "**/maplibre-gl-*.js",
+            "**/maplibre-gl-*.css",
+            "**/TrackMap-*.js",
+            "**/TrackMap-*.css",
+            // Inter: para español alcanza el subconjunto "latin" (á, é, ñ, ¿, ¡). Los demás alfabetos
+            // los baja el navegador solo si alguna vez hacen falta.
+            "**/inter-cyrillic*",
+            "**/inter-greek*",
+            "**/inter-vietnamese*",
+            "**/inter-latin-ext*",
+          ],
           navigateFallback: "/index.html",
           // La API nunca pasa por el caché del Service Worker: los datos van por IndexedDB.
           navigateFallbackDenylist: [/^\/api\//],

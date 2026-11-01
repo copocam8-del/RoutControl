@@ -1,3 +1,4 @@
+import { LoadingState } from "@routcontrol/ui";
 import { useEffect } from "react";
 
 import type { AppServices } from "../app";
@@ -22,7 +23,7 @@ export function App({ app }: { app: AppServices }) {
     <AppContext.Provider value={app}>
       {session.status === "loading" ? (
         <main className="screen screen--center">
-          <p className="muted">Cargando…</p>
+          <LoadingState label="Abriendo la app…" />
         </main>
       ) : session.status === "authenticated" ? (
         <HomeScreen />

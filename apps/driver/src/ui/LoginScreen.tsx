@@ -1,5 +1,7 @@
+import { Alert, Button, Checkbox, TextField } from "@routcontrol/ui";
 import { type FormEvent, useState } from "react";
 
+import { Brand } from "./Brand";
 import { useApp, useStore } from "./hooks";
 
 export function LoginScreen() {
@@ -7,8 +9,8 @@ export function LoginScreen() {
   const state = useStore(session);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -24,13 +26,13 @@ export function LoginScreen() {
   if (state.status === "choose_organization") {
     return (
       <main className="screen screen--center">
-        <h1 className="brand">{config.appName}</h1>
-        <h2>¿Con qué empresa trabajás hoy?</h2>
-        <div className="stack">
+        <Brand name={config.appName} />
+        <h1>¿Con qué empresa trabajás hoy?</h1>
+        <div className="rc-stack">
           {state.options.map((org) => (
-            <button key={org.id} className="btn btn--secondary" onClick={() => void session.chooseOrganization(org.id)}>
+            <Button key={org.id} variant="secondary" size="lg" block onClick={() => void session.chooseOrganization(org.id)}>
               {org.name}
-            </button>
+            </Button>
           ))}
         </div>
       </main>
@@ -39,50 +41,40 @@ export function LoginScreen() {
 
   return (
     <main className="screen screen--center">
-      <h1 className="brand">{config.appName}</h1>
-      <form className="stack" onSubmit={(e) => void submit(e)}>
-        <label className="field">
-          <span>Email</span>
-          <input
-            type="email"
-            name="email"
-            autoComplete="username"
-            inputMode="email"
-            // Los teclados de los teléfonos ponen mayúscula inicial y "corrigen" palabras.
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>Contraseña</span>
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            autoComplete="current-password"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <label className="check">
-          <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
-          <span>Mostrar contraseña</span>
-        </label>
-        {state.status === "anonymous" && state.error ? (
-          <p className="alert alert--error" role="alert">
-            {state.error}
-          </p>
-        ) : null}
-        <button className="btn btn--primary" type="submit" disabled={busy}>
-          {busy ? "Ingresando…" : "Ingresar"}
-        </button>
+      <Brand name={config.appName} />
+      <p className="login-intro">Ingresá con el usuario que te dio tu empresa.</p>
+      <form className="rc-stack" onSubmit={(e) => void submit(e)}>
+        <TextField
+          label="Email"
+          type="email"
+          name="email"
+          autoComplete="username"
+          inputMode="email"
+          // Los teclados de los teléfonos ponen mayúscula inicial y "corrigen" palabras.
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <TextField
+          label="Contraseña"
+          type={showPassword ? "text" : "password"}
+          name="password"
+          autoComplete="current-password"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <Checkbox label="Mostrar contraseña" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+        {state.status === "anonymous" && state.error ? <Alert tone="error">{state.error}</Alert> : null}
+        <Button type="submit" size="lg" block loading={busy} loadingLabel="Ingresando…">
+          Ingresar
+        </Button>
       </form>
     </main>
   );
