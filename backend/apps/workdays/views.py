@@ -12,6 +12,7 @@ from apps.drivers.models import Device, DriverProfile
 from apps.tenancy.context import app_db
 from apps.tenancy.models import Membership
 from apps.tenancy.permissions import HasTenantContext, role_required
+from apps.tenancy.timefmt import iso_utc
 from apps.tracking import services as tracking
 from apps.tracking.serializers import AwareDateTimeField
 
@@ -57,8 +58,8 @@ def workday_payload(w: Workday) -> dict:
         "status": w.status,
         "tracking_mode": w.tracking_mode,
         "date": w.date.isoformat(),
-        "started_at": w.started_at.isoformat(),
-        "ended_at": w.ended_at.isoformat() if w.ended_at else None,
+        "started_at": iso_utc(w.started_at),
+        "ended_at": iso_utc(w.ended_at),
         "device_id": str(w.device_id),
     }
 
@@ -146,7 +147,7 @@ class StartWorkdayView(APIView):
         return {
             "workday": workday_payload(workday),
             "tracking_token": raw,
-            "tracking_token_expires_at": token.expires_at.isoformat(),
+            "tracking_token_expires_at": iso_utc(token.expires_at),
         }
 
 

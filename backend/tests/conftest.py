@@ -26,6 +26,17 @@ from apps.tenancy.services import create_organization
 DATABASES = ["default", "app"]
 
 
+@pytest.fixture(scope="session")
+def django_db_setup(django_db_setup, django_db_blocker):
+    """Cierra la conexión de rc_app antes de que Django borre la base de pruebas: si quedara
+    abierta, PostgreSQL no deja borrarla ("is being accessed by other users")."""
+    yield
+    from django.db import connections
+
+    with django_db_blocker.unblock():
+        connections["app"].close()
+
+
 def pytest_collection_modifyitems(items):
     for item in items:
         if not item.get_closest_marker("django_db"):

@@ -28,7 +28,8 @@ APP_URL = env("APP_URL", "http://localhost:5173")
 PANEL_URL = env("PANEL_URL", "http://localhost:5174")
 API_URL = env("API_URL", "http://localhost:8000")
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
+# Firma los JWT (HS256): al menos 32 bytes. El default es solo para desarrollo.
+SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-only-for-local-development-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 

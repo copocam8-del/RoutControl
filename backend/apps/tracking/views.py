@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from apps.accounts.authentication import TrackingTokenAuthentication
 from apps.drivers.models import Device
 from apps.tenancy.permissions import HasTrackingContext
+from apps.tenancy.timefmt import iso_utc
 from apps.workdays.models import Workday
 
 from . import services
@@ -101,4 +102,4 @@ class TrackingBatchView(APIView):
             device_updates["clock_offset_ms"] = int((sent_at - now).total_seconds() * 1000)
         Device.objects.filter(id=ctx.device_id).update(**device_updates)
 
-        return Response({**result.as_dict(), "server_time": now.isoformat()})
+        return Response({**result.as_dict(), "server_time": iso_utc(now)})

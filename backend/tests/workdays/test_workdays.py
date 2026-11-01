@@ -110,3 +110,12 @@ def test_error_response_rolls_back_what_the_view_wrote(org_a):
     assert TenantContextMiddleware(view_that_writes_then_fails)(request).status_code == 400
     with tenant_context(org_a.id):
         assert not DriverProfile.objects.filter(vehicle_type="escrito-por-una-vista-que-falla").exists()
+
+
+def test_api_datetimes_are_always_utc_with_z(org_a):
+    """El mismo instante tiene un solo formato, recién recibido o leído de la base."""
+    body = start_workday(org_a.driver, org_a.org, started_at=now_utc() - timedelta(hours=1))
+    assert body["workday"]["started_at"].endswith("Z")
+    assert body["tracking_token_expires_at"].endswith("Z")
+    current = client_for(org_a.driver, org_a.org).get("/api/v1/workdays/current").json()["workday"]
+    assert current["started_at"] == body["workday"]["started_at"]

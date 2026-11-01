@@ -58,8 +58,10 @@ def tenant_context(org_id: uuid.UUID | str) -> Iterator[uuid.UUID]:
             _set_pg_org(str(org_uuid))
             yield org_uuid
             # Si el bloque terminó bien, se restaura el valor anterior (importa cuando esto corre
-            # anidado, por ejemplo dentro de la transacción de una prueba). Si hubo excepción,
-            # el rollback del atomic ya lo deshace.
-            _set_pg_org(str(previous) if previous else "")
+            # anidado, por ejemplo dentro de la transacción de una prueba). Si hubo excepción, o si
+            # se marcó para rollback (el middleware lo hace con las respuestas 4xx/5xx), el propio
+            # rollback deshace el SET LOCAL; además, en ese estado Django no permite más consultas.
+            if not transaction.get_rollback(using=app_db()):
+                _set_pg_org(str(previous) if previous else "")
     finally:
         _current_org.reset(token)

@@ -21,7 +21,9 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/20-routcontrol-roles.sh:/docker-entrypoint-initdb.d/20-routcontrol-roles.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-routcontrol}"]
+      # Por TCP y contra la base de la app: durante el script de inicio, el servidor temporal solo
+      # escucha por socket y la base todavía no existe, y pg_isready por socket ya da "listo".
+      test: ["CMD-SHELL", "psql -h 127.0.0.1 -U postgres -d ${DB_NAME:-routcontrol} -tAc 'select 1'"]
       interval: 3s
       timeout: 3s
       retries: 20
