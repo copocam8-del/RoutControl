@@ -3,7 +3,7 @@
 SaaS multitenant de gestión de repartos de última milla. "RouteControl" es un nombre provisorio: la marca y las URLs se leen de variables de entorno (`APP_NAME`, `APP_URL`, `PANEL_URL`, `API_URL`).
 
 - Planificación (fuente de verdad): [`docs/01-planificacion-routecontrol.md`](docs/01-planificacion-routecontrol.md)
-- Decisiones técnicas: [`docs/adr/`](docs/adr/) · Pendientes: [`docs/pendientes-etapa-1.md`](docs/pendientes-etapa-1.md)
+- Decisiones técnicas: [`docs/adr/`](docs/adr/) · Pendientes: [`docs/pendientes-etapa-1.md`](docs/pendientes-etapa-1.md) · Último resumen: [`docs/etapa0-resumen-2026-11-01.md`](docs/etapa0-resumen-2026-11-01.md)
 - Contexto para sesiones de desarrollo: [`CLAUDE.md`](CLAUDE.md)
 
 ## Requisitos

@@ -34,3 +34,10 @@ Lo que se decidió dejar para la etapa 1 durante la etapa 0. Cada punto remite a
 ## Datos
 
 - `DriverProfile.document_number` cifrado (§7.2): se dejó fuera de la etapa 0.
+
+## Panel
+
+- Pasar el ruteo por `#hash` a TanStack Router (§1), cuando haya más pantallas.
+- Panel instalable como PWA de escritorio (§1).
+- Mapa en vivo con WebSocket (§9.1 `/operaciones/mapa`).
+- Que "hoy" en el dashboard sea la fecha en la zona horaria de la empresa, no la del navegador.
