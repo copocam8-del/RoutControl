@@ -93,7 +93,12 @@ def user_memberships(user_id) -> list[dict]:
             membership = Membership.objects.select_related("organization").filter(id=membership_id).first()
             if membership is not None:
                 result.append(
-                    {"id": str(org_id), "name": membership.organization.name, "role": membership.role}
+                    {
+                        "id": str(org_id),
+                        "name": membership.organization.name,
+                        "role": membership.role,
+                        "is_demo": membership.organization.is_demo,
+                    }
                 )
     return sorted(result, key=lambda o: o["name"])
 
@@ -140,7 +145,7 @@ def _session_payload(user, org: dict, access: str) -> dict:
     return {
         "access": access,
         "user": {"id": str(user.id), "email": user.email, "full_name": user.full_name},
-        "organization": {"id": org["id"], "name": org["name"]},
+        "organization": {"id": org["id"], "name": org["name"], "is_demo": org["is_demo"]},
         "role": org["role"],
     }
 
@@ -248,7 +253,12 @@ class MeView(APIView):
                     "email": request.user.email,
                     "full_name": request.user.full_name,
                 },
-                "organization": {"id": str(membership.organization_id), "name": membership.organization.name},
+                "organization": {
+                    "id": str(membership.organization_id),
+                    "name": membership.organization.name,
+                    # Los datos de demostración se marcan como tales en la interfaz (CLAUDE.md).
+                    "is_demo": membership.organization.is_demo,
+                },
                 "role": membership.role,
             }
         )

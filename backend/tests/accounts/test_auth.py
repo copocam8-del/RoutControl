@@ -153,3 +153,18 @@ def test_logout_revokes_refresh_and_clears_cookie(org_a):
     again = APIClient()
     again.cookies[COOKIE] = refresh
     assert again.post(REFRESH).status_code == 401
+
+
+def test_session_says_whether_the_org_is_demo(org_a):
+    """Los datos de demostración se marcan como tales en la interfaz (CLAUDE.md)."""
+    from apps.tenancy.models import Organization
+
+    client = APIClient()
+    assert login(client, org_a.driver.email).json()["organization"]["is_demo"] is False
+    with tenant_context(org_a.id):
+        Organization.objects.filter(id=org_a.id).update(is_demo=True)
+    data = login(APIClient(), org_a.driver.email).json()
+    assert data["organization"]["is_demo"] is True
+    me = APIClient()
+    me.credentials(HTTP_AUTHORIZATION=f"Bearer {data['access']}")
+    assert me.get("/api/v1/auth/me").json()["organization"]["is_demo"] is True

@@ -99,3 +99,14 @@ def test_track_of_unknown_workday_is_404(org_a):
     import uuid
 
     assert track(org_a.owner, org_a.org, uuid.uuid4()).status_code == 404
+
+
+def test_workday_list_reports_activity_for_the_dashboard(org_a, recorded):
+    """Cantidad de puntos y hora del último (para "última señal" en el panel)."""
+    [w] = client_for(org_a.owner, org_a.org).get("/api/v1/workdays/").json()["workdays"]
+    assert w["point_count"] == 5
+    assert w["last_point_at"].endswith("Z")
+    empty = start_workday(org_a.drivers[1], org_a.org)
+    listed = {x["id"]: x for x in client_for(org_a.owner, org_a.org).get("/api/v1/workdays/").json()["workdays"]}
+    assert listed[empty["workday"]["id"]]["point_count"] == 0
+    assert listed[empty["workday"]["id"]]["last_point_at"] is None

@@ -4,6 +4,7 @@ from drf_spectacular.views import SpectacularAPIView
 api_v1 = [
     path("auth/", include("apps.accounts.urls")),
     path("workdays/", include("apps.workdays.urls")),
+    path("drivers/", include("apps.drivers.urls")),
     path("tracking/", include("apps.tracking.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
 ]

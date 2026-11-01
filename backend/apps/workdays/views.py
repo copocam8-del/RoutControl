@@ -2,6 +2,7 @@ from zoneinfo import ZoneInfo
 
 from django.contrib.gis.geos import Point
 from django.db import IntegrityError, transaction
+from django.db.models import Count, Max
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
@@ -206,15 +207,23 @@ def visible_workdays(request):
     """§8: dueño, admin y supervisor ven todas las jornadas de su empresa; el repartidor, solo las
     propias. Otra empresa no aparece nunca (RLS + TenantManager)."""
     membership = request._request.tenant.membership
-    qs = Workday.objects.select_related("driver__membership__user")
+    qs = Workday.objects.select_related("driver__membership__user").annotate(
+        point_count=Count("points"), last_point_at=Max("points__recorded_at")
+    )
     if membership.role in VIEWER_ROLES:
         return qs
     return qs.filter(driver__membership=membership)
 
 
 def workday_with_driver(w: Workday) -> dict:
+    """Jornada con su repartidor y la actividad registrada (para el panel: "última señal")."""
     user = w.driver.membership.user
-    return {**workday_payload(w), "driver": {"id": str(w.driver_id), "name": user.full_name or user.email}}
+    return {
+        **workday_payload(w),
+        "driver": {"id": str(w.driver_id), "name": user.full_name or user.email},
+        "point_count": getattr(w, "point_count", 0),
+        "last_point_at": iso_utc(getattr(w, "last_point_at", None)),
+    }
 
 
 class DateQuerySerializer(serializers.Serializer):

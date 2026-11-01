@@ -154,3 +154,11 @@ def test_workday_list_never_includes_another_org(org_a, org_b, workday_a):
     assert [w["id"] for w in listed] == [workday_b["workday"]["id"]]
     listed_a = client_for(org_a.owner, org_a.org).get("/api/v1/workdays/").json()["workdays"]
     assert [w["id"] for w in listed_a] == [workday_a["workday"]["id"]]
+
+
+@covers("driver-list")
+def test_driver_list_never_includes_another_org(org_a, org_b, workday_a):
+    names_b = [d["email"] for d in client_for(org_b.owner, org_b.org).get("/api/v1/drivers/").json()["drivers"]]
+    assert names_b == [org_b.driver.email]
+    names_a = {d["email"] for d in client_for(org_a.owner, org_a.org).get("/api/v1/drivers/").json()["drivers"]}
+    assert names_a == {u.email for u in org_a.drivers}
