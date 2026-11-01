@@ -39,3 +39,16 @@ Los datos de las maquetas (nombres, números, direcciones entre corchetes) son d
 ## Panel (aprobado el 01/11/2026, 19:50)
 
 El panel usa solo datos que el sistema ya tiene en la etapa 0 (jornadas, ubicaciones, señal), así que se implementa **igual** a las maquetas. La bienvenida y el login del panel siguen las mismas reglas que en la app: la bienvenida dura unos 2 segundos, una vez por apertura, se saltea con un clic y respeta `prefers-reduced-motion`.
+
+## Etapa 1 · Paquetes y visitas (aprobado el 01/11/2026, 20:30)
+
+| Archivo | Pantalla |
+|---|---|
+| `Paquetes.dc.html` | Mis paquetes: buscador, filtros por estado y lista por número de parada |
+| `Escanear.dc.html` | Cargar paquetes: **escaneo continuo**. Se pasa el celular por encima de la pila y cada código se suma solo (varios por cuadro si entran), sin repetir. Contador, barra de avance, últimos cargados y "Armar mi ruta" |
+| `Ruta.dc.html` | Tu ruta está lista: orden sugerido desde la ubicación actual, mapa con paradas numeradas, totales, "Cambiar orden" y "Empezar ruta" |
+| `Ficha.dc.html` | Ficha de entrega **con el resultado ahí mismo**: Entregado / No entregado; si no se entregó, motivos y foto; "Guardar y seguir a la parada N". "Llegué: iniciar visita" queda como opción para medir el tiempo |
+| `Visita.dc.html` | Visita en curso con cronómetro |
+| `Resultado.dc.html` | Resultado de la visita (lista completa de motivos, observaciones y foto) |
+
+Pedidos del cliente: (1) registrar el resultado desde la ficha; (2) cargar todos los paquetes juntos y que la app arme la mejor ruta, en lugar de escanear de a uno. La optimización de ruta estaba en la etapa 2 de la planificación: pendiente de decidir si se adelanta a la etapa 1.
