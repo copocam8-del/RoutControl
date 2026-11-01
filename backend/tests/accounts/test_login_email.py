@@ -63,3 +63,27 @@ def test_shape_log_is_off_outside_development(org_a, caplog):
     with caplog.at_level(logging.WARNING, logger="routcontrol.auth"):
         login("driver1@org-a.test", "mal")
     assert "login fallido" not in caplog.text
+
+
+@override_settings(LOG_FAILED_LOGIN_SHAPE=True)
+@pytest.mark.parametrize(
+    "typed, expected",
+    [
+        ("routcontroll-demo", "sobra en posición 11: esperado '', llegó 'l'"),
+        ("routcontrol -demo", "sobra en posición 11: esperado '', llegó ' '"),
+        ("routcontrl-demo", "falta en posición 9: esperado 'o', llegó ''"),
+    ],
+)
+def test_demo_accounts_log_where_the_password_differs(org_a, caplog, typed, expected):
+    """Solo emails .demo: se compara con DEMO_PASSWORD (pública) y se registra la diferencia."""
+    User.objects.create_user(email="probador@x.demo", password="routcontrol-demo")
+    with caplog.at_level(logging.WARNING, logger="routcontrol.auth"):
+        assert login("probador@x.demo", typed).status_code == 401
+    assert expected in caplog.text
+
+
+@override_settings(LOG_FAILED_LOGIN_SHAPE=True)
+def test_real_accounts_are_never_compared(org_a, caplog):
+    with caplog.at_level(logging.WARNING, logger="routcontrol.auth"):
+        login("driver1@org-a.test", "routcontroll-demo")
+    assert "DEMO_PASSWORD" not in caplog.text and "llegó" not in caplog.text
