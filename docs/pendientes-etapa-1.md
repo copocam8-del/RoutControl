@@ -26,5 +26,5 @@ Lo que se decidió dejar para la etapa 1 durante la etapa 0. Cada punto remite a
 
 - Pasar el ruteo por `#hash` a TanStack Router (§1), cuando haya más pantallas.
 - Panel instalable como PWA de escritorio (§1).
-- Mapa en vivo con WebSocket (§9.1 `/operaciones/mapa`).
+- ~~Mapa en vivo con WebSocket (§9.1 `/operaciones/mapa`).~~ Hecho en la etapa 1 (ADR-017), en el inicio del panel.
 - Que "hoy" en el dashboard sea la fecha en la zona horaria de la empresa, no la del navegador.
