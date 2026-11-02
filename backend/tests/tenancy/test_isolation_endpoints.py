@@ -410,3 +410,25 @@ def test_manual_route_ignores_packages_of_another_org(org_a, org_b, route_b):
     r = client_for(org_b.driver, org_b.org).put("/api/v1/route", {"package_ids": [route_b["id"]]}, format="json")
     assert route_b["id"] not in [s["package_id"] for s in r.json()["stops"]]
     assert route_b["id"] not in [s["package_id"] for s in client_for(org_b.driver, org_b.org).get("/api/v1/route").json()["stops"]]
+
+
+# --- Panel: entregas e incidencias (etapa 1) -----------------------------------------------------
+
+
+@covers("delivery-list")
+def test_deliveries_never_show_another_org(org_a, org_b, delivered_a):
+    assert client_for(org_b.owner, org_b.org).get("/api/v1/deliveries").json()["deliveries"] == []
+    assert len(client_for(org_a.owner, org_a.org).get("/api/v1/deliveries").json()["deliveries"]) == 1
+
+
+@covers("incident-list")
+def test_incidents_never_show_another_org(org_a, org_b, delivered_a):
+    assert client_for(org_b.owner, org_b.org).get("/api/v1/incidents").json()["incidents"] == []
+    assert len(client_for(org_a.owner, org_a.org).get("/api/v1/incidents").json()["incidents"]) == 1
+
+
+@covers("incident-resolve")
+def test_incident_of_another_org_cannot_be_resolved(org_a, org_b, delivered_a):
+    [incident] = client_for(org_a.owner, org_a.org).get("/api/v1/incidents").json()["incidents"]
+    assert client_for(org_b.owner, org_b.org).post(f"/api/v1/incidents/{incident['id']}/resolve", {}, format="json").status_code == 404
+    assert client_for(org_a.owner, org_a.org).get("/api/v1/incidents?status=OPEN").json()["incidents"][0]["id"] == incident["id"]

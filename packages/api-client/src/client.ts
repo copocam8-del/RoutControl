@@ -43,6 +43,11 @@ import {
   type VisitRecord,
   route,
   type Route,
+  deliveryList,
+  type DeliveryRecord,
+  type Incident,
+  incidentEnvelope,
+  incidentList,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -311,6 +316,20 @@ export class ApiClient {
 
   async saveRoute(packageIds: string[]): Promise<Route> {
     return this.authed("/route", { method: "PUT", body: { package_ids: packageIds } }, route);
+  }
+
+  // --- Panel: entregas e incidencias (ADR-016) -----------------------------------------------
+
+  async listDeliveries(date?: string): Promise<DeliveryRecord[]> {
+    return (await this.authed(`/deliveries${date ? `?date=${date}` : ""}`, { method: "GET" }, deliveryList)).deliveries;
+  }
+
+  async listIncidents(status?: "OPEN" | "RESOLVED"): Promise<Incident[]> {
+    return (await this.authed(`/incidents${status ? `?status=${status}` : ""}`, { method: "GET" }, incidentList)).incidents;
+  }
+
+  async resolveIncident(id: string): Promise<Incident> {
+    return (await this.authed(`/incidents/${id}/resolve`, { method: "POST", body: {} }, incidentEnvelope)).incident;
   }
 
   async packageVisits(packageId: string): Promise<VisitRecord[]> {

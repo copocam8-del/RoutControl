@@ -2,7 +2,7 @@
  * API falsa para las pruebas del panel (sin Docker). Responde lo mismo que el backend real en
  * los endpoints que usa el panel; el contrato real lo prueban `src/integration/*.real.ts`.
  */
-import type { DriverSummary, WorkdayWithDriver } from "@routcontrol/domain";
+import type { DeliveryPackage, DeliveryRecord, DriverSummary, Incident, WorkdayWithDriver } from "@routcontrol/domain";
 
 const ORG = { id: "0192f3a0-0000-7000-8000-00000000a001", name: "Demo Norte (DATOS DE DEMOSTRACIÓN)", is_demo: true };
 
@@ -19,6 +19,12 @@ export class FakeApi {
   ];
   workdays: WorkdayWithDriver[] = [];
   drivers: DriverSummary[] = [];
+  packages: DeliveryPackage[] = [];
+  deliveries: DeliveryRecord[] = [];
+  incidents: Incident[] = [];
+  bulkAssigned: Array<{ ids: string[]; driver: string | null }> = [];
+  /** Respuesta de la importación (subida, vista previa y confirmación). */
+  importHeaders = ["Guía", "Destinatario", "Dirección"];
   calls: string[] = [];
   /** Cortes de red por ruta (cuántas veces falla). */
   networkFailures = new Map<string, number>();
@@ -34,7 +40,7 @@ export class FakeApi {
       this.networkFailures.set(path, failures - 1);
       throw new TypeError("Failed to fetch");
     }
-    const body = init?.body ? JSON.parse(String(init.body)) : {};
+    const body = init?.body instanceof FormData ? {} : init?.body ? JSON.parse(String(init.body)) : {};
     if (path === "/auth/login") {
       const user = this.users.find((u) => u.email === body.email && u.password === body.password);
       if (!user) return json(401, { detail: "Email o contraseña incorrectos." });
@@ -54,6 +60,58 @@ export class FakeApi {
       return json(200, { workdays: this.workdays.filter((w) => !date || w.date === date) });
     }
     if (path === "/drivers/") return json(200, { drivers: this.drivers });
+    if (path === "/packages/" && (init?.method ?? "GET") === "GET") return json(200, { packages: this.packages });
+    if (path === "/packages/" && init?.method === "POST") {
+      if (this.packages.some((p) => p.tracking_code === body.tracking_code)) {
+        return json(409, { code: "duplicate_tracking_code", detail: `Ya existe un paquete con el código ${body.tracking_code}.` });
+      }
+      const created = fakePackage({ tracking_code: body.tracking_code, recipient_name: body.recipient_name, address: { ...fakePackage().address, raw_text: body.address.raw_text } });
+      this.packages.push(created);
+      return json(201, { package: created });
+    }
+    if (path === "/packages/assign") {
+      this.bulkAssigned.push({ ids: body.package_ids, driver: body.driver_id });
+      for (const p of this.packages) {
+        if (body.package_ids.includes(p.id)) {
+          p.status = body.driver_id ? "ASSIGNED" : "CREATED";
+          p.assigned_driver = body.driver_id ? { id: body.driver_id, name: this.drivers.find((d) => d.id === body.driver_id)?.name ?? "?" } : null;
+        }
+      }
+      return json(200, { assigned: body.package_ids, failed: [] });
+    }
+    const pkg = /^\/packages\/([^/]+)(\/(events|visits))?$/.exec(path);
+    if (pkg) {
+      const p = this.packages.find((x) => x.id === pkg[1]);
+      if (!p) return json(404, { detail: "Paquete no encontrado." });
+      if (pkg[3] === "events") return json(200, { events: [{ id: "0192f3a0-0000-7000-8000-0000000000e9", type: "created", from_status: "", to_status: "CREATED", actor: "Dueña Norte (demo)", payload: { source: "MANUAL" }, occurred_at: p.created_at }] });
+      if (pkg[3] === "visits") return json(200, { visits: this.deliveries.filter((d) => d.package.id === p.id) });
+      return json(200, { package: p });
+    }
+    if (path === "/imports/") return json(201, { import: this.importJob("UPLOADED") });
+    if (/^\/imports\/[^/]+\/preview$/.test(path)) {
+      return json(200, {
+        summary: { total_rows: 3, ok_rows: 2, error_rows: 1 },
+        rows: [],
+        errors: [{ row: 4, field: "tracking_code", message: "Código repetido (también en la fila 2)." }],
+      });
+    }
+    if (/^\/imports\/[^/]+\/confirm$/.test(path)) {
+      this.lastMapping = body.mapping;
+      return json(200, { import: { ...this.importJob("DONE"), ok_rows: 2, error_rows: 1, errors: [{ row: 4, field: "tracking_code", message: "Código repetido (también en la fila 2)." }] } });
+    }
+    if (path === "/deliveries") return json(200, { date: url.searchParams.get("date") ?? "2026-11-02", deliveries: this.deliveries });
+    if (path === "/incidents") {
+      const st = url.searchParams.get("status");
+      return json(200, { incidents: this.incidents.filter((i) => !st || i.status === st) });
+    }
+    const resolve = /^\/incidents\/([^/]+)\/resolve$/.exec(path);
+    if (resolve) {
+      const i = this.incidents.find((x) => x.id === resolve[1])!;
+      i.status = "RESOLVED";
+      i.resolved_by = "Dueña Norte (demo)";
+      i.resolved_at = new Date().toISOString();
+      return json(200, { incident: i });
+    }
     const track = /^\/workdays\/([^/]+)\/track$/.exec(path);
     if (track) {
       const w = this.workdays.find((x) => x.id === track[1]);
@@ -79,6 +137,31 @@ export class FakeApi {
     }
     return json(404, { detail: "No encontrado" });
   };
+
+  lastMapping: Record<string, string | null> | null = null;
+
+  private importJob(status: "UPLOADED" | "DONE") {
+    return {
+      id: "0192f3a0-0000-7000-8000-0000000000f1",
+      filename: "envios.csv",
+      status,
+      headers: this.importHeaders,
+      sample: status === "DONE" ? [] : [["G-1", "Ana", "Mitre 100"]],
+      total_rows: 3,
+      column_mapping: {},
+      suggested_mapping: { tracking_code: "Guía", recipient_name: "Destinatario", address: null },
+      fields: [
+        { key: "tracking_code", label: "Código de seguimiento", required: true },
+        { key: "recipient_name", label: "Destinatario", required: false },
+        { key: "address", label: "Dirección completa", required: false },
+      ],
+      ok_rows: 0,
+      error_rows: 0,
+      errors: [],
+      created_at: "2026-11-02T10:00:00Z",
+      finished_at: status === "DONE" ? "2026-11-02T10:01:00Z" : null,
+    };
+  }
 
   private me() {
     return {
@@ -135,4 +218,27 @@ export function workday(overrides: Partial<WorkdayWithDriver> = {}): WorkdayWith
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+}
+
+let pkgSeq = 0;
+/** Paquete de ejemplo para las pruebas del panel (datos de prueba). */
+export function fakePackage(overrides: Partial<DeliveryPackage> = {}): DeliveryPackage {
+  pkgSeq += 1;
+  const n = String(pkgSeq).padStart(12, "0");
+  return {
+    id: `0192f3a0-0000-7000-a000-${n}`,
+    tracking_code: `P-${pkgSeq}`,
+    source: "MANUAL",
+    status: "CREATED",
+    recipient_name: `Destinatario ${pkgSeq} (prueba)`,
+    recipient_phone: "",
+    notes: "",
+    address: { id: `0192f3a0-0000-7000-b000-${n}`, raw_text: `Calle ${pkgSeq}00`, street: "", number: "", floor_unit: "", locality: "", province: "", postal_code: "", location: null },
+    assigned_driver: null,
+    assigned_at: null,
+    version: 1,
+    created_at: "2026-11-02T09:00:00Z",
+    updated_at: "2026-11-02T09:00:00Z",
+    ...overrides,
+  };
 }
