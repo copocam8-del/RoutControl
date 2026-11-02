@@ -55,6 +55,26 @@ MapLibre v6 busca su worker en un archivo aparte, junto a su propio código. Al 
   - la pantalla de Diagnóstico muestra el error.
 - **Chrome de escritorio en modo celular Android, por el túnel:** login, "Recorridos" y un recorrido con mapa. Se ven calles y nombres de OpenStreetMap y no hay errores. En el panel, la tabla de jornadas con su mapa.
 
+### iPhone (Safari / WebKit), revisado el 01/11/2026
+Se probó con WebKit de Playwright emulando un iPhone 15, por el túnel, con el Service Worker ya activo y controlando la página, como la PWA instalada:
+
+| Causa típica de Safari | Resultado |
+|---|---|
+| Pedidos por rango del PMTiles | `206` con `Content-Range` y `Accept-Ranges` por el túnel. Van a la red: el Service Worker no los intercepta |
+| Worker de MapLibre y CSP | El worker es un módulo del mismo origen (sin `blob:`). La app no manda `Content-Security-Policy` |
+| WebGL | WebGL y WebGL2 disponibles. Sin WebGL (por ejemplo, con el Modo de aislamiento de iOS), el error dice "WebGL del navegador" |
+| Altura del contenedor | 359 × 360 px (alto fijo en línea) |
+
+**Causa probable en el iPhone:** seguía corriendo la versión vieja guardada por el Service Worker, la del worker roto.
+- La versión nueva solo se instalaba si se aceptaba un `confirm()`.
+- En iOS la PWA instalada casi nunca se cierra del todo, así que la versión vieja podía quedar indefinidamente.
+
+**Cambio:**
+- Sin jornada en curso, la versión nueva se instala sola.
+- Durante la jornada, un aviso ofrece "Actualizar", y se instala sola al finalizar.
+- También se buscan versiones nuevas al volver a la app y cada 30 minutos.
+- En Diagnóstico se ve la fecha de la "Versión instalada".
+
 ## Consecuencias
 - **Sin terceros:** no hay dependencia de un proveedor de teselas ni de su disponibilidad o sus condiciones de uso.
 - **Zona cubierta:** el mapa muestra solo la zona recortada. Para otra ciudad hay que generar su PMTiles y configurar `VITE_MAP_PMTILES_URL`. En la etapa 1 conviene un PMTiles por región de cada empresa, o uno de Argentina, de unos pocos GB.

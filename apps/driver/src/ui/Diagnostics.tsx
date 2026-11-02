@@ -60,6 +60,8 @@ export function Diagnostics() {
         <dd>
           {info.model} · {info.os_version || "sistema desconocido"} · app {info.app_version}
         </dd>
+        <dt>Versión instalada</dt>
+        <dd className="rc-mono">{typeof __BUILD_ID__ === "string" ? new Date(__BUILD_ID__).toLocaleString("es-AR") : "desarrollo"}</dd>
         <dt>Identificador del dispositivo</dt>
         <dd className="rc-mono">{deviceId ?? "Se crea al iniciar la primera jornada"}</dd>
         {wd.workday ? (

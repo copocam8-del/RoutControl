@@ -2,6 +2,7 @@ import { IconHome, IconMap, IconUser } from "@routcontrol/ui";
 import { type ReactNode, useState } from "react";
 
 import { HomeScreen } from "./HomeScreen";
+import { useApp, useStore } from "./hooks";
 import { ProfileScreen } from "./ProfileScreen";
 import { TrackScreen } from "./TrackScreen";
 
@@ -19,6 +20,7 @@ export function MainShell() {
 
   return (
     <div className="shell">
+      <UpdateBanner />
       {tab === "home" ? (
         <HomeScreen
           onShowTrack={(id) => {
@@ -69,5 +71,20 @@ function BottomNav({ tab, onChange }: { tab: Tab; onChange(tab: Tab): void }) {
       {item("tracks", "Recorridos", <IconMap size={24} strokeWidth={tab === "tracks" ? 2.2 : 2} />)}
       {item("profile", "Perfil", <IconUser size={24} strokeWidth={tab === "profile" ? 2.2 : 2} />)}
     </nav>
+  );
+}
+
+/** Versión nueva durante la jornada: no se recarga sola (cortaría el seguimiento). */
+function UpdateBanner() {
+  const app = useApp();
+  const { available } = useStore(app.updates);
+  if (!available) return null;
+  return (
+    <div className="update-banner" role="status">
+      <span>Hay una versión nueva. Se instala sola al finalizar la jornada.</span>
+      <button type="button" className="rc-btn rc-btn--secondary rc-btn--sm" onClick={() => void app.updates.update()}>
+        Actualizar
+      </button>
+    </div>
   );
 }

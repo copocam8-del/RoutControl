@@ -6,6 +6,7 @@ import type { DeviceServices } from "./device/DeviceServices";
 import { createWebDeviceServices } from "./device/web";
 import { DriverDB } from "./store/db";
 import { BatchSender } from "./sync/batchSender";
+import { UpdateManager } from "./pwaUpdate";
 import { WorkdayController } from "./tracking/workdayController";
 
 export interface AppServices {
@@ -18,6 +19,8 @@ export interface AppServices {
   workday: WorkdayController;
   /** Estado de la interfaz que dura lo que dura esta apertura de la app (no se guarda). */
   ui: { splashShown: boolean };
+  /** Versiones nuevas de la PWA: solas sin jornada en curso, con aviso durante la jornada. */
+  updates: UpdateManager;
   /** Arranca lo que depende de tener sesión (jornada, envíos periódicos). */
   startAuthenticated(): Promise<void>;
   stopAuthenticated(): void;
@@ -32,6 +35,9 @@ export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "d
   const session = new SessionStore(api);
   const workday = new WorkdayController({ db, api, device, sender, config });
   let interval: ReturnType<typeof setInterval> | null = null;
+  // Con la jornada iniciándose, en curso o finalizándose, una recarga cortaría el seguimiento.
+  const updates = new UpdateManager(() => !["starting", "active", "ending"].includes(workday.getState().phase));
+  workday.subscribe(() => updates.maybeUpdate());
 
   return {
     config,
@@ -42,6 +48,7 @@ export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "d
     session,
     workday,
     ui: { splashShown: false },
+    updates,
     async startAuthenticated() {
       await workday.resume();
       // Envío periódico mientras la app está abierta (§5.2).

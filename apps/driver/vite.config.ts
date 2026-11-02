@@ -24,6 +24,8 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
+    // Momento de la compilación: se ve en Diagnóstico para saber qué versión tiene el teléfono.
+    define: { __BUILD_ID__: JSON.stringify(new Date().toISOString()) },
     envDir: ENV_DIR,
     envPrefix: ENV_PREFIX,
     plugins: [
