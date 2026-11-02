@@ -305,8 +305,8 @@
 .gap-card {
   padding: 16px;
   border-radius: var(--rc-radius-lg);
-  background: rgba(251, 146, 60, 0.1);
-  border: 1px solid rgba(251, 146, 60, 0.35);
+  background: var(--rc-gap-bg);
+  border: 1px solid var(--rc-gap-line);
   display: flex;
   gap: 14px;
   align-items: flex-start;
@@ -359,7 +359,7 @@
   right: -160px;
   top: -140px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(124, 92, 255, 0.4), rgba(7, 11, 31, 0));
+  background: radial-gradient(closest-side, rgba(var(--rc-primary-rgb), 0.4), rgba(var(--rc-background-rgb), 0));
   pointer-events: none;
 }
 
@@ -444,7 +444,7 @@
   top: 50%;
   margin: -210px 0 0 -210px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(124, 92, 255, 0.55), rgba(77, 141, 255, 0.18) 55%, rgba(7, 11, 31, 0) 100%);
+  background: radial-gradient(closest-side, rgba(var(--rc-primary-rgb), 0.55), var(--rc-info-bg) 55%, rgba(var(--rc-background-rgb), 0) 100%);
   animation: welcome-glow 2s ease-in-out both;
 }
 
@@ -567,7 +567,7 @@
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(3, 5, 16, 0.72);
+  background: var(--rc-scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -683,4 +683,20 @@
   border-bottom: 1px solid var(--rc-border-strong);
   font-size: 14px;
   color: var(--rc-text-2);
+}
+
+/* Apariencia (Perfil) */
+.appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.appearance .rc-theme {
+  width: 100%;
+}
+
+.appearance__hint {
+  margin: 0;
+  font-size: 13px;
 }

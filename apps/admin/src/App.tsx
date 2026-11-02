@@ -1,4 +1,4 @@
-import { LoadingState } from "@routcontrol/ui";
+import { LoadingState, useUserTheme } from "@routcontrol/ui";
 import { useCallback, useEffect, useState } from "react";
 
 import { type AdminApp, AdminContext, useAdmin, useSession } from "./adminApp";
@@ -14,6 +14,8 @@ import { prefersReducedMotion, WELCOME_MS, Welcome } from "./Welcome";
 function Screens({ welcomeMs }: { welcomeMs: number }) {
   const app = useAdmin();
   const session = useSession();
+  // La apariencia que eligió este usuario en este dispositivo.
+  useUserTheme(session.status === "authenticated" ? session.session.user.id : null);
   const route = useRoute();
   const [withWelcome] = useState(() => !app.ui.splashShown && welcomeMs > 0);
   const [welcome, setWelcome] = useState(withWelcome);

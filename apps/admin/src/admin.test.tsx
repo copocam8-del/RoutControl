@@ -107,6 +107,20 @@ describe("login del panel", () => {
     expect(screen.getByText(/Dueño\/a · Demo Norte/)).toBeTruthy();
   });
 
+  it("el encabezado tiene la apariencia: Oscuro, Claro y Automático", async () => {
+    const { applyTheme } = await import("@routcontrol/ui");
+    localStorage.clear();
+    applyTheme("dark");
+    const { user } = renderPanel();
+    await login(user);
+    const header = await screen.findByRole("banner", { name: "Encabezado" });
+    const group = within(header).getByRole("radiogroup", { name: "Apariencia" });
+    expect(within(group).getAllByRole("radio").map((r) => r.getAttribute("aria-label"))).toEqual(["Oscuro", "Claro", "Automático"]);
+    await user.click(within(group).getByRole("radio", { name: "Automático" }));
+    expect(document.documentElement.dataset.theme).toBe("auto");
+    applyTheme("dark");
+  });
+
   it("'Salir' vuelve al login", async () => {
     const { user } = renderPanel();
     await login(user);

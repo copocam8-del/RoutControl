@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { color, contrastPairs, contrastRatio } from "./tokens";
+import { color, contrastPairs, contrastRatio, lightColor, lightContrastPairs, lightValue, themeTints } from "./tokens";
 
 describe("paleta oscura (ADR-007 v2): contraste WCAG", () => {
   it.each(contrastPairs)("$use: $fg sobre $bg ≥ $min:1", ({ fg, bg, min }) => {
@@ -48,10 +48,71 @@ describe("los tokens son los de las maquetas aprobadas (docs/diseno/README.md)",
   const readme = readFileSync(fileURLToPath(new URL("../../../docs/diseno/README.md", import.meta.url)), "utf-8");
   const tokensTable = readme.slice(readme.indexOf("## Tokens"));
   const hexes = [...new Set([...tokensTable.matchAll(/#[0-9A-Fa-f]{6}/g)].map((m) => m[0].toUpperCase()))];
-  const values = new Set(Object.values(color).map((v) => v.toUpperCase()));
+  const values = new Set(
+    [...Object.values(color), ...Object.values(lightColor), ...Object.values(themeTints.light)].map((v) => v.toUpperCase()),
+  );
 
   it("hay colores en la tabla", () => expect(hexes.length).toBeGreaterThan(15));
   it.each(hexes)("%s está en tokens.ts", (hex) => {
     expect(values.has(hex)).toBe(true);
+  });
+});
+
+describe("modo claro (ADR-007 v3): contraste WCAG AA como mínimo", () => {
+  it.each(lightContrastPairs)("$use: $fg sobre $bg ≥ $min:1", ({ fg, bg, min }) => {
+    expect(contrastRatio(lightValue(fg), lightValue(bg))).toBeGreaterThanOrEqual(min);
+  });
+
+  it("los valores aprobados por el cliente", () => {
+    expect(lightColor).toMatchObject({
+      background: "#F4F6FD",
+      surface: "#FFFFFF",
+      surface2: "#EDF0FB",
+      sidebar: "#FFFFFF",
+      border: "#DDE2F4",
+      fieldBorder: "#7A85BD",
+      text: "#0B1026",
+      text2: "#2E365C",
+      muted: "#525B85",
+      primary: "#6D4AFF",
+      violet300: "#5B3FD9",
+      blue: "#2563EB",
+      successText: "#047857",
+      warningText: "#B45309",
+      gap: "#EA580C",
+      route: "#7C3AED",
+    });
+    expect(themeTints.light).toMatchObject({ successBg: "#D1FAE5", warningBg: "#FEF3C7", sidebarBorder: "#DDE2F4" });
+  });
+});
+
+describe("styles.css: el modo claro refleja tokens.ts", () => {
+  const css = readFileSync(fileURLToPath(new URL("./styles.css", import.meta.url)), "utf-8");
+  const kebab = (k: string) =>
+    k
+      .replace(/([a-z])([A-Z0-9])/g, "$1-$2")
+      .replace(/([0-9])([a-zA-Z])/g, "$1-$2")
+      .toLowerCase();
+  const blockOf = (selector: string) => {
+    const start = css.indexOf(selector);
+    return css.slice(start, css.indexOf("}", start));
+  };
+  const explicit = blockOf(':root[data-theme="light"] {');
+  const auto = blockOf(':root[data-theme="auto"] {');
+
+  it.each([...Object.entries(lightColor), ...Object.entries(themeTints.light)])("--rc-%s en Claro y en Automático", (name, value) => {
+    const re = new RegExp(`--rc-${kebab(name)}:\\s*(#[0-9A-Fa-f]{6})`);
+    expect(re.exec(explicit)?.[1]?.toUpperCase()).toBe(value.toUpperCase());
+    expect(re.exec(auto)?.[1]?.toUpperCase()).toBe(value.toUpperCase());
+  });
+
+  it("Automático sigue al sistema y el oscuro es el tema por defecto", () => {
+    expect(css).toMatch(/@media \(prefers-color-scheme: light\) \{\s*:root\[data-theme="auto"\]/);
+    expect(css).toMatch(/:root \{[^}]*--rc-background: #070B1F/);
+  });
+
+  it("no quedan transparencias con colores fijos del tema oscuro fuera de las variables", () => {
+    const rules = css.slice(css.indexOf("*,\n*::before"));
+    expect(rules.match(/rgba\((52, 211, 153|251, 191, 36|251, 146, 60|248, 113, 113|77, 141, 255|124, 92, 255|7, 11, 31)/g)).toBeNull();
   });
 });

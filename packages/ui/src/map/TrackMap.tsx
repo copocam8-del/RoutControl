@@ -22,22 +22,30 @@ import { gapLines, trackBounds, type WorkdayTrack } from "@routcontrol/domain";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import { useEffect, useRef, useState } from "react";
 
-import { color } from "../tokens";
+import { type ResolvedTheme, useTheme } from "../theme";
+import { color, lightColor } from "../tokens";
 import { classifyFailure, describeResource, errorDetails, type MapFailureKind, recordMapError } from "./diagnostics";
 import { absolute, buildStyle, DEFAULT_MAP_SOURCE, type MapSource } from "./style";
 
 export { DEFAULT_MAP_SOURCE, type MapSource } from "./style";
 
-export const MAP_COLORS = {
-  route: color.route,
-  gap: color.gap,
-  point: color.violet300,
-  start: color.success,
-  end: color.white,
-  endStroke: color.primary,
-  live: color.primary,
-  stale: color.warning,
-} as const;
+export function mapColors(theme: ResolvedTheme) {
+  const c = theme === "light" ? lightColor : color;
+  return {
+    route: c.route,
+    gap: c.gap,
+    point: c.violet300,
+    start: theme === "light" ? "#059669" : color.success,
+    end: color.white,
+    endStroke: c.primary,
+    live: c.primary,
+    stale: theme === "light" ? "#D97706" : color.warning,
+    bg: c.mapBg,
+  } as const;
+}
+
+/** Colores del tema oscuro (por defecto). */
+export const MAP_COLORS = mapColors("dark");
 
 type MapLibre = typeof import("maplibre-gl");
 type MapInstance = import("maplibre-gl").Map;
@@ -69,13 +77,14 @@ export interface MapFailure {
 /** Crea el mapa y maneja la carga diferida, los errores y "Reintentar". */
 function useMap(
   source: MapSource,
-  setup: (maplibre: MapLibre, map: MapInstance) => void,
+  setup: (maplibre: MapLibre, map: MapInstance, colors: ReturnType<typeof mapColors>) => void,
   options: (maplibre: MapLibre) => Partial<import("maplibre-gl").MapOptions>,
   deps: unknown[],
 ) {
   const container = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState<MapFailure | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const { resolved: theme } = useTheme();
 
   useEffect(() => {
     let disposed = false;
@@ -108,7 +117,7 @@ function useMap(
       try {
         map = new maplibre.Map({
           container: container.current,
-          style: buildStyle(source),
+          style: buildStyle(source, theme),
           attributionControl: false,
           ...options(maplibre),
         });
@@ -137,7 +146,7 @@ function useMap(
         }
       });
       map.on("load", () => {
-        if (map) setup(maplibre, map);
+        if (map) setup(maplibre, map, mapColors(theme));
       });
     })();
 
@@ -146,9 +155,9 @@ function useMap(
       map?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source.pmtiles, source.assets, attempt, ...deps]);
+  }, [source.pmtiles, source.assets, attempt, theme, ...deps]);
 
-  return { container, failure, retry: () => setAttempt((n) => n + 1) };
+  return { container, failure, retry: () => setAttempt((n) => n + 1), colors: mapColors(theme) };
 }
 
 export function MapFailed({ failure, onRetry }: { failure: MapFailure; onRetry: () => void }) {
@@ -188,9 +197,9 @@ export function TrackMap({
   height?: number;
   live?: boolean;
 }) {
-  const { container, failure, retry } = useMap(
+  const { container, failure, retry, colors: MAP_COLORS } = useMap(
     source,
-    (_maplibre, map) => {
+    (_maplibre, map, MAP_COLORS) => {
       map.addSource("segments", { type: "geojson", data: track.segments });
       map.addSource("gaps", { type: "geojson", data: gapLines(track) });
       map.addSource("points", { type: "geojson", data: track.points });
@@ -216,7 +225,7 @@ export function TrackMap({
         paint: {
           "circle-radius": 9,
           "circle-color": ["match", ["get", "event"], "workday_end", MAP_COLORS.end, MAP_COLORS.start],
-          "circle-stroke-color": ["match", ["get", "event"], "workday_end", MAP_COLORS.endStroke, color.mapBg],
+          "circle-stroke-color": ["match", ["get", "event"], "workday_end", MAP_COLORS.endStroke, MAP_COLORS.bg],
           "circle-stroke-width": 4,
         },
       });

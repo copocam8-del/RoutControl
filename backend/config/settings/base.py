@@ -94,10 +94,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = ["apps.accounts.backends.EmailBackend"]
-# Solo desarrollo: en un login fallido, registrar el email recibido y la FORMA de la contraseña (largo,
-# espacios en los extremos, mayúsculas, caracteres no ASCII), nunca la contraseña. Sirve para
-# diagnosticar teclados de teléfonos (mayúscula inicial, guion largo en lugar de "-", etc.).
-LOG_FAILED_LOGIN_SHAPE = env_bool("LOG_FAILED_LOGIN_SHAPE", False)
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",

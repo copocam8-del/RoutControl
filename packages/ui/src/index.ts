@@ -10,3 +10,6 @@ export * from "./tokens";
 // El mapa NO se reexporta acá (arrastraría MapLibre): importarlo de "@routcontrol/ui/map".
 // Errores del mapa para Diagnóstico (sin MapLibre).
 export * from "./map/diagnostics";
+// Apariencia: oscuro, claro o automático.
+export * from "./components/ThemeSelector";
+export * from "./theme";

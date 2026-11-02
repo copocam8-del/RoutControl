@@ -39,3 +39,21 @@ Los datos de las maquetas (nombres, números, direcciones entre corchetes) son d
 ## Panel (aprobado el 01/11/2026, 19:50)
 
 El panel usa solo datos que el sistema ya tiene en la etapa 0 (jornadas, ubicaciones, señal), así que se implementa **igual** a las maquetas. La bienvenida y el login del panel siguen las mismas reglas que en la app: la bienvenida dura unos 2 segundos, una vez por apertura, se saltea con un clic y respeta `prefers-reduced-motion`.
+
+## Modo claro (aprobado el 01/11/2026)
+
+El usuario elige la apariencia: **Oscuro** (por defecto), **Claro** o **Automático** (sigue la configuración del sistema, `prefers-color-scheme`). En la PWA se elige en Perfil; en el panel, en el encabezado. Se guarda por usuario en el dispositivo.
+
+| Token | Valor |
+|---|---|
+| Fondo | `#F4F6FD` |
+| Superficie | `#FFFFFF` (tarjetas), `#EDF0FB` (superficie secundaria), `#FFFFFF` con borde `#DDE2F4` (barra lateral del panel) |
+| Bordes | `#DDE2F4`; `#7A85BD` en campos de formulario (contraste 3:1) |
+| Texto | `#0B1026` (principal), `#2E365C` (secundario fuerte), `#525B85` (secundario) |
+| Acción principal | violeta `#6D4AFF` con texto blanco |
+| Violeta para textos y enlaces | `#5B3FD9` |
+| Azul | `#2563EB` |
+| Estados | texto oscuro sobre fondo suave: éxito `#047857` sobre `#D1FAE5`; atención `#B45309` sobre `#FEF3C7`; huecos `#EA580C` |
+| Mapa | estilo claro; recorrido `#7C3AED` |
+
+Las pruebas de la paleta (`packages/ui/src/tokens.test.ts`) verifican el contraste AA de cada par del modo claro y que cada color de esta tabla esté en `tokens.ts`.

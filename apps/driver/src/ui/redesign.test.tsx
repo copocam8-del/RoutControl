@@ -167,3 +167,23 @@ describe("perfil", () => {
     app.workday.dispose();
   });
 });
+
+describe("apariencia (Perfil)", () => {
+  it("Oscuro por defecto; Claro se aplica enseguida y queda guardado para ese usuario", async () => {
+    const { applyTheme, getThemePreference } = await import("@routcontrol/ui");
+    localStorage.clear();
+    applyTheme("dark");
+    const { app, user } = await loggedIn();
+    await user.click(screen.getByRole("button", { name: "Perfil" }));
+    const group = screen.getByRole("radiogroup", { name: "Apariencia" });
+    expect((screen.getByRole("radio", { name: /Oscuro/ }) as HTMLInputElement).checked).toBe(true);
+    await user.click(screen.getByRole("radio", { name: /Claro/ }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    const session = app.session.getState();
+    const id = session.status === "authenticated" ? session.session.user.id : "";
+    expect(getThemePreference(id)).toBe("light");
+    expect(group).toBeTruthy();
+    applyTheme("dark");
+    app.workday.dispose();
+  });
+});

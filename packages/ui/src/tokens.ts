@@ -1,5 +1,6 @@
 /**
- * Tokens del sistema de diseño (ADR-007 v2, §10.1 de la planificación).
+ * Tokens del sistema de diseño (ADR-007 v3, §10.1 de la planificación). Tema oscuro por defecto
+ * (`color`) y modo claro (`lightColor`), elegibles por el usuario.
  *
  * Fuente: las maquetas aprobadas por el cliente el 01/11/2026 (`docs/diseno/README.md`). Tema
  * oscuro, violeta para las acciones principales y azul/violeta claro como acentos.
@@ -100,6 +101,136 @@ export const contrastPairs: Array<{ use: string; fg: ColorToken; bg: ColorToken;
   { use: "recorrido en el mapa", fg: "route", bg: "mapBg", min: 3 },
   { use: "hueco en el mapa", fg: "gap", bg: "mapBg", min: 3 },
 ];
+
+// --- Modo claro (ADR-007 v3) ------------------------------------------------------------------------
+
+/**
+ * Paleta clara: las mismas claves que `color`, con los valores aprobados por el cliente. Se activa
+ * con `data-theme="light"` (o "auto" con el sistema en claro). Texto oscuro sobre fondos claros;
+ * los estados van en texto oscuro sobre un fondo suave.
+ */
+export const lightColor: Record<ColorToken, string> = {
+  background: "#F4F6FD",
+  surface: "#FFFFFF",
+  surface2: "#EDF0FB",
+  sidebar: "#FFFFFF",
+  mapBg: "#EEF1F8",
+  headerTop: "#E9EDFB",
+  heroFrom: "#EDE8FF",
+  heroTo: "#E4E9FF",
+  heroBorder: "#C9BFFF",
+  border: "#DDE2F4",
+  borderStrong: "#C9D0EC",
+  fieldBorder: "#7A85BD",
+  text: "#0B1026",
+  text2: "#2E365C",
+  muted: "#525B85",
+  placeholder: "#6A7299",
+  white: "#FFFFFF",
+  primary: "#6D4AFF",
+  primaryStrong: "#5B3FD9",
+  violet300: "#5B3FD9", // textos y enlaces violetas
+  violet200: "#5B3FD9",
+  violet100: "#3D2A9E", // texto del ítem activo de la barra lateral
+  blue: "#2563EB",
+  blueLight: "#2563EB",
+  success: "#047857",
+  successText: "#047857",
+  warning: "#B45309",
+  warningText: "#B45309",
+  gap: "#EA580C",
+  gapText: "#C2410C",
+  danger: "#DC2626",
+  dangerText: "#B91C1C",
+  route: "#7C3AED",
+};
+
+/**
+ * Fondos suaves y líneas de los estados, y otros valores que cambian con el tema. En oscuro son
+ * transparencias sobre la tarjeta; en claro, colores sólidos.
+ */
+export const themeTints = {
+  dark: {
+    successBg: "rgba(52, 211, 153, 0.14)",
+    successLine: "rgba(52, 211, 153, 0.35)",
+    warningBg: "rgba(251, 191, 36, 0.14)",
+    warningLine: "rgba(251, 191, 36, 0.4)",
+    gapBg: "rgba(251, 146, 60, 0.1)",
+    gapLine: "rgba(251, 146, 60, 0.35)",
+    dangerBg: "rgba(248, 113, 113, 0.12)",
+    dangerLine: "rgba(248, 113, 113, 0.4)",
+    infoBg: "rgba(77, 141, 255, 0.16)",
+    infoLine: "rgba(77, 141, 255, 0.35)",
+    accentBg: "rgba(124, 92, 255, 0.18)",
+    sidebarBorder: "#1A2350",
+    sidebarActiveText: "#FFFFFF",
+    avatarOff: "#2A3470",
+    heroButtonBg: "#FFFFFF",
+    heroButtonText: "#2B1F7A",
+  },
+  light: {
+    successBg: "#D1FAE5",
+    successLine: "#A7F3D0",
+    warningBg: "#FEF3C7",
+    warningLine: "#FCD34D",
+    gapBg: "#FFEDD5",
+    gapLine: "#FDBA74",
+    dangerBg: "#FEE2E2",
+    dangerLine: "#FCA5A5",
+    infoBg: "#EFF6FF",
+    infoLine: "#93C5FD",
+    accentBg: "#EDE8FF",
+    sidebarBorder: "#DDE2F4",
+    sidebarActiveText: "#3D2A9E",
+    avatarOff: "#525B85",
+    heroButtonBg: "#6D4AFF",
+    heroButtonText: "#FFFFFF",
+  },
+} as const;
+
+type Light = ColorToken | keyof (typeof themeTints)["light"];
+const light = (t: Light): string => (t in lightColor ? lightColor[t as ColorToken] : themeTints.light[t as keyof (typeof themeTints)["light"]]);
+
+/** Pares del modo claro: AA como mínimo (4,5:1 texto, 3:1 componentes y texto grande). */
+export const lightContrastPairs: Array<{ use: string; fg: Light; bg: Light; min: number }> = [
+  { use: "texto principal", fg: "text", bg: "background", min: 7 },
+  { use: "texto principal en tarjeta", fg: "text", bg: "surface", min: 7 },
+  { use: "texto secundario fuerte", fg: "text2", bg: "surface", min: 7 },
+  { use: "texto secundario fuerte en chip", fg: "text2", bg: "surface2", min: 7 },
+  { use: "texto secundario", fg: "muted", bg: "background", min: 4.5 },
+  { use: "texto secundario en tarjeta", fg: "muted", bg: "surface", min: 4.5 },
+  { use: "texto secundario en chip", fg: "muted", bg: "surface2", min: 4.5 },
+  { use: "placeholder", fg: "placeholder", bg: "surface", min: 4.5 },
+  { use: "botón principal (texto blanco)", fg: "white", bg: "primary", min: 4.5 },
+  { use: "botón principal presionado", fg: "white", bg: "primaryStrong", min: 4.5 },
+  { use: "enlaces y textos violetas", fg: "violet300", bg: "surface", min: 4.5 },
+  { use: "enlaces sobre el fondo", fg: "violet300", bg: "background", min: 4.5 },
+  { use: "violeta sobre la superficie secundaria", fg: "violet200", bg: "surface2", min: 4.5 },
+  { use: "azul", fg: "blueLight", bg: "surface", min: 4.5 },
+  { use: "azul sobre fondo informativo", fg: "blueLight", bg: "infoBg", min: 4.5 },
+  { use: "éxito sobre su fondo suave", fg: "successText", bg: "successBg", min: 4.5 },
+  { use: "atención sobre su fondo suave", fg: "warningText", bg: "warningBg", min: 4.5 },
+  { use: "huecos (texto) sobre su fondo suave", fg: "gapText", bg: "gapBg", min: 4.5 },
+  { use: "error sobre su fondo suave", fg: "dangerText", bg: "dangerBg", min: 4.5 },
+  { use: "violeta sobre fondo de acento", fg: "violet200", bg: "accentBg", min: 4.5 },
+  { use: "tarjeta destacada: título", fg: "text", bg: "heroFrom", min: 7 },
+  { use: "tarjeta destacada: texto", fg: "text2", bg: "heroTo", min: 4.5 },
+  { use: "tarjeta destacada: etiqueta", fg: "violet200", bg: "heroTo", min: 4.5 },
+  { use: "botón de la tarjeta destacada", fg: "heroButtonText", bg: "heroButtonBg", min: 4.5 },
+  { use: "barra lateral: ítem activo", fg: "sidebarActiveText", bg: "accentBg", min: 4.5 },
+  { use: "avatar sin jornada (iniciales blancas)", fg: "white", bg: "avatarOff", min: 4.5 },
+  // Componentes de interfaz (WCAG 1.4.11): 3:1.
+  { use: "contorno de campo", fg: "fieldBorder", bg: "surface", min: 3 },
+  { use: "contorno de campo sobre el fondo", fg: "fieldBorder", bg: "background", min: 3 },
+  { use: "anillo de foco", fg: "primary", bg: "surface", min: 3 },
+  { use: "punto de estado: éxito", fg: "success", bg: "surface", min: 3 },
+  { use: "punto de estado: atención", fg: "warning", bg: "surface", min: 3 },
+  { use: "punto de estado: error", fg: "danger", bg: "surface", min: 3 },
+  { use: "recorrido en el mapa", fg: "route", bg: "mapBg", min: 3 },
+  { use: "hueco en el mapa", fg: "gap", bg: "mapBg", min: 3 },
+];
+
+export const lightValue = light;
 
 export const font = {
   family: '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

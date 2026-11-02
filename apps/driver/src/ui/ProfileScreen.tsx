@@ -1,4 +1,4 @@
-import { Avatar, Button, Chip, IconLogout, IconShield, IconWrench, ListItem } from "@routcontrol/ui";
+import { Avatar, Button, Chip, IconLogout, IconShield, IconWrench, ListItem, ThemeSelector } from "@routcontrol/ui";
 import { useState } from "react";
 
 import { Diagnostics } from "./Diagnostics";
@@ -38,6 +38,11 @@ export function ProfileScreen() {
       </header>
 
       <div className="screen-body">
+        <section className="appearance" aria-label="Apariencia">
+          <h2 className="section-title">Apariencia</h2>
+          <ThemeSelector userId={user.id} />
+          <p className="rc-muted appearance__hint">Automático sigue la configuración del teléfono.</p>
+        </section>
         <InstallHint />
         <ListItem
           tone="accent"

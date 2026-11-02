@@ -1,11 +1,12 @@
-# ADR-007: Tema oscuro azul y violeta, y sistema de diseño en `packages/ui`
+# ADR-007: Tema oscuro y modo claro, azul y violeta, y sistema de diseño en `packages/ui`
 
-- **Estado:** aceptado (versión 2)
+- **Estado:** aceptado (versión 3)
 - **Fecha:** 01/11/2026
 - **Historial:**
   - **v1** (01/11/2026, a la mañana): tema claro con azul `#1D4ED8` como color principal y violeta `#6D28D9` como acento, fuente Inter.
   - **v2** (01/11/2026, a la noche): **reemplaza a la v1.** El cliente aprobó las maquetas de `docs/diseno/`: tema oscuro, violeta `#7C5CFF` para las acciones principales y Plus Jakarta Sans.
   - **v2.1** (01/11/2026): maquetas del panel aprobadas (`PanelBienvenida`, `PanelLogin`, `Panel`, `PanelJornadas`, `PanelRepartidores`) y borde de los campos en `#5A67B0`.
+  - **v3** (01/11/2026): **modo claro** y selector de apariencia (Oscuro, Claro o Automático).
 - **Contexto:** las maquetas aprobadas (`docs/diseno/README.md` y los `.dc.html`) son la especificación visual obligatoria de la PWA y del panel: colores, tamaños, espaciados, radios, sombras y animaciones.
 
 ## Decisión
@@ -51,6 +52,47 @@ Son los del README de las maquetas, sin cambios. Las cifras y los contrastes est
 - Otra prueba verifica que `styles.css` coincide con `tokens.ts`.
 - Otra prueba verifica que **cada color de la tabla del README de las maquetas está en `tokens.ts`**.
 - Y otra, que la fuente es Plus Jakarta Sans empaquetada (sin Google Fonts).
+
+## Modo claro (v3)
+
+### Selector de apariencia
+- **Opciones:** Oscuro (por defecto), Claro o Automático. Automático sigue `prefers-color-scheme` y cambia solo si cambia el sistema.
+- **Dónde se elige:** en la PWA, en **Perfil › Apariencia**; en el panel, en el **encabezado**.
+- **Cómo se guarda:** por usuario en el dispositivo (`localStorage`, `rc-theme:<usuario>`). Antes de ingresar se usa la última elegida en ese dispositivo (`rc-theme:last`).
+- **Sin destellos:** un script en `index.html` pone `data-theme` en `<html>` antes de pintar, así no se ve un destello del otro tema.
+- **Implementación:** `packages/ui/src/theme.ts` y `components/ThemeSelector.tsx`.
+
+### Paleta clara (aprobada por el cliente)
+`lightColor` en `tokens.ts` y `:root[data-theme="light"]` en `styles.css` (repetido en `@media (prefers-color-scheme: light)` para Automático).
+
+| Uso | Valor |
+|---|---|
+| Fondo / tarjetas / superficie secundaria | `#F4F6FD` / `#FFFFFF` / `#EDF0FB` |
+| Barra lateral del panel | `#FFFFFF` con borde `#DDE2F4` |
+| Bordes / bordes de campos | `#DDE2F4` / `#7A85BD` (3,3:1 sobre el fondo, 3,6:1 sobre la tarjeta) |
+| Texto principal / secundario fuerte / secundario | `#0B1026` (17,4:1) / `#2E365C` (11,7:1) / `#525B85` (6,1:1) |
+| Acción principal | `#6D4AFF` con texto blanco (5,2:1); presionado `#5B3FD9` |
+| Violeta para textos y enlaces | `#5B3FD9` (6,7:1) |
+| Azul | `#2563EB` |
+| Éxito | `#047857` sobre `#D1FAE5` (4,8:1) |
+| Atención | `#B45309` sobre `#FEF3C7` (4,5:1) |
+| Huecos | `#EA580C` (gráfico, 3,2:1 sobre el mapa); como texto, `#C2410C` |
+| Mapa | estilo claro de Protomaps con fondo `#EEF1F8`; recorrido `#7C3AED` (5,0:1) |
+
+### Lo que completé (no estaba en el pedido)
+- **Tarjeta destacada:** degradado violeta suave (`#EDE8FF` a `#E4E9FF`) con texto oscuro. Su botón pasa a violeta `#6D4AFF` con texto blanco.
+- **Error:** `#DC2626`, y como texto `#B91C1C` sobre `#FEE2E2`.
+- **Fondo informativo:** `#EFF6FF`, para que el azul `#2563EB` llegue a 4,5:1 encima.
+- **Ilustración del login del panel:** el panel violeta con el recorrido queda oscuro en los dos temas.
+- **Variables por tema:** los fondos suaves y las líneas de los estados ya no son transparencias fijas. Ahora son variables por tema (`--rc-success-bg`, `--rc-warning-line`, etc.).
+
+### Verificación automática
+- Contraste AA como mínimo en cada par del modo claro (`lightContrastPairs`).
+- Las variables del modo claro, en Claro y en Automático, coinciden con `tokens.ts`.
+- No quedan transparencias con los colores fijos del tema oscuro.
+- Cada color del README de las maquetas está en los tokens.
+- El selector guarda la elección por usuario y aplica `data-theme`.
+- El mapa usa el estilo y los íconos claros.
 
 ## Lo que las maquetas muestran y todavía no existe
 Para no poner botones sin función, quedan **fuera hasta la etapa 1**:

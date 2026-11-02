@@ -1,6 +1,7 @@
 import "@routcontrol/ui/styles.css";
 import "./styles.css";
 
+import { applyTheme, getThemePreference } from "@routcontrol/ui";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -10,6 +11,7 @@ import { registerServiceWorker } from "./pwa";
 import { App } from "./ui/App";
 
 document.title = config.appName;
+applyTheme(getThemePreference());
 const app = createApp();
 
 createRoot(document.getElementById("root")!).render(

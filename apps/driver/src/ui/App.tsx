@@ -1,4 +1,4 @@
-import { LoadingState } from "@routcontrol/ui";
+import { LoadingState, useUserTheme } from "@routcontrol/ui";
 import { useCallback, useEffect, useState } from "react";
 
 import type { AppServices } from "../app";
@@ -13,6 +13,8 @@ import { prefersReducedMotion, WELCOME_MS, Welcome } from "./Welcome";
  */
 export function App({ app, welcomeMs = WELCOME_MS }: { app: AppServices; welcomeMs?: number }) {
   const session = useStore(app.session);
+  // La apariencia que eligió este usuario en este teléfono.
+  useUserTheme(session.status === "authenticated" ? session.session.user.id : null);
   const [withWelcome] = useState(() => !app.ui.splashShown && welcomeMs > 0);
   const [welcome, setWelcome] = useState(withWelcome);
   const duration = prefersReducedMotion() ? 0 : welcomeMs;

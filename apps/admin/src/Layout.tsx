@@ -1,4 +1,4 @@
-import { Avatar, Brand, IconDashboard, IconLogout, IconMap, IconUsers } from "@routcontrol/ui";
+import { Avatar, Brand, IconDashboard, IconLogout, IconMap, IconUsers, ThemeSelector } from "@routcontrol/ui";
 import type { ReactNode } from "react";
 
 import { useAdmin, useSession } from "./adminApp";
@@ -52,7 +52,15 @@ export function Layout({ route, session, children }: { route: Route; session: Se
           </button>
         </div>
       </aside>
-      <main className="content">{children}</main>
+      <div className="main">
+        <header className="topbar" aria-label="Encabezado">
+          <span className="topbar__label" aria-hidden="true">
+            Apariencia
+          </span>
+          <ThemeSelector userId={session.user.id} compact />
+        </header>
+        <main className="content">{children}</main>
+      </div>
     </div>
   );
 }
