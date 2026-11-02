@@ -198,3 +198,26 @@ class Communication(TenantModel):
     started_at = models.DateTimeField()
     result = models.CharField(max_length=60, blank=True)
     received_at = models.DateTimeField(auto_now_add=True)
+
+
+class ImportJob(TenantModel, TimestampedModel):
+    """Una importación (§7.2, ADR-012). Las filas del archivo se guardan solo hasta confirmar: al
+    terminar se borran (minimización de datos personales) y quedan los totales y los errores."""
+
+    class Status(models.TextChoices):
+        UPLOADED = "UPLOADED", "Subido"
+        DONE = "DONE", "Importado"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    filename = models.CharField(max_length=255)
+    file_key = models.CharField(max_length=300, blank=True)  # cuando haya almacenamiento de archivos
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.UPLOADED)
+    headers = models.JSONField(default=list)
+    rows = models.JSONField(default=list)
+    column_mapping = models.JSONField(default=dict, blank=True)
+    total_rows = models.PositiveIntegerField(default=0)
+    ok_rows = models.PositiveIntegerField(default=0)
+    error_rows = models.PositiveIntegerField(default=0)
+    errors = models.JSONField(default=list, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
