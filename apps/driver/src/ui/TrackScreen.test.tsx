@@ -22,7 +22,7 @@ function Tracks() {
 // MapLibre necesita WebGL (no existe en jsdom): se reemplaza por un doble que muestra qué recibió.
 vi.mock("@routcontrol/ui/map", () => ({
   TrackMap: ({ track }: { track: WorkdayTrack }) => <div data-testid="map">mapa con {track.points.features.length} puntos</div>,
-  setOfflineTiles: () => {},
+  setOfflineTiles: () => {}, StopsMap: () => <div data-testid="stops-map" />,
 }));
 
 async function setupWithWorkday() {

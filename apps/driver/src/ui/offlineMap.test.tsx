@@ -13,7 +13,7 @@ import { freshDb } from "../test/helpers";
 import { testPackage } from "../test/packages";
 import { App } from "./App";
 
-vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {} }));
+vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {}, StopsMap: () => <div data-testid="stops-map" /> }));
 
 const mapModule = {
   downloadTiles: async (_u: string, tiles: readonly { z: number; x: number; y: number }[], put: (k: string, d: Uint8Array) => Promise<void>) => {

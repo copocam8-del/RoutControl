@@ -250,7 +250,7 @@
   background: var(--rc-surface);
   border: 1px solid var(--rc-border);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   z-index: 5;
 }
@@ -261,8 +261,10 @@
   align-items: center;
   gap: 4px;
   height: 100%;
+  min-width: 0;
   font: inherit;
-  font-size: 12px;
+  /* Cinco pestañas (con Mapa, ADR-019): "Recorridos" entra en un teléfono de 360 px. */
+  font-size: 11px;
   font-weight: 600;
   color: var(--rc-muted);
   background: none;
@@ -1156,4 +1158,238 @@
 .offline-map__note {
   margin: 0;
   font-size: 13px;
+}
+
+/* --- Mapa de entregas (ADR-019): pantalla completa, con chips, botones flotantes y tarjeta ------ */
+.map-screen {
+  position: relative;
+  height: 100dvh;
+  max-width: 560px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--rc-map-bg);
+}
+
+.map-screen__map {
+  position: absolute;
+  inset: 0;
+}
+
+.map-screen__map > .rc-state {
+  height: 100%;
+  justify-content: center;
+}
+
+.map-screen__empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Los controles de MapLibre quedan debajo de los chips. */
+.map-screen .maplibregl-ctrl-top-right {
+  top: calc(64px + env(safe-area-inset-top));
+}
+
+.map-screen .maplibregl-ctrl-top-left {
+  top: calc(64px + env(safe-area-inset-top));
+}
+
+.map-screen__top {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.map-chips {
+  display: flex;
+  gap: 8px;
+}
+
+/* Mismas píldoras que la leyenda de Recorrido.dc.html. */
+.map-chip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rc-border-strong);
+  background: rgba(var(--rc-background-rgb), 0.88);
+  color: var(--rc-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.map-chip[aria-pressed="true"] {
+  border-color: var(--rc-primary);
+  background: rgba(var(--rc-primary-rgb), 0.32);
+}
+
+.map-chip--note,
+.map-chip--legend {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rc-text-2);
+  cursor: default;
+}
+
+.map-legend {
+  position: absolute;
+  left: 16px;
+  right: 76px;
+  bottom: calc(72px + 24px + 12px + env(safe-area-inset-bottom));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.map-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.map-legend__dot--pending { background: var(--rc-stop-pending); }
+.map-legend__dot--delivered { background: var(--rc-stop-delivered); }
+.map-legend__dot--failed { background: var(--rc-stop-failed); }
+.map-legend__dot--second { background: var(--rc-stop-second); }
+
+.map-fabs {
+  position: absolute;
+  right: 16px;
+  bottom: calc(72px + 24px + 12px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: bottom 200ms ease;
+}
+
+/* Con la tarjeta abierta, los botones suben con ella. */
+.map-fabs--raised {
+  bottom: calc(72px + 24px + 12px + 230px + env(safe-area-inset-bottom));
+}
+
+/* Como el botón "Volver" de Recorrido.dc.html, un poco más grande para tocar en la calle. */
+.map-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--rc-border-strong);
+  background: var(--rc-surface);
+  color: var(--rc-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(var(--rc-background-rgb), 0.35);
+}
+
+.map-fab:disabled {
+  color: var(--rc-placeholder);
+  cursor: default;
+}
+
+.map-sheet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(72px + 24px + 12px + env(safe-area-inset-bottom));
+  gap: 14px;
+  box-shadow: 0 12px 32px rgba(var(--rc-background-rgb), 0.45);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .map-sheet {
+    animation: map-sheet-in 220ms ease-out both;
+  }
+}
+
+@keyframes map-sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.map-sheet__n {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  background: var(--rc-stop-pending);
+  color: var(--rc-stop-pending-ink);
+}
+
+.map-sheet__n--delivered { background: var(--rc-stop-delivered); color: var(--rc-stop-delivered-ink); }
+.map-sheet__n--failed { background: var(--rc-stop-failed); color: var(--rc-stop-failed-ink); }
+.map-sheet__n--second { background: var(--rc-stop-second); color: var(--rc-stop-second-ink); }
+
+.map-sheet__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.map-sheet__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--rc-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-sheet .stop-card__head {
+  padding-right: 36px;
+}
+
+.navigate-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Ficha: mapa chico real arriba (ADR-019). */
+.stop-card__map {
+  margin: -20px -20px 0;
+  border-radius: var(--rc-radius-2xl) var(--rc-radius-2xl) 0 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rc-border);
+}
+
+.stop-card__map .rc-map {
+  border-radius: 0;
+}
+
+.stop-card__map-placeholder {
+  height: 150px;
+  background: var(--rc-map-bg);
 }

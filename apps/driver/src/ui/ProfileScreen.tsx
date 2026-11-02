@@ -1,5 +1,7 @@
 import { Avatar, Button, Chip, IconLogout, IconShield, IconWrench, ListItem, ThemeSelector } from "@routcontrol/ui";
-import { useState } from "react";
+import { useId, useState } from "react";
+
+import { NAV_APP_LABEL, type NavApp } from "../delivery/navApp";
 
 import { Diagnostics } from "./Diagnostics";
 import { useApp, useStore } from "./hooks";
@@ -43,6 +45,7 @@ export function ProfileScreen() {
           <ThemeSelector userId={user.id} />
           <p className="rc-muted appearance__hint">Automático sigue la configuración del teléfono.</p>
         </section>
+        <NavAppSetting />
         <InstallHint />
         <ListItem
           tone="accent"
@@ -69,5 +72,26 @@ export function ProfileScreen() {
         ) : null}
       </div>
     </main>
+  );
+}
+
+/** Con qué app abre "Navegar" (ADR-019). Mismo control que la apariencia. */
+function NavAppSetting() {
+  const app = useApp();
+  const { app: chosen } = useStore(app.navApp);
+  const name = useId();
+  return (
+    <section className="appearance" aria-label="Navegación">
+      <h2 className="section-title">Navegar con</h2>
+      <div className="rc-theme" role="radiogroup" aria-label="Navegar con">
+        {(["google", "waze"] as NavApp[]).map((choice) => (
+          <label key={choice} className="rc-theme__option">
+            <input type="radio" name={name} value={choice} checked={chosen === choice} onChange={() => void app.navApp.choose(choice)} />
+            <span>{NAV_APP_LABEL[choice]}</span>
+          </label>
+        ))}
+      </div>
+      <p className="rc-muted appearance__hint">{chosen ? "“Navegar” abre esta app." : "Todavía no elegiste: te lo pregunta la primera vez que tocás “Navegar”."}</p>
+    </section>
   );
 }

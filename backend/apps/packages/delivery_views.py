@@ -211,7 +211,7 @@ def active_workday(driver):
 def route_payload(stops) -> dict:
     return {
         "stops": [
-            {"package_id": str(s.package_id), "sequence": s.sequence, "eta_s": s.eta_s, "distance_m": s.distance_m}
+            {"package_id": str(s.package_id), "sequence": s.sequence, "eta_s": s.eta_s, "distance_m": s.distance_m, "path": s.path}
             for s in stops
         ],
         "source": stops[0].source if stops else None,

@@ -239,6 +239,9 @@ class RouteStop(TenantModel, TimestampedModel):
     # Lo que estimó el ruteo para llegar a esta parada desde la anterior (null si es manual).
     eta_s = models.PositiveIntegerField(null=True, blank=True)
     distance_m = models.PositiveIntegerField(null=True, blank=True)
+    # Tramo por calles hasta esta parada (polilínea codificada, precisión 5), para dibujar la ruta
+    # en el mapa de la app. Vacío en el orden a mano o si el ruteo no lo devolvió.
+    path = models.TextField(blank=True, default="")
 
     class Meta(TenantModel.Meta):
         constraints = [models.UniqueConstraint(fields=["organization", "workday", "package"], name="routestop_unique_pkg")]
