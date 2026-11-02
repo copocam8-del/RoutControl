@@ -25,6 +25,13 @@ import {
   workdayTrack,
   type WorkdayWithDriver,
   trackingTokenRecovery,
+  bulkAssignResult,
+  type DeliveryPackage,
+  packageEnvelope,
+  packageEvents,
+  type PackageEvent,
+  type PackageInput,
+  packageList,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -183,6 +190,47 @@ export class ApiClient {
     return (await this.authed("/drivers/", { method: "GET" }, driverList)).drivers;
   }
 
+  // --- Paquetes (etapa 1) ---------------------------------------------------------------------
+
+  async listPackages(filters: { status?: string[]; driver?: string; q?: string } = {}): Promise<DeliveryPackage[]> {
+    const params = new URLSearchParams();
+    if (filters.status?.length) params.set("status", filters.status.join(","));
+    if (filters.driver) params.set("driver", filters.driver);
+    if (filters.q) params.set("q", filters.q);
+    const query = params.toString();
+    return (await this.authed(`/packages/${query ? `?${query}` : ""}`, { method: "GET" }, packageList)).packages;
+  }
+
+  async getPackage(id: string): Promise<DeliveryPackage> {
+    return (await this.authed(`/packages/${id}`, { method: "GET" }, packageEnvelope)).package;
+  }
+
+  async createPackage(input: PackageInput): Promise<DeliveryPackage> {
+    return (await this.authed("/packages/", { method: "POST", body: input }, packageEnvelope)).package;
+  }
+
+  async updatePackage(id: string, version: number, changes: Partial<Omit<PackageInput, "driver_id">>): Promise<DeliveryPackage> {
+    return (await this.authed(`/packages/${id}`, { method: "PATCH", body: { ...changes, version } }, packageEnvelope)).package;
+  }
+
+  async assignPackage(id: string, version: number, driverId: string | null): Promise<DeliveryPackage> {
+    return (await this.authed(`/packages/${id}/assign`, { method: "POST", body: { version, driver_id: driverId } }, packageEnvelope))
+      .package;
+  }
+
+  async bulkAssignPackages(packageIds: string[], driverId: string | null) {
+    return this.authed("/packages/assign", { method: "POST", body: { package_ids: packageIds, driver_id: driverId } }, bulkAssignResult);
+  }
+
+  async setPackageStatus(id: string, version: number, status: "CANCELLED" | "RETURNED", reason = ""): Promise<DeliveryPackage> {
+    return (await this.authed(`/packages/${id}/status`, { method: "POST", body: { version, status, reason } }, packageEnvelope))
+      .package;
+  }
+
+  async packageEvents(id: string): Promise<PackageEvent[]> {
+    return (await this.authed(`/packages/${id}/events`, { method: "GET" }, packageEvents)).events;
+  }
+
   workdayTrack(workdayId: string): Promise<WorkdayTrack> {
     return this.authed(`/workdays/${workdayId}/track`, { method: "GET" }, workdayTrack);
   }
@@ -249,7 +297,7 @@ export class ApiClient {
 const GATEWAY_ERRORS = new Set([502, 503, 504, 530]);
 
 interface RequestInit_ {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PATCH";
   body?: unknown;
   headers?: Record<string, string>;
 }

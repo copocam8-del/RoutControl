@@ -175,3 +175,66 @@ def test_tracking_token_recovery_never_reaches_another_org(org_a, org_b, workday
     assert client_for(org_b.driver, org_b.org).post(f"/api/v1/workdays/{wid}/tracking-token").status_code == 404
     assert client_for(org_a.drivers[1], org_a.org).post(f"/api/v1/workdays/{wid}/tracking-token").status_code == 404
     assert client_for(org_a.owner, org_a.org).post(f"/api/v1/workdays/{wid}/tracking-token").status_code == 403
+
+
+# --- Paquetes (etapa 1) ------------------------------------------------------------------------
+
+
+@pytest.fixture
+def package_a(org_a):
+    response = client_for(org_a.owner, org_a.org).post(
+        "/api/v1/packages/", {"tracking_code": "A-1", "address": {"raw_text": "Calle de A 100"}}, format="json"
+    )
+    assert response.status_code == 201
+    return response.json()["package"]
+
+
+def _driver_of(fx):
+    from apps.drivers.models import DriverProfile
+
+    with tenant_context(fx.id):
+        return str(DriverProfile.objects.get(membership__user=fx.driver).id)
+
+
+@covers("package-list")
+def test_package_list_never_shows_another_org(org_a, org_b, package_a):
+    assert client_for(org_b.owner, org_b.org).get("/api/v1/packages/").json()["packages"] == []
+    assert client_for(org_b.owner, org_b.org).get("/api/v1/packages/?q=A-1").json()["packages"] == []
+
+
+@covers("package-detail")
+def test_package_detail_and_edit_of_another_org_is_404(org_a, org_b, package_a):
+    client = client_for(org_b.owner, org_b.org)
+    assert client.get(f"/api/v1/packages/{package_a['id']}").status_code == 404
+    assert client.patch(f"/api/v1/packages/{package_a['id']}", {"version": 1, "notes": "x"}, format="json").status_code == 404
+
+
+@covers("package-assign")
+def test_package_of_another_org_cannot_be_assigned_nor_to_a_driver_of_another_org(org_a, org_b, package_a):
+    other = client_for(org_b.owner, org_b.org)
+    assert other.post(f"/api/v1/packages/{package_a['id']}/assign", {"driver_id": None, "version": 1}, format="json").status_code == 404
+    # El paquete de A no se puede asignar a un repartidor de B: para A, ese repartidor no existe.
+    own = client_for(org_a.owner, org_a.org)
+    r = own.post(f"/api/v1/packages/{package_a['id']}/assign", {"driver_id": _driver_of(org_b), "version": 1}, format="json")
+    assert r.status_code == 400 and r.json()["code"] == "driver_not_found"
+
+
+@covers("package-bulk-assign")
+def test_bulk_assign_ignores_packages_of_another_org(org_a, org_b, package_a):
+    r = client_for(org_b.owner, org_b.org).post(
+        "/api/v1/packages/assign", {"package_ids": [package_a["id"]], "driver_id": _driver_of(org_b)}, format="json"
+    )
+    assert r.json()["assigned"] == [] and r.json()["failed"][0]["code"] == "not_found"
+
+
+@covers("package-status")
+def test_package_status_of_another_org_is_404(org_a, org_b, package_a):
+    r = client_for(org_b.owner, org_b.org).post(
+        f"/api/v1/packages/{package_a['id']}/status", {"status": "CANCELLED", "version": 1}, format="json"
+    )
+    assert r.status_code == 404
+
+
+@covers("package-events")
+def test_package_events_of_another_org_is_404(org_a, org_b, package_a):
+    assert client_for(org_b.owner, org_b.org).get(f"/api/v1/packages/{package_a['id']}/events").status_code == 404
