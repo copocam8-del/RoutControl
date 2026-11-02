@@ -24,6 +24,16 @@ export class FakeApi {
   incidents: Incident[] = [];
   /** Historial de domicilios (GET /addresses/{id}). */
   addresses = new Map<string, unknown>();
+  /** Segundos intentos (ADR-023): la sugerencia que devuelve el servidor al pedirlo. */
+  secondAttempts: Array<Record<string, unknown>> = [];
+  nextSuggestion: Record<string, unknown> = {
+    suggestion: "INSERT",
+    suggestion_reason: "Insertarlo después de la parada 2: suma unos 6 min de recorrido.",
+    distance_m: 1800,
+    detour_s: 360,
+    pending_count: 5,
+    insert_position: 2,
+  };
   bulkAssigned: Array<{ ids: string[]; driver: string | null }> = [];
   /** Respuesta de la importación (subida, vista previa y confirmación). */
   importHeaders = ["Guía", "Destinatario", "Dirección"];
@@ -80,6 +90,40 @@ export class FakeApi {
         }
       }
       return json(200, { assigned: body.package_ids, failed: [] });
+    }
+    const ask = /^\/packages\/([^/]+)\/second-attempt$/.exec(path);
+    if (ask) {
+      const p = this.packages.find((x) => x.id === ask[1])!;
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      const req = {
+        id: `0192f3a0-0000-7000-8004-${String(this.secondAttempts.length + 1).padStart(12, "0")}`,
+        package: { id: p.id, tracking_code: p.tracking_code, recipient_name: p.recipient_name, address: p.address.raw_text, status: p.status },
+        requested_at: new Date().toISOString(),
+        window_start: body.window_start ?? null,
+        window_end: body.window_end ?? null,
+        note: body.note ?? "",
+        decision: "PENDING",
+        placement: null,
+        decided_at: null,
+        ...this.nextSuggestion,
+      };
+      this.secondAttempts.unshift(req);
+      return json(201, { second_attempt: req });
+    }
+    if (path === "/second-attempts") {
+      const pk = url.searchParams.get("package");
+      return json(200, { second_attempts: this.secondAttempts.filter((r) => !pk || (r.package as { id: string }).id === pk) });
+    }
+    const decide = /^\/second-attempts\/([^/]+)\/decide$/.exec(path);
+    if (decide) {
+      const r = this.secondAttempts.find((x) => x.id === decide[1])!;
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      r.decision = body.accept ? "ACCEPTED" : "REJECTED";
+      r.placement = body.accept ? (body.placement ?? r.suggestion) : null;
+      r.decided_at = new Date().toISOString();
+      const p = this.packages.find((x) => x.id === (r.package as { id: string }).id)!;
+      if (body.accept) p.status = r.placement === "NEXT_DAY" ? "RESCHEDULED" : "ASSIGNED";
+      return json(200, { second_attempt: r });
     }
     const pkg = /^\/packages\/([^/]+)(\/(events|visits))?$/.exec(path);
     if (pkg) {

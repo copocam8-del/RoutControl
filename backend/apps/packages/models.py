@@ -246,3 +246,43 @@ class RouteStop(TenantModel, TimestampedModel):
     class Meta(TenantModel.Meta):
         constraints = [models.UniqueConstraint(fields=["organization", "workday", "package"], name="routestop_unique_pkg")]
         indexes = [models.Index(fields=["organization", "workday", "sequence"], name="routestop_workday_seq")]
+
+
+class SecondAttemptRequest(TenantModel, TimestampedModel):
+    """Pedido de segundo intento de un paquete no entregado (planificación §7.2, ADR-023), con la
+    sugerencia de desvío calculada al pedirlo y la decisión del panel."""
+
+    class Suggestion(models.TextChoices):
+        INSERT = "INSERT", "Insertar en la ruta"
+        END = "END", "Al final de la ruta"
+        NEXT_DAY = "NEXT_DAY", "Al día siguiente"
+
+    class Decision(models.TextChoices):
+        PENDING = "PENDING", "Pendiente"
+        ACCEPTED = "ACCEPTED", "Aceptado"
+        REJECTED = "REJECTED", "Descartado"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    package = models.ForeignKey(Package, on_delete=models.PROTECT, related_name="second_attempts")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    # Franja en la que el destinatario dice que va a estar (opcional).
+    window_start = models.DateTimeField(null=True, blank=True)
+    window_end = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=300, blank=True)
+    # Lo calculado al pedirlo (estimación en línea recta, ver second_attempt.py).
+    workday = models.ForeignKey(Workday, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    distance_m = models.PositiveIntegerField(null=True, blank=True)
+    detour_s = models.PositiveIntegerField(null=True, blank=True)
+    pending_count = models.PositiveIntegerField(default=0)
+    insert_after = models.ForeignKey(Package, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    insert_position = models.PositiveIntegerField(null=True, blank=True)
+    suggestion = models.CharField(max_length=20, choices=Suggestion.choices)
+    suggestion_reason = models.CharField(max_length=300)
+    decision = models.CharField(max_length=20, choices=Decision.choices, default=Decision.PENDING)
+    placement = models.CharField(max_length=20, choices=Suggestion.choices, blank=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="+")
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TenantModel.Meta):
+        indexes = [models.Index(fields=["organization", "decision", "requested_at"], name="second_attempt_decision")]

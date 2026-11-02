@@ -373,6 +373,11 @@ function PackageDetail({ pkg, onBack, onOpen }: { pkg: LocalPackage; onBack(): v
                   <ReceptionBadge reception={pkg.reception} />
                 </div>
               ) : null}
+              {pkg.second_attempt ? (
+                <p className="stop-card__second">
+                  <Badge tone="accent">Segundo intento</Badge> {secondAttemptText(pkg.second_attempt)}
+                </p>
+              ) : null}
             </div>
           </div>
           {pkg.notes ? <p className="stop-card__notes">{pkg.notes}</p> : null}
@@ -540,4 +545,18 @@ function StopMiniMap({ pkg }: { pkg: LocalPackage }) {
       </Suspense>
     </div>
   );
+}
+
+/** "El destinatario está de 14:00 a 18:00 · Tocar timbre 3" (segundo intento, ADR-023). */
+export function secondAttemptText(s: { window_start: string | null; window_end: string | null; note: string }): string {
+  const t = (iso: string) => new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const window =
+    s.window_start && s.window_end
+      ? `El destinatario está de ${t(s.window_start)} a ${t(s.window_end)}`
+      : s.window_start
+        ? `El destinatario está desde las ${t(s.window_start)}`
+        : s.window_end
+          ? `El destinatario está hasta las ${t(s.window_end)}`
+          : "";
+  return [window, s.note].filter(Boolean).join(" · ");
 }

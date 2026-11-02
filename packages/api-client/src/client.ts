@@ -7,6 +7,9 @@
  * - Ante un 401 se intenta un refresh una sola vez y se repite la petición.
  */
 import {
+  secondAttempt,
+  type SecondAttempt,
+  type SecondAttemptSuggestion,
   addressHistory,
   type AddressHistory,
   type ChooseOrganization,
@@ -226,6 +229,25 @@ export class ApiClient {
     if (filters.q) params.set("q", filters.q);
     const query = params.toString();
     return (await this.authed(`/packages/${query ? `?${query}` : ""}`, { method: "GET" }, packageList)).packages;
+  }
+
+  /** Segundo intento (ADR-023): pedirlo devuelve la sugerencia de desvío. */
+  async requestSecondAttempt(packageId: string, input: { window_start?: string | null; window_end?: string | null; note?: string }): Promise<SecondAttempt> {
+    const body = (await this.authed(`/packages/${packageId}/second-attempt`, { method: "POST", body: input }, anything)) as { second_attempt: unknown };
+    return secondAttempt.parse(body.second_attempt);
+  }
+
+  async listSecondAttempts(filters: { package?: string; decision?: string } = {}): Promise<SecondAttempt[]> {
+    const q = new URLSearchParams(Object.entries(filters).filter(([, v]) => v) as [string, string][]).toString();
+    const body = (await this.authed(`/second-attempts${q ? `?${q}` : ""}`, { method: "GET" }, anything)) as { second_attempts: unknown[] };
+    return body.second_attempts.map((r) => secondAttempt.parse(r));
+  }
+
+  async decideSecondAttempt(id: string, accept: boolean, placement?: SecondAttemptSuggestion): Promise<SecondAttempt> {
+    const body = (await this.authed(`/second-attempts/${id}/decide`, { method: "POST", body: { accept, ...(placement ? { placement } : {}) } }, anything)) as {
+      second_attempt: unknown;
+    };
+    return secondAttempt.parse(body.second_attempt);
   }
 
   /** Historial del domicilio con su indicador de recepción (panel, ADR-022). */

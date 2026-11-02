@@ -64,7 +64,9 @@ export function orderByRoute<T extends { id: string }>(packages: readonly T[], r
 export function mapStops(packages: readonly DeliveryPackage[], route: RouteOrder | null): MapStop[] {
   const out: MapStop[] = [];
   orderByRoute(packages, route).forEach((p, i) => {
-    const state = STOP_STATE[p.status];
+    // Un segundo intento aceptado vuelve a "asignado", pero se sigue viendo como segundo intento.
+    const pending = p.status === "ASSIGNED" || p.status === "IN_ROUTE";
+    const state = pending && p.second_attempt ? "second" : STOP_STATE[p.status];
     if (!state || !p.address.location) return;
     out.push({ id: p.id, n: i + 1, lat: p.address.location.lat, lng: p.address.location.lng, state, label: `Parada ${i + 1}: ${p.address.raw_text}` });
   });

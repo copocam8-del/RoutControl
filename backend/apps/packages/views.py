@@ -49,11 +49,23 @@ def address_payload(a) -> dict:
     }
 
 
-def package_payload(p: Package, receptions: dict | None = None) -> dict:
-    """`receptions`: indicadores ya calculados para una lista (una sola consulta); si falta, se
-    calcula el de este domicilio."""
+def second_attempts_for(packages) -> dict:
+    """Segundo intento aceptado de cada paquete todavía pendiente (una consulta, ADR-023)."""
+    from .models import SecondAttemptRequest as SA
+
+    ids = [p.id for p in packages if p.status in (Package.Status.ASSIGNED, Package.Status.IN_ROUTE, Package.Status.RESCHEDULED)]
+    out = {}
+    for req in SA.objects.filter(package_id__in=ids, decision=SA.Decision.ACCEPTED).order_by("decided_at"):
+        out[req.package_id] = {"window_start": iso_utc(req.window_start), "window_end": iso_utc(req.window_end), "note": req.note}
+    return out
+
+
+def package_payload(p: Package, receptions: dict | None = None, second: dict | None = None) -> dict:
+    """`receptions` y `second`: ya calculados para una lista (una consulta cada uno); si faltan, se
+    calculan para este paquete."""
     driver = p.assigned_driver
     stats = (receptions or {}).get(p.address_id) or reception.for_addresses([p.address_id], p.organization)[p.address_id]
+    second_attempt = (second if second is not None else second_attempts_for([p])).get(p.id)
     return {
         "id": str(p.id),
         "tracking_code": p.tracking_code,
@@ -65,6 +77,8 @@ def package_payload(p: Package, receptions: dict | None = None) -> dict:
         "address": address_payload(p.address),
         # Indicador de recepción del domicilio (§7.3, ADR-022): informativo.
         "reception": reception.summary(stats),
+        # Segundo intento aceptado (con la franja del destinatario, si la dio), o null (ADR-023).
+        "second_attempt": second_attempt,
         "assigned_driver": (
             {"id": str(driver.id), "name": driver.membership.user.full_name or driver.membership.user.email}
             if driver
@@ -151,7 +165,8 @@ class PackageListView(APIView):
             )
         packages = list(qs.order_by("-created_at")[: self.MAX])
         receptions = reception.for_addresses([p.address_id for p in packages], packages[0].organization) if packages else {}
-        return Response({"packages": [package_payload(p, receptions) for p in packages]})
+        second = second_attempts_for(packages)
+        return Response({"packages": [package_payload(p, receptions, second) for p in packages]})
 
     def post(self, request):
         if not is_staff(request):
@@ -284,3 +299,73 @@ class PackageEventsView(APIView):
                 ]
             }
         )
+
+
+class SecondAttemptWindowSerializer(serializers.Serializer):
+    window_start = serializers.DateTimeField(required=False, allow_null=True)
+    window_end = serializers.DateTimeField(required=False, allow_null=True)
+    note = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+
+
+class SecondAttemptCreateView(APIView):
+    """POST /api/v1/packages/{id}/second-attempt: pide el segundo intento y devuelve la sugerencia."""
+
+    permission_classes = STAFF_ONLY
+
+    def post(self, request, package_id):
+        from . import second_attempt
+
+        data = SecondAttemptWindowSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        package = Package.objects.select_related("address", "organization", "assigned_driver").filter(id=package_id).first()
+        if package is None:
+            return Response({"detail": "Paquete no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            req = second_attempt.request(package, request.user, **data.validated_data)
+        except services.PackageError as exc:
+            return error(exc)
+        return Response({"second_attempt": second_attempt.payload(req)}, status=status.HTTP_201_CREATED)
+
+
+class SecondAttemptListView(APIView):
+    """GET /api/v1/second-attempts?package=&decision=PENDING"""
+
+    permission_classes = STAFF_ONLY
+
+    def get(self, request):
+        from . import second_attempt
+        from .models import SecondAttemptRequest as SA
+
+        qs = SA.objects.select_related("package__address").order_by("-requested_at")
+        if request.query_params.get("package"):
+            qs = qs.filter(package_id=request.query_params["package"])
+        if request.query_params.get("decision"):
+            qs = qs.filter(decision=request.query_params["decision"])
+        return Response({"second_attempts": [second_attempt.payload(r) for r in qs[:200]]})
+
+
+class SecondAttemptDecideSerializer(serializers.Serializer):
+    accept = serializers.BooleanField()
+    placement = serializers.ChoiceField(choices=["INSERT", "END", "NEXT_DAY"], required=False, allow_null=True)
+
+
+class SecondAttemptDecideView(APIView):
+    """POST /api/v1/second-attempts/{id}/decide {accept, placement?}: por defecto, la sugerencia."""
+
+    permission_classes = STAFF_ONLY
+
+    def post(self, request, request_id):
+        from . import second_attempt
+        from .models import SecondAttemptRequest as SA
+
+        data = SecondAttemptDecideSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        req = SA.objects.select_related("package__address", "insert_after").filter(id=request_id).first()
+        if req is None:
+            return Response({"detail": "Pedido no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            req = second_attempt.decide(req, request.user, data.validated_data["accept"], data.validated_data.get("placement"))
+        except services.PackageError as exc:
+            return error(exc)
+        req.package.refresh_from_db()
+        return Response({"second_attempt": second_attempt.payload(req)})

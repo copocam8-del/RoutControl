@@ -439,3 +439,23 @@ def test_address_history_of_another_org_is_404(org_a, org_b, package_a):
     address_id = package_a["address"]["id"]
     assert client_for(org_a.owner, org_a.org).get(f"/api/v1/addresses/{address_id}").status_code == 200
     assert client_for(org_b.owner, org_b.org).get(f"/api/v1/addresses/{address_id}").status_code == 404
+
+
+@covers("package-second-attempt")
+@covers("second-attempt-list")
+@covers("second-attempt-decide")
+def test_second_attempts_of_another_org_are_invisible(org_a, org_b, package_a):
+    from apps.packages.models import Package, SecondAttemptRequest
+
+    with tenant_context(org_a.id):
+        p = Package.objects.get(id=package_a["id"])
+        p.status = Package.Status.FAILED
+        p.save(update_fields=["status"])
+    own = client_for(org_a.owner, org_a.org)
+    other = client_for(org_b.owner, org_b.org)
+    assert other.post(f"/api/v1/packages/{package_a['id']}/second-attempt", {}, format="json").status_code == 404
+    created = own.post(f"/api/v1/packages/{package_a['id']}/second-attempt", {}, format="json").json()["second_attempt"]
+    assert other.get("/api/v1/second-attempts").json()["second_attempts"] == []
+    assert other.post(f"/api/v1/second-attempts/{created['id']}/decide", {"accept": True}, format="json").status_code == 404
+    with tenant_context(org_a.id):
+        assert SecondAttemptRequest.objects.get(id=created["id"]).decision == "PENDING"
