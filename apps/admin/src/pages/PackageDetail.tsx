@@ -1,5 +1,5 @@
 import { OUTCOME_LABEL, PACKAGE_STATUS_LABEL, type PackageEvent, type PackageStatus, type VisitOutcome } from "@routcontrol/domain";
-import { Alert, Button, formatDuration, formatLongDate, formatTime, IconArrowLeft, Loadable, useLoad } from "@routcontrol/ui";
+import { Alert, Button, formatDuration, formatLongDate, formatTime, IconArrowLeft, Loadable, ReceptionBadge, useLoad } from "@routcontrol/ui";
 import { useCallback, useState } from "react";
 
 import { actionError, describeLoadError, useAdmin } from "../adminApp";
@@ -80,6 +80,11 @@ export function PackageDetail({ id }: { id: string }) {
               <section className="panel-card" aria-label="Datos del paquete">
                 <h2>Datos</h2>
                 <dl className="facts">
+                  <dt>Domicilio</dt>
+                  <dd>
+                    <ReceptionBadge reception={pkg.reception} />{" "}
+                    <a href={href({ name: "address", id: pkg.address.id })}>Ver historial del domicilio</a>
+                  </dd>
                   <dt>Teléfono</dt>
                   <dd>{pkg.recipient_phone || "—"}</dd>
                   <dt>Observaciones</dt>

@@ -1,5 +1,6 @@
 import { FAILURE_REASONS, mapStops, PACKAGE_STATUS_LABEL, type PackageStatus, telUrl, type VisitOutcome, whatsappUrl } from "@routcontrol/domain";
 import {
+  ReceptionBadge,
   Alert,
   Badge,
   type BadgeTone,
@@ -367,6 +368,11 @@ function PackageDetail({ pkg, onBack, onOpen }: { pkg: LocalPackage; onBack(): v
             <div>
               <div className="stop-card__address">{pkg.address.raw_text}</div>
               <div className="rc-muted">{[pkg.recipient_name, pkg.recipient_phone].filter(Boolean).join(" · ") || "Sin datos del destinatario"}</div>
+              {pkg.reception ? (
+                <div className="stop-card__reception">
+                  <ReceptionBadge reception={pkg.reception} />
+                </div>
+              ) : null}
             </div>
           </div>
           {pkg.notes ? <p className="stop-card__notes">{pkg.notes}</p> : null}

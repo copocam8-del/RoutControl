@@ -12,5 +12,6 @@ urlpatterns = [
     path("deliveries", panel_views.DeliveryListView.as_view(), name="delivery-list"),
     path("incidents", panel_views.IncidentListView.as_view(), name="incident-list"),
     path("incidents/<uuid:incident_id>/resolve", panel_views.IncidentResolveView.as_view(), name="incident-resolve"),
+    path("addresses/<uuid:address_id>", panel_views.AddressDetailView.as_view(), name="address-detail"),
     path("route/optimize", views.RouteOptimizeView.as_view(), name="route-optimize"),
 ]

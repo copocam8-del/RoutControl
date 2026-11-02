@@ -118,3 +118,54 @@ class IncidentResolveView(APIView):
             incident.save(update_fields=["status", "resolved_by", "resolved_at", "updated_at"])
         incident = Incident.objects.select_related("package__address", "driver__membership__user", "resolved_by", "visit").get(id=incident.id)
         return Response({"incident": incident_payload(incident)})
+
+
+class AddressDetailView(APIView):
+    """Historial del domicilio (§7.3, ADR-022): indicador, visitas y paquetes. Solo el personal."""
+
+    permission_classes = STAFF_ONLY
+
+    def get(self, request, address_id):
+        from .models import Address, Package
+        from . import reception
+
+        address = Address.objects.filter(id=address_id).first()
+        if address is None:
+            return Response({"detail": "Domicilio no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        org = request._request.tenant.membership.organization
+        cfg = reception.config(org)
+        visits = list(
+            Visit.objects.filter(address=address)
+            .select_related("package", "driver__membership__user")
+            .prefetch_related("evidence")
+            .order_by("-started_at")[:200]
+        )
+        stats = reception.compute([(v.outcome, v.outcome_attribution, v.started_at) for v in visits if not v.voided], cfg=cfg)
+        packages = Package.objects.filter(address=address).order_by("-created_at")[:100]
+        return Response(
+            {
+                "address": address_payload(address),
+                "reception": {**stats, "last_visit_at": iso_utc(stats["last_visit_at"])},
+                "thresholds": {"green": cfg["green"], "yellow": cfg["yellow"], "min_visits": cfg["min_visits"]},
+                "visits": [
+                    {
+                        "id": str(v.id),
+                        "started_at": iso_utc(v.started_at),
+                        "duration_s": v.duration_s,
+                        "outcome": v.outcome,
+                        "outcome_attribution": v.outcome_attribution,
+                        "is_second_attempt": v.is_second_attempt,
+                        "voided": v.voided,
+                        "notes": v.notes,
+                        "driver": v.driver.membership.user.full_name or v.driver.membership.user.email,
+                        "package": {"id": str(v.package_id), "tracking_code": v.package.tracking_code},
+                        "evidence": [{"id": str(e.id)} for e in v.evidence.all()],
+                    }
+                    for v in visits
+                ],
+                "packages": [
+                    {"id": str(p.id), "tracking_code": p.tracking_code, "status": p.status, "recipient_name": p.recipient_name}
+                    for p in packages
+                ],
+            }
+        )

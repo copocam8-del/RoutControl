@@ -33,6 +33,19 @@ export const address = z.object({
 });
 export type Address = z.infer<typeof address>;
 
+/** Indicador de recepción del domicilio (§7.3, ADR-022): informativo, nunca bloquea una entrega. */
+export const receptionLevel = z.enum(["green", "yellow", "red", "gray"]);
+export type ReceptionLevel = z.infer<typeof receptionLevel>;
+export const reception = z.object({ level: receptionLevel, score: z.number().nullable(), computable: z.number() });
+export type Reception = z.infer<typeof reception>;
+
+export const RECEPTION_LABEL: Record<ReceptionLevel, string> = {
+  green: "Suele recibir",
+  yellow: "A veces no está",
+  red: "Suele no estar",
+  gray: "Sin historial",
+};
+
 export const deliveryPackage = z.object({
   id: z.uuid(),
   tracking_code: z.string(),
@@ -42,6 +55,8 @@ export const deliveryPackage = z.object({
   recipient_phone: z.string(),
   notes: z.string(),
   address,
+  // Opcional: los paquetes guardados en el teléfono antes de la etapa 2 no lo tienen.
+  reception: reception.optional(),
   assigned_driver: z.object({ id: z.uuid(), name: z.string() }).nullable(),
   assigned_at: isoDateTimeWithZone.nullable(),
   version: z.number().int().positive(),
@@ -90,3 +105,27 @@ export interface PackageInput {
   address: AddressInput;
   driver_id?: string | null;
 }
+
+/** GET /addresses/{id} (panel): historial del domicilio. */
+export const addressHistory = z.object({
+  address,
+  reception: reception.extend({ delivered: z.number(), recipient_failures: z.number(), last_visit_at: z.string().nullable() }),
+  thresholds: z.object({ green: z.number(), yellow: z.number(), min_visits: z.number() }),
+  visits: z.array(
+    z.object({
+      id: z.string(),
+      started_at: z.string(),
+      duration_s: z.number().nullable(),
+      outcome: z.string(),
+      outcome_attribution: z.string(),
+      is_second_attempt: z.boolean(),
+      voided: z.boolean(),
+      notes: z.string(),
+      driver: z.string(),
+      package: z.object({ id: z.string(), tracking_code: z.string() }),
+      evidence: z.array(z.object({ id: z.string() })),
+    }),
+  ),
+  packages: z.array(z.object({ id: z.string(), tracking_code: z.string(), status: packageStatus, recipient_name: z.string() })),
+});
+export type AddressHistory = z.infer<typeof addressHistory>;

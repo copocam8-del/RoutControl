@@ -22,6 +22,8 @@ export class FakeApi {
   packages: DeliveryPackage[] = [];
   deliveries: DeliveryRecord[] = [];
   incidents: Incident[] = [];
+  /** Historial de domicilios (GET /addresses/{id}). */
+  addresses = new Map<string, unknown>();
   bulkAssigned: Array<{ ids: string[]; driver: string | null }> = [];
   /** Respuesta de la importación (subida, vista previa y confirmación). */
   importHeaders = ["Guía", "Destinatario", "Dirección"];
@@ -104,6 +106,8 @@ export class FakeApi {
       const st = url.searchParams.get("status");
       return json(200, { incidents: this.incidents.filter((i) => !st || i.status === st) });
     }
+    const address = /^\/addresses\/([^/]+)$/.exec(path);
+    if (address) return this.addresses.has(address[1]!) ? json(200, this.addresses.get(address[1]!)) : json(404, { detail: "Domicilio no encontrado." });
     const resolve = /^\/incidents\/([^/]+)\/resolve$/.exec(path);
     if (resolve) {
       const i = this.incidents.find((x) => x.id === resolve[1])!;
