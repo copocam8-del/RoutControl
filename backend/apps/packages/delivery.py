@@ -40,6 +40,18 @@ MAX_PHOTO_BYTES = 8 * 1024 * 1024
 PHOTO_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
+def sniff_image(content: bytes) -> str | None:
+    """Tipo real de la foto por sus primeros bytes (firma del formato), o None si no es una imagen
+    aceptada. El tipo que declara el teléfono no se usa: puede venir mal o ser falso."""
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 def _point(loc):
     return Point(loc["lng"], loc["lat"], srid=4326) if loc else None
 
@@ -111,12 +123,13 @@ def save_evidence(driver, data: dict, upload) -> tuple[Evidence, bool]:
     visit_id = data.get("visit_id")
     if visit_id and not Visit.objects.filter(id=visit_id, package=package).exists():
         raise services.PackageError("visit_not_found", "La visita de la foto no existe (todavía no llegó).", 409)
-    mime = (upload.content_type or "").split(";")[0].lower()
-    if mime not in PHOTO_TYPES:
-        raise services.PackageError("bad_type", "La foto tiene que ser JPG, PNG o WEBP.", 400)
     content = upload.read(MAX_PHOTO_BYTES + 1)
     if len(content) > MAX_PHOTO_BYTES:
         raise services.PackageError("too_large", "La foto supera los 8 MB.", 400)
+    # El tipo sale del contenido, no del que manda el teléfono (ADR-013, ajuste).
+    mime = sniff_image(content)
+    if mime is None:
+        raise services.PackageError("bad_type", "La foto tiene que ser JPG, PNG o WEBP.", 400)
     # Ruta por empresa: evidencia/<empresa>/<paquete>/<id>.<ext>. Nunca se sirve directo: solo por la API.
     key = f"evidencia/{package.organization_id}/{package.id}/{data['id']}.{PHOTO_TYPES[mime]}"
     stored = default_storage.save(key, ContentFile(content))

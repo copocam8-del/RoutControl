@@ -57,13 +57,24 @@ def fake_auth(monkeypatch, org_a, org_b):
     return tokens
 
 
-async def _connect(access=None):
-    ws = WebsocketCommunicator(application, "/ws/live")
+async def _connect(access=None, origin=b"http://localhost"):
+    ws = WebsocketCommunicator(application, "/ws/live", headers=[(b"origin", origin)])
     connected, _ = await ws.connect()
     assert connected
     if access is not None:
         await ws.send_json_to({"type": "auth", "access": access})
     return ws
+
+
+def test_websocket_from_another_origin_or_without_origin_is_refused(fake_auth):
+    async def scenario():
+        for headers in ([(b"origin", b"https://pagina-ajena.example")], []):
+            ws = WebsocketCommunicator(application, "/ws/live", headers=headers)
+            connected, _ = await ws.connect()
+            assert not connected
+            await ws.disconnect()
+
+    async_to_sync(scenario)()
 
 
 def test_consumer_isolates_orgs(fake_auth, org_a, org_b):
