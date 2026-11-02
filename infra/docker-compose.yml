@@ -53,5 +53,28 @@ services:
     command: >
       sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
 
+  # Tareas periódicas (Celery worker + beat): cierre automático de jornadas olvidadas (ADR-010).
+  # No arranca con `up` por defecto (memoria): `docker compose --profile workers up worker`.
+  worker:
+    build: ../backend
+    profiles: ["workers"]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      <<: *db-env
+      DB_HOST: db
+      DB_PORT: "5432"
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.dev}
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ../backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: celery -A config worker -B -l info --concurrency 1
+
 volumes:
   pgdata:

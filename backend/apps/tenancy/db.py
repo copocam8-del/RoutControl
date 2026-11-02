@@ -120,6 +120,9 @@ def apply_tenant_security(using: str = "default") -> None:
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {app_user}",
         f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {app_user}",
         f"REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON django_migrations FROM {app_user}",
+        # Auditoría: solo se agrega (ADR-010). La aplicación no puede modificar ni borrar registros.
+        "DO $$ BEGIN IF to_regclass('public.audit_auditlog') IS NOT NULL THEN "
+        f"REVOKE UPDATE, DELETE, TRUNCATE ON audit_auditlog FROM {app_user}; END IF; END $$",
     ]
 
     with transaction.atomic(using=using), connection.cursor() as cursor:

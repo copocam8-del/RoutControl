@@ -63,7 +63,8 @@ def start_session(user: User, org_id: uuid.UUID | str) -> IssuedTokens:
     """Login: abre una sesión nueva en la empresa elegida (ya validada contra las membresías)."""
     with tenant_context(org_id):
         tokens = _new_session(user)
-    update_last_login(None, user)
+        # Dentro del contexto: el usuario es miembro de esta empresa y RLS lo deja actualizar.
+        update_last_login(None, user)
     return tokens
 
 

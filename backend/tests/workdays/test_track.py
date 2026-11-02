@@ -89,8 +89,11 @@ def test_workday_list_for_driver_is_only_own_and_filters_by_date(org_a, recorded
     everyone = client_for(org_a.owner, org_a.org).get("/api/v1/workdays/").json()["workdays"]
     assert len(everyone) == 2 and all("name" in w["driver"] for w in everyone)
 
+    # Las dos empiezan hace menos de una hora: cerca de la medianoche pueden caer en días distintos.
     date = everyone[0]["date"]
-    assert len(client_for(org_a.owner, org_a.org).get(f"/api/v1/workdays/?date={date}").json()["workdays"]) == 2
+    same_day = [w for w in everyone if w["date"] == date]
+    filtered = client_for(org_a.owner, org_a.org).get(f"/api/v1/workdays/?date={date}").json()["workdays"]
+    assert sorted(w["id"] for w in filtered) == sorted(w["id"] for w in same_day)
     assert client_for(org_a.owner, org_a.org).get("/api/v1/workdays/?date=2001-01-01").json()["workdays"] == []
     assert client_for(org_a.owner, org_a.org).get("/api/v1/workdays/?date=no-es-fecha").status_code == 400
 

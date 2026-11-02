@@ -65,3 +65,23 @@ def tenant_context(org_id: uuid.UUID | str) -> Iterator[uuid.UUID]:
                 _set_pg_org(str(previous) if previous else "")
     finally:
         _current_org.reset(token)
+
+
+USER_PG_SETTING = "app.current_user"
+
+
+@contextmanager
+def user_context(user_id: uuid.UUID | str) -> Iterator[uuid.UUID]:
+    """El usuario puede leerse y actualizarse a sí mismo (RLS de accounts_user, ADR-010).
+
+    Se usa donde todavía no hay empresa: el login (después de verificar la contraseña) y el alta de
+    usuarios. Igual que tenant_context, dura solo la transacción (SET LOCAL).
+    """
+    user_uuid = user_id if isinstance(user_id, uuid.UUID) else uuid.UUID(str(user_id))
+    with transaction.atomic(using=app_db()):
+        with connections[app_db()].cursor() as cursor:
+            cursor.execute("SELECT set_config(%s, %s, true)", [USER_PG_SETTING, str(user_uuid)])
+        yield user_uuid
+        if not transaction.get_rollback(using=app_db()):
+            with connections[app_db()].cursor() as cursor:
+                cursor.execute("SELECT set_config(%s, '', true)", [USER_PG_SETTING])

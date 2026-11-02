@@ -63,9 +63,13 @@ def test_me_returns_only_the_org_of_the_token(org_a, org_b):
 
 
 def test_token_with_org_where_user_has_no_membership_gets_no_context(org_a, org_b):
-    """Un JWT bien firmado pero con una empresa a la que el usuario no pertenece: 403, sin datos."""
+    """Un JWT bien firmado pero con una empresa a la que el usuario no pertenece: sin datos.
+
+    Sin contexto, RLS de accounts_user (ADR-010) no deja ver al usuario: el token no autentica (401).
+    """
     response = client_for(org_b.driver, org_a.org).get("/api/v1/auth/me")
-    assert response.status_code == 403
+    assert response.status_code == 401
+    assert "organization" not in response.json()
 
 
 @covers("workday-end")
@@ -162,3 +166,12 @@ def test_driver_list_never_includes_another_org(org_a, org_b, workday_a):
     assert names_b == [org_b.driver.email]
     names_a = {d["email"] for d in client_for(org_a.owner, org_a.org).get("/api/v1/drivers/").json()["drivers"]}
     assert names_a == {u.email for u in org_a.drivers}
+
+
+@covers("workday-tracking-token")
+def test_tracking_token_recovery_never_reaches_another_org(org_a, org_b, workday_a):
+    """Ni un repartidor de otra empresa ni un compañero pueden pedir un token para la jornada de A."""
+    wid = workday_a["workday"]["id"]
+    assert client_for(org_b.driver, org_b.org).post(f"/api/v1/workdays/{wid}/tracking-token").status_code == 404
+    assert client_for(org_a.drivers[1], org_a.org).post(f"/api/v1/workdays/{wid}/tracking-token").status_code == 404
+    assert client_for(org_a.owner, org_a.org).post(f"/api/v1/workdays/{wid}/tracking-token").status_code == 403

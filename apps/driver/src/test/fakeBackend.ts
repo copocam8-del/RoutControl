@@ -46,6 +46,8 @@ export class FakeBackend {
   refreshCookie: string | null = null;
   accessTokens = new Set<string>();
   revokedTokens = new Set<string>();
+  /** POST /workdays/{id}/tracking-token responde 409 (gracia vencida), como el servidor real. */
+  recoveryRefused = false;
   private counter = 0;
   private currentUser: FakeUser | null = null;
 
@@ -100,6 +102,8 @@ export class FakeBackend {
     }
     const track = /^\/workdays\/([^/]+)\/track$/.exec(path);
     if (track && method === "GET") return this.track(track[1]!);
+    const recover = /^\/workdays\/([^/]+)\/tracking-token$/.exec(path);
+    if (recover && method === "POST") return this.recover(recover[1]!);
     const end = /^\/workdays\/([^/]+)\/end$/.exec(path);
     if (end && method === "POST") return this.end(end[1]!, body);
     return json(404, { detail: "No encontrado" });
@@ -179,6 +183,17 @@ export class FakeBackend {
       w.ended_at = body.ended_at;
     }
     return json(200, { workday: this.wire(w) });
+  }
+
+  private recover(id: string): Response {
+    const w = this.workdays.get(id);
+    if (!w) return json(404, { detail: "Jornada no encontrada." });
+    if (this.recoveryRefused) {
+      return json(409, { code: "grace_expired", detail: "Pasó el plazo para enviar los puntos de esta jornada; no se pueden recuperar." });
+    }
+    this.revokedTokens.add(w.token);
+    w.token = `tracking-${++this.counter}-xxxxxxxxxxxxxxxxxxxx`;
+    return json(201, { tracking_token: w.token, tracking_token_expires_at: new Date(this.now() + 72 * 3600_000).toISOString() });
   }
 
   private batch(body: { points: Array<Record<string, any>> }, headers: Record<string, string>): Response {

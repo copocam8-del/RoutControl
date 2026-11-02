@@ -5,8 +5,9 @@
  * - Borra del teléfono lo que el servidor "resolvió": aceptados, duplicados y rechazados. Lo que
  *   no figura en la respuesta queda pendiente.
  * - Sin red o con error del servidor: reintenta con espera creciente.
- * - 401/403: el token ya no sirve (jornada vencida o dispositivo desactivado). No se reintenta con
- *   ese token; los puntos quedan guardados y se muestra el error.
+ * - 401/403: el token ya no sirve. Se pide uno nuevo con la sesión del repartidor
+ *   (POST /workdays/{id}/tracking-token, ADR-010) y se reintenta. Si el servidor no lo da (pasó la
+ *   gracia, dispositivo dado de baja), los puntos quedan guardados y se muestra el error.
  */
 import { settledPointIds } from "@routcontrol/domain";
 
@@ -28,7 +29,7 @@ export interface Timers {
 
 export interface BatchSenderOptions {
   db: DriverDB;
-  api: Pick<ApiClient, "postBatch">;
+  api: Pick<ApiClient, "postBatch"> & Partial<Pick<ApiClient, "recoverTrackingToken">>;
   batchSize: number;
   now?: () => number;
   timers?: Timers;
@@ -40,6 +41,12 @@ const defaultTimers: Timers = {
   setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms),
   clearTimeout: (h) => globalThis.clearTimeout(h as ReturnType<typeof setTimeout>),
 };
+
+const RECOVERY_REFUSED_MESSAGE =
+  "Hay ubicaciones que no se van a poder enviar: pasó el plazo de la jornada o el teléfono fue dado de baja.";
+
+/** El servidor no da un token nuevo: no tiene sentido reintentar. */
+class RecoveryRefused extends Error {}
 
 export class BatchSender {
   private status: SyncStatus = { kind: "idle", pending: 0, lastSyncAt: null };
@@ -110,18 +117,28 @@ export class BatchSender {
     const workdays = await db.workdays.toArray();
     let tokenError: string | null = null;
 
-    for (const workday of workdays) {
-      if (workday.token_invalid) {
+    for (let workday of workdays) {
+      if (workday.recovery_failed) {
         tokenError = TOKEN_INVALID_MESSAGE;
         continue;
       }
       try {
+        if (workday.token_invalid) workday = await this.recoverToken(workday);
         await this.sendWorkday(workday);
       } catch (error) {
-        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403) && !workday.token_invalid) {
+          // El token ya no sirve: se marca y se pide uno nuevo en esta misma pasada.
           await db.workdays.update(workday.id, { token_invalid: true });
           await addLog(db, { at: this.now(), kind: "token_invalid", detail: `Jornada ${workday.id}` });
-          tokenError = TOKEN_INVALID_MESSAGE;
+          try {
+            await this.sendWorkday(await this.recoverToken({ ...workday, token_invalid: true }));
+            continue;
+          } catch (retryError) {
+            error = retryError;
+          }
+        }
+        if (error instanceof RecoveryRefused) {
+          tokenError = error.message;
           continue;
         }
         return this.scheduleRetry(error);
@@ -137,6 +154,35 @@ export class BatchSender {
     return this.setStatus(
       pending === 0 ? { kind: "synced", pending: 0, lastSyncAt: syncedAt } : { kind: "idle", pending, lastSyncAt: syncedAt },
     );
+  }
+
+  /**
+   * Pide un token nuevo para la jornada (ADR-010). Si el servidor lo niega (gracia vencida,
+   * dispositivo o jornada inexistente), marca la jornada para no volver a intentar.
+   */
+  private async recoverToken(workday: LocalWorkday): Promise<LocalWorkday> {
+    const { db, api } = this.opts;
+    if (!api.recoverTrackingToken) throw new RecoveryRefused(TOKEN_INVALID_MESSAGE);
+    try {
+      const fresh = await api.recoverTrackingToken(workday.id);
+      const updated: LocalWorkday = {
+        ...workday,
+        tracking_token: fresh.tracking_token,
+        tracking_token_expires_at: fresh.tracking_token_expires_at,
+        token_invalid: false,
+      };
+      await db.workdays.put(updated);
+      await addLog(db, { at: this.now(), kind: "batch_ok", detail: `Token recuperado para la jornada ${workday.id}` });
+      return updated;
+    } catch (error) {
+      if (error instanceof ApiError && [403, 404, 409].includes(error.status)) {
+        await db.workdays.update(workday.id, { recovery_failed: true });
+        const message = RECOVERY_REFUSED_MESSAGE;
+        await addLog(db, { at: this.now(), kind: "token_invalid", detail: `Jornada ${workday.id}: ${error.message || message}` });
+        throw new RecoveryRefused(message);
+      }
+      throw error; // sin red o error del servidor: se reintenta más tarde
+    }
   }
 
   private async sendWorkday(workday: LocalWorkday): Promise<void> {
