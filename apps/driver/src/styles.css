@@ -1399,3 +1399,11 @@
 .stop-card__reception {
   margin-top: 8px;
 }
+
+/* Segundo intento en la ficha (ADR-023). */
+.stop-card__second {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--rc-text-2);
+}

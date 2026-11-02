@@ -12,4 +12,5 @@ urlpatterns = [
     path("<uuid:package_id>/status", views.PackageStatusView.as_view(), name="package-status"),
     path("<uuid:package_id>/events", views.PackageEventsView.as_view(), name="package-events"),
     path("<uuid:package_id>/visits", PackageVisitsView.as_view(), name="package-visits"),
+    path("<uuid:package_id>/second-attempt", views.SecondAttemptCreateView.as_view(), name="package-second-attempt"),
 ]

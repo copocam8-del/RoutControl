@@ -7,6 +7,7 @@ import { EvidencePhoto } from "../EvidencePhoto";
 import { DemoChip, PageTitle } from "../Layout";
 import { href } from "../router";
 import { activeDrivers, PackageStatusBadge } from "./Packages";
+import { SecondAttemptCard } from "./SecondAttemptCard";
 
 const describe = (e: unknown) => describeLoadError(e, "el paquete");
 
@@ -146,6 +147,7 @@ export function PackageDetail({ id }: { id: string }) {
                 </ol>
               </section>
             </div>
+            <SecondAttemptCard pkg={pkg} onChanged={reload} />
             <section className="panel-card" aria-label="Visitas">
               <h2>Visitas</h2>
               {visits.length === 0 ? (

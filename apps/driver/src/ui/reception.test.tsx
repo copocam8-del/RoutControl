@@ -31,6 +31,24 @@ async function open(packages: ReturnType<typeof testPackage>[], startWorkday = f
   return { app, user };
 }
 
+describe("segundo intento en la app", () => {
+  it("la ficha dice que es un segundo intento, con la franja y la nota del panel", async () => {
+    const start = new Date();
+    start.setHours(14, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(18);
+    const { app, user } = await open([
+      testPackage({ recipient_name: "Ana (prueba)", second_attempt: { window_start: start.toISOString(), window_end: end.toISOString(), note: "Tocar timbre 3" } }),
+    ]);
+    await user.click(screen.getByRole("button", { name: "Paquetes" }));
+    await user.click(await screen.findByRole("button", { name: /Ana \(prueba\)/ }));
+    const card = screen.getByRole("region", { name: "Destino" });
+    expect(within(card).getByText("Segundo intento")).toBeTruthy();
+    expect(card.textContent).toContain("El destinatario está de 14:00 a 18:00 · Tocar timbre 3");
+    app.workday.dispose();
+  });
+});
+
 describe("indicador de recepción en la app", () => {
   it("la ficha muestra si el domicilio suele recibir; sin dato (paquetes viejos), nada", async () => {
     const { app, user } = await open([

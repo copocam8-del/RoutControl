@@ -43,6 +43,12 @@ describe("mapa de entregas", () => {
     expect(filterStops(stops, "all")).toHaveLength(4);
   });
 
+  it("un segundo intento aceptado (vuelve a asignado) se ve como segundo intento", () => {
+    const p = { ...pkg("ASSIGNED"), second_attempt: { window_start: null, window_end: null, note: "" } };
+    expect(mapStops([p], null)[0]!.state).toBe("second");
+    expect(filterStops(mapStops([p], null), "pending")).toHaveLength(1);
+  });
+
   it("la línea de la ruta usa el tramo por calles y, si no hay, una recta desde la parada anterior", () => {
     const a = pkg("ASSIGNED", { lat: -34.6, lng: -58.38 });
     const b = pkg("ASSIGNED", { lat: -34.61, lng: -58.39 });

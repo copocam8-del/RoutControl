@@ -57,6 +57,11 @@ export const deliveryPackage = z.object({
   address,
   // Opcional: los paquetes guardados en el teléfono antes de la etapa 2 no lo tienen.
   reception: reception.optional(),
+  /** Segundo intento aceptado, con la franja que dio el destinatario (ADR-023). */
+  second_attempt: z
+    .object({ window_start: z.string().nullable(), window_end: z.string().nullable(), note: z.string() })
+    .nullable()
+    .optional(),
   assigned_driver: z.object({ id: z.uuid(), name: z.string() }).nullable(),
   assigned_at: isoDateTimeWithZone.nullable(),
   version: z.number().int().positive(),
@@ -129,3 +134,30 @@ export const addressHistory = z.object({
   packages: z.array(z.object({ id: z.string(), tracking_code: z.string(), status: packageStatus, recipient_name: z.string() })),
 });
 export type AddressHistory = z.infer<typeof addressHistory>;
+
+/** Segundo intento con sugerencia de desvío (panel, ADR-023). */
+export const secondAttemptSuggestion = z.enum(["INSERT", "END", "NEXT_DAY"]);
+export type SecondAttemptSuggestion = z.infer<typeof secondAttemptSuggestion>;
+export const SECOND_ATTEMPT_LABEL: Record<SecondAttemptSuggestion, string> = {
+  INSERT: "Insertarlo en la ruta de hoy",
+  END: "Al final de la ruta de hoy",
+  NEXT_DAY: "Mañana",
+};
+export const secondAttempt = z.object({
+  id: z.string(),
+  package: z.object({ id: z.string(), tracking_code: z.string(), recipient_name: z.string(), address: z.string(), status: packageStatus }),
+  requested_at: z.string(),
+  window_start: z.string().nullable(),
+  window_end: z.string().nullable(),
+  note: z.string(),
+  distance_m: z.number().nullable(),
+  detour_s: z.number().nullable(),
+  pending_count: z.number(),
+  insert_position: z.number().nullable(),
+  suggestion: secondAttemptSuggestion,
+  suggestion_reason: z.string(),
+  decision: z.enum(["PENDING", "ACCEPTED", "REJECTED"]),
+  placement: secondAttemptSuggestion.nullable(),
+  decided_at: z.string().nullable(),
+});
+export type SecondAttempt = z.infer<typeof secondAttempt>;

@@ -1475,3 +1475,44 @@ a.filter-chip[aria-selected="true"] {
 .rc-table tr.is-voided td {
   opacity: 0.55;
 }
+
+/* --- Segundo intento (ADR-023) --------------------------------------------------------------------- */
+.second-attempt__reason {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.second-attempt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.second-attempt__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.second-attempt__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.second-attempt__note {
+  grid-column: 1 / -1;
+}
+
+.second-attempt__history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--rc-text-2);
+}
