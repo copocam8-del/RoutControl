@@ -24,6 +24,7 @@ import {
   type WorkdayTrack,
   workdayTrack,
   type WorkdayWithDriver,
+  trackingTokenRecovery,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -159,6 +160,11 @@ export class ApiClient {
   ): Promise<Workday> {
     const result = await this.authed(`/workdays/${workdayId}/end`, { method: "POST", body }, workdayEnvelope);
     return result.workday!;
+  }
+
+  /** Token nuevo para la jornada cuyo token quedó inválido, dentro de la gracia (ADR-010). */
+  async recoverTrackingToken(workdayId: string): Promise<{ tracking_token: string; tracking_token_expires_at: string }> {
+    return this.authed(`/workdays/${workdayId}/tracking-token`, { method: "POST", body: {} }, trackingTokenRecovery);
   }
 
   async currentWorkday(): Promise<Workday | null> {

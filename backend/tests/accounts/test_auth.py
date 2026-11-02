@@ -109,7 +109,9 @@ def test_access_token_stops_working_when_membership_is_disabled(org_a):
     with tenant_context(org_a.id):
         Membership.objects.filter(user=org_a.driver).update(status=Membership.Status.DISABLED)
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
-    assert client.get("/api/v1/auth/me").status_code == 403
+    # Sin membresía activa no hay contexto, y con RLS en accounts_user (ADR-010) el usuario ni
+    # siquiera es visible: el token deja de autenticar (401) y la app vuelve al login.
+    assert client.get("/api/v1/auth/me").status_code == 401
 
 
 def test_disabled_user_with_unexpired_access_token_gets_no_context(org_a):
@@ -125,7 +127,8 @@ def test_disabled_user_with_unexpired_access_token_gets_no_context(org_a):
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
     assert client.get("/api/v1/auth/me").status_code == 200
 
-    User.objects.filter(id=org_a.driver.id).update(status=User.Status.DISABLED)
+    with tenant_context(org_a.id):  # RLS de accounts_user: se modifica desde la empresa
+        assert User.objects.filter(id=org_a.driver.id).update(status=User.Status.DISABLED) == 1
 
     # 1) El middleware no fija contexto de empresa (la membresía sigue activa: el que falla es el usuario).
     seen = {}

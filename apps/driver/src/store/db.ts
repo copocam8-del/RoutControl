@@ -31,6 +31,9 @@ export interface LocalWorkday {
   tracking_token_expires_at: string;
   /** El servidor dijo que el token ya no sirve (401): no se reintenta con él. */
   token_invalid?: boolean;
+  /** El servidor no da un token nuevo (pasó la gracia, dispositivo dado de baja): los puntos no se
+   * van a poder enviar. Se deja de intentar (ADR-010). */
+  recovery_failed?: boolean;
   /** "Finalizar jornada" presionado; si todavía no llegó al servidor, se reintenta. */
   end?: { ended_at: string; location: { lat: number; lng: number; accuracy: number } | null; sent: boolean };
 }

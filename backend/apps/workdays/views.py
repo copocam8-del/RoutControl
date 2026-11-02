@@ -1,3 +1,4 @@
+from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 from django.contrib.gis.geos import Point
@@ -10,6 +11,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit import services as audit
+from apps.audit.models import AuditLog
 from apps.drivers.models import Device, DriverProfile
 from apps.tenancy.context import app_db
 from apps.tenancy.models import Membership
@@ -189,6 +192,53 @@ class EndWorkdayView(APIView):
         return Response({"workday": workday_payload(workday)})
 
 
+class TrackingTokenRecoveryView(APIView):
+    """POST /api/v1/workdays/{id}/tracking-token — token nuevo para enviar puntos trabados (ADR-010).
+
+    Cuando el token de seguimiento quedó inválido (venció con el teléfono sin señal, se emitió otro),
+    los puntos de esa jornada quedan en el teléfono. Con el JWT del repartidor se pide un token nuevo
+    para ESA jornada; el anterior se revoca. Solo si:
+      - la jornada es del repartidor que lo pide;
+      - está activa o terminó hace menos de la gracia (tracking_token_grace_hours);
+      - el dispositivo y el perfil siguen activos (la membresía y el usuario ya los exige el contexto).
+    No cambia la ventana de puntos: siguen valiendo solo los grabados entre el inicio y el fin.
+    """
+
+    permission_classes = DRIVER_ONLY
+
+    def post(self, request, workday_id):
+        driver = current_driver(request)
+        workday = (
+            Workday.objects.select_related("organization", "device").filter(id=workday_id, driver=driver).first()
+            if driver
+            else None
+        )
+        if workday is None:
+            return Response({"detail": "Jornada no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        if workday.device.status != Device.Status.ACTIVE:
+            return Response(
+                {"code": "device_disabled", "detail": "Este dispositivo fue desactivado por la empresa."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if workday.status == Workday.Status.ACTIVE:
+            raw, token = tracking.issue_tracking_token(workday)
+        else:
+            closed_at = workday.end_received_at or workday.ended_at
+            grace_until = closed_at + timedelta(hours=tracking.token_grace_hours(workday.organization))
+            if grace_until <= timezone.now():
+                return _conflict(
+                    "grace_expired",
+                    "Pasó el plazo para enviar los puntos de esta jornada; no se pueden recuperar.",
+                )
+            raw, token = tracking.issue_tracking_token(workday)
+            token.expires_at = grace_until  # el nuevo vence cuando hubiera vencido la gracia
+            token.save(update_fields=["expires_at", "updated_at"])
+        return Response(
+            {"tracking_token": raw, "tracking_token_expires_at": iso_utc(token.expires_at)},
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class CurrentWorkdayView(APIView):
     """GET /api/v1/workdays/current — la jornada activa del repartidor, o null."""
 
@@ -263,4 +313,6 @@ class WorkdayTrackView(APIView):
         workday = visible_workdays(request).filter(id=workday_id).first()
         if workday is None:
             return Response({"detail": "Jornada no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        # Ver un recorrido es ver ubicaciones de una persona: queda registrado (§11, ADR-010).
+        audit.record(request, AuditLog.Action.VIEW_TRACK, "workday", workday.id, driver_id=str(workday.driver_id))
         return Response({"workday": workday_with_driver(workday), **build_track(workday)})

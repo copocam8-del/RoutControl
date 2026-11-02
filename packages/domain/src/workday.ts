@@ -26,6 +26,12 @@ export type StartWorkdayResponse = z.infer<typeof startWorkdayResponse>;
 
 export const workdayEnvelope = z.object({ workday: workday.nullable() });
 
+/** POST /workdays/{id}/tracking-token: token nuevo para enviar puntos trabados (ADR-010). */
+export const trackingTokenRecovery = z.object({
+  tracking_token: z.string().min(20),
+  tracking_token_expires_at: isoDateTimeWithZone,
+});
+
 export const runtime = z.enum(["NATIVE_ANDROID", "NATIVE_IOS", "PWA"]);
 export const locationPermission = z.enum(["always", "while_in_use", "denied", "prompt", "unknown"]);
 export type LocationPermission = z.infer<typeof locationPermission>;

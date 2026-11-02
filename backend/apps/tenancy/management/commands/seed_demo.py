@@ -5,10 +5,11 @@ import uuid
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.db import connections
 
 from apps.accounts.models import User
 from apps.drivers.models import DriverProfile
-from apps.tenancy.context import tenant_context
+from apps.tenancy.context import app_db, tenant_context, user_context
 from apps.tenancy.models import Membership
 from apps.tenancy.services import create_organization, get_organization
 
@@ -51,11 +52,14 @@ class Command(BaseCommand):
         password = os.environ.get("DEMO_PASSWORD", "routcontrol-demo")
 
         def user(email, name):
-            u, created = User.objects.get_or_create(email=email, defaults={"full_name": name})
-            if created:
-                u.set_password(password)
-                u.save()
-            return u
+            # accounts_user tiene RLS (ADR-010): se busca por email con la función de login.
+            with connections[app_db()].cursor() as cursor:
+                cursor.execute("SELECT id FROM rc_auth_lookup(%s)", [email])
+                row = cursor.fetchone()
+            if row:
+                with user_context(row[0]):
+                    return User.objects.get(id=row[0])
+            return User.objects.create_user(email=email, password=password, full_name=name)
 
         multi = user(*MULTI[:2])
         for spec in DEMO:

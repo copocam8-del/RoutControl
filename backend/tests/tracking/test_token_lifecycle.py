@@ -151,7 +151,8 @@ def test_bulk_update_without_signals_still_blocks_the_token(org_a, active):
 
 
 def test_disabling_the_user_blocks_the_token(org_a, active):
-    User.objects.filter(id=org_a.driver.id).update(status=User.Status.DISABLED)
+    with tenant_context(org_a.id):  # RLS de accounts_user: se modifica desde la empresa
+        assert User.objects.filter(id=org_a.driver.id).update(status=User.Status.DISABLED) == 1
     _assert_token_dead(active, org_a.id, reason=None)
 
 

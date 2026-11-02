@@ -7,5 +7,6 @@ urlpatterns = [
     path("start", views.StartWorkdayView.as_view(), name="workday-start"),
     path("current", views.CurrentWorkdayView.as_view(), name="workday-current"),
     path("<uuid:workday_id>/end", views.EndWorkdayView.as_view(), name="workday-end"),
+    path("<uuid:workday_id>/tracking-token", views.TrackingTokenRecoveryView.as_view(), name="workday-tracking-token"),
     path("<uuid:workday_id>/track", views.WorkdayTrackView.as_view(), name="workday-track"),
 ]

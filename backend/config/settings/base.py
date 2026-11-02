@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.drivers",
     "apps.workdays",
     "apps.tracking",
+    "apps.audit",
 ]
 
 MIDDLEWARE = [
@@ -158,6 +159,15 @@ TRACKING = {
     "FUTURE_TOLERANCE_SECONDS": 600,
     # Hueco: más de este tiempo sin puntos (configurable por empresa en settings.gap_threshold_seconds).
     "DEFAULT_GAP_THRESHOLD_SECONDS": 300,
+}
+
+# Celery (ADR-010): broker Redis; tareas periódicas con beat.
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", False)
+CELERY_TIMEZONE = "UTC"
+CELERY_BEAT_SCHEDULE = {
+    # Jornadas olvidadas: se cierran solas al cumplir la duración máxima (§5.4).
+    "cerrar-jornadas-olvidadas": {"task": "workdays.close_forgotten_workdays", "schedule": 15 * 60},
 }
 
 LOGGING = {

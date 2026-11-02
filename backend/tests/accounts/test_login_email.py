@@ -6,6 +6,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.tenancy.context import tenant_context
 
 LOGIN = "/api/v1/auth/login"
 
@@ -23,7 +24,8 @@ def test_email_is_case_insensitive_and_trimmed(org_a, typed):
 
 
 def test_user_saved_with_uppercase_email_can_log_in(org_a):
-    User.objects.filter(id=org_a.driver.id).update(email="Driver1@Org-A.test")
+    with tenant_context(org_a.id):  # RLS de accounts_user (ADR-010)
+        assert User.objects.filter(id=org_a.driver.id).update(email="Driver1@Org-A.test") == 1
     assert login("driver1@org-a.test").status_code == 200
 
 

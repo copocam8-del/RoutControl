@@ -125,19 +125,47 @@ describe("BatchSender", () => {
     expect(await env.db.points.count()).toBe(0);
   });
 
-  it("401: marca el token como inválido, conserva los puntos y no reintenta con él", async () => {
+  it("401: pide un token nuevo para la jornada (dentro de la gracia) y envía los puntos trabados", async () => {
+    const env = await setup();
+    const w = await seedWorkday(env);
+    await queue(env.db, w.id, [1, 2]);
+    env.backend.revokedTokens.add(w.tracking_token);
+
+    const status = await env.sender.flush();
+    expect(status).toMatchObject({ kind: "synced", pending: 0 });
+    expect(env.backend.callsTo(`/workdays/${w.id}/tracking-token`)).toHaveLength(1);
+    const saved = await env.db.workdays.get(w.id);
+    expect(saved?.token_invalid).toBe(false);
+    expect(saved?.tracking_token).not.toBe(w.tracking_token);
+    expect(env.backend.points.size).toBe(2);
+  });
+
+  it("si el servidor no da un token nuevo (pasó la gracia): conserva los puntos, avisa y no insiste", async () => {
     const env = await setup();
     const w = await seedWorkday(env);
     await queue(env.db, w.id, [1]);
     env.backend.revokedTokens.add(w.tracking_token);
+    env.backend.recoveryRefused = true;
 
     const status = await env.sender.flush();
-    expect(status).toMatchObject({ kind: "error", message: TOKEN_INVALID_MESSAGE, pending: 1 });
-    expect((await env.db.workdays.get(w.id))?.token_invalid).toBe(true);
+    expect(status).toMatchObject({ kind: "error", pending: 1 });
+    expect((status as { message: string }).message).toContain("no se van a poder enviar");
+    expect(await env.db.workdays.get(w.id)).toMatchObject({ token_invalid: true, recovery_failed: true });
     expect(env.timers.delays()).toEqual([]);
 
     await env.sender.flush();
     expect(env.backend.callsTo("/tracking/batch")).toHaveLength(1);
+    expect(env.backend.callsTo(`/workdays/${w.id}/tracking-token`)).toHaveLength(1);
+  });
+
+  it("una jornada marcada con token inválido en una sesión anterior se recupera al volver a enviar", async () => {
+    const env = await setup();
+    const w = await seedWorkday(env);
+    await queue(env.db, w.id, [1]);
+    env.backend.revokedTokens.add(w.tracking_token);
+    await env.db.workdays.update(w.id, { token_invalid: true });
+    expect(await env.sender.flush()).toMatchObject({ kind: "synced", pending: 0 });
+    expect(TOKEN_INVALID_MESSAGE).toBeTruthy();
   });
 
   it("cada jornada usa su propio token (puntos pendientes de la jornada anterior)", async () => {
