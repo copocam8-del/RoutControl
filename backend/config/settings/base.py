@@ -167,6 +167,12 @@ TRACKING = {
 MEDIA_ROOT = env("MEDIA_ROOT", str(BASE_DIR / "media"))
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
+# Armar mi ruta (ADR-015): VROOM autoalojado (infra/routing), que usa OSRM para los tiempos.
+ROUTING = {
+    "VROOM_URL": env("VROOM_URL", "http://vroom:3000"),
+    "TIMEOUT_S": float(env("ROUTING_TIMEOUT_S", "15")),
+}
+
 # Celery (ADR-010): broker Redis; tareas periódicas con beat.
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", False)

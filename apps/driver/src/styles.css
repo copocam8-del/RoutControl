@@ -1093,3 +1093,57 @@
   gap: 2px;
   min-width: 0;
 }
+
+/* --- Armar mi ruta (ADR-015) ------------------------------------------------------------------------ */
+.route-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.route-summary {
+  margin: 0;
+  font-size: 13px;
+}
+
+.route-edit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.route-edit__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+}
+
+.route-edit__n {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--rc-brand-gradient);
+  color: var(--rc-white);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.route-edit__text {
+  flex-grow: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.route-edit .rc-icon-btn:disabled {
+  opacity: 0.35;
+}

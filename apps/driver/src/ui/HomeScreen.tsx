@@ -25,6 +25,7 @@ import type { WorkdayState } from "../tracking/workdayController";
 import { ConsentDialog } from "./ConsentDialog";
 import { useApp, useNow, useStore } from "./hooks";
 import { LocationHelp } from "./LocationHelp";
+import { sortByRoute } from "../delivery/deliveries";
 import { ContactActions } from "./PackagesScreen";
 import { SyncChip } from "./SyncIndicator";
 
@@ -257,7 +258,11 @@ function WorkdayView({
   const packages = deliveries.packages;
   const delivered = packages.filter((p) => p.status === "DELIVERED").length;
   const failed = packages.filter((p) => p.status === "FAILED" || p.status === "RESCHEDULED").length;
-  const pendingList = packages.filter((p) => p.status === "ASSIGNED" || p.status === "IN_ROUTE");
+  // En el orden de la ruta, si se armó (ADR-015).
+  const pendingList = sortByRoute(
+    packages.filter((p) => p.status === "ASSIGNED" || p.status === "IN_ROUTE"),
+    deliveries.route,
+  );
   // Próxima parada: la visita en curso, si hay; si no, el primer pendiente (en camino primero).
   const next =
     packages.find((p) => p.id === deliveries.activeVisit?.package_id) ??

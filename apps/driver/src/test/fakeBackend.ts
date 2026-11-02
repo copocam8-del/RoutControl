@@ -49,6 +49,10 @@ export class FakeBackend {
   /** Paquetes asignados al repartidor (GET /packages/). */
   packages: Array<Record<string, any>> = [];
   visits = new Map<string, Record<string, unknown>>();
+  routeOrder: string[] = [];
+  routeSource: "OPTIMIZED" | "MANUAL" | null = null;
+  routeStart: unknown = null;
+  routingDown = false;
   evidence = new Map<string, Record<string, unknown>>();
   communications = new Map<string, Record<string, unknown>>();
   /** POST /workdays/{id}/tracking-token responde 409 (gracia vencida), como el servidor real. */
@@ -114,6 +118,20 @@ export class FakeBackend {
     if (track && method === "GET") return this.track(track[1]!);
     if (path === "/packages/" && method === "GET") return json(200, { packages: this.packages });
     if (path === "/visits" && method === "POST") return this.visit(body);
+    if (path === "/route" && method === "GET") return json(200, this.routeWire());
+    if (path === "/route" && method === "PUT") {
+      this.routeOrder = body.package_ids;
+      this.routeSource = "MANUAL";
+      return json(200, this.routeWire());
+    }
+    if (path === "/route/optimize" && method === "POST") {
+      if (this.routingDown) return json(503, { code: "routing_unavailable", detail: "No se pudo armar la ruta ahora. Podés ordenar las paradas a mano." });
+      this.routeStart = body;
+      // "Optimiza" invirtiendo el orden de los pendientes (alcanza para probar el teléfono).
+      this.routeOrder = this.packages.filter((p) => ["ASSIGNED", "IN_ROUTE", "FAILED", "RESCHEDULED"].includes(p.status)).map((p) => p.id).reverse();
+      this.routeSource = "OPTIMIZED";
+      return json(200, this.routeWire());
+    }
     if (path === "/packages/load" && method === "POST") {
       const results = (body.tracking_codes as string[]).map((code) => {
         const pkg = this.packages.find((p) => p.tracking_code === code);
@@ -216,6 +234,15 @@ export class FakeBackend {
       w.ended_at = body.ended_at;
     }
     return json(200, { workday: this.wire(w) });
+  }
+
+  private routeWire() {
+    return {
+      stops: this.routeOrder.map((id, i) => ({ package_id: id, sequence: i + 1, eta_s: this.routeSource === "OPTIMIZED" ? 300 : null, distance_m: this.routeSource === "OPTIMIZED" ? 1500 : null })),
+      source: this.routeOrder.length ? this.routeSource : null,
+      total_eta_s: this.routeSource === "OPTIMIZED" ? 300 * this.routeOrder.length : null,
+      total_distance_m: this.routeSource === "OPTIMIZED" ? 1500 * this.routeOrder.length : null,
+    };
   }
 
   private visit(body: Record<string, any>): Response {
