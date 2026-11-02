@@ -37,3 +37,29 @@ export function updateStopElement(el: HTMLElement, stop: MapStop, selected: bool
   el.setAttribute("aria-label", `${stop.label} · ${STOP_STATE_LABEL[stop.state]}${next ? " · Próxima" : ""}`);
   el.setAttribute("aria-pressed", selected ? "true" : "false");
 }
+
+/**
+ * Paradas que en pantalla quedan una encima de otra (el mismo edificio, o muy cerca con poco
+ * zoom): se abren en un círculo alrededor de su lugar, para que se vean y se puedan tocar todas.
+ * Devuelve el desplazamiento en píxeles de cada una ([0, 0] si no se superpone con ninguna).
+ */
+export function spreadOffsets(points: ReadonlyArray<{ id: string; x: number; y: number }>, minPx = 34): Map<string, [number, number]> {
+  const out = new Map<string, [number, number]>();
+  const used = new Set<string>();
+  for (const p of points) {
+    if (used.has(p.id)) continue;
+    const group = points.filter((o) => !used.has(o.id) && Math.hypot(o.x - p.x, o.y - p.y) < minPx);
+    for (const o of group) used.add(o.id);
+    if (group.length === 1) {
+      out.set(p.id, [0, 0]);
+      continue;
+    }
+    // Radio para que no se toquen entre sí: ~40 px de separación entre vecinas.
+    const r = Math.max(26, Math.round((40 * group.length) / (2 * Math.PI)));
+    group.forEach((o, i) => {
+      const a = (2 * Math.PI * i) / group.length - Math.PI / 2;
+      out.set(o.id, [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)]);
+    });
+  }
+  return out;
+}

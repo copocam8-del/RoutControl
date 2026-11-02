@@ -1273,6 +1273,11 @@
 .map-legend__dot--delivered { background: var(--rc-stop-delivered); }
 .map-legend__dot--failed { background: var(--rc-stop-failed); }
 .map-legend__dot--second { background: var(--rc-stop-second); }
+/* Próxima: el anillo que late en el mapa. */
+.map-legend__dot--next {
+  background: var(--rc-stop-pending);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rc-stop-pending) 40%, transparent);
+}
 
 .map-fabs {
   position: absolute;
