@@ -17,6 +17,7 @@ vi.mock("@routcontrol/ui/map", () => ({
       mapa de {track.workday.id} {live ? "en vivo" : ""}
     </div>
   ),
+  setOfflineTiles: () => {},
 }));
 
 function setup(opts: { loggedIn?: boolean } = {}) {

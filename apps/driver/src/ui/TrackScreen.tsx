@@ -22,9 +22,11 @@ import { lazy, Suspense, useCallback } from "react";
 
 import { ApiError, NetworkError } from "../api/client";
 import { useApp, useNow } from "./hooks";
+import { loadMapModule } from "../map/offlineMap";
 
 // MapLibre (~1 MB) se descarga recién al abrir un recorrido.
-const TrackMap = lazy(() => import("@routcontrol/ui/map").then((m) => ({ default: m.TrackMap })));
+// Con el mapa sin conexión registrado: las teselas guardadas salen del teléfono (ADR-018).
+const TrackMap = lazy(() => loadMapModule().then((m) => ({ default: m.TrackMap })));
 
 export function describeLoadError(error: unknown, what: string): string {
   if (error instanceof NetworkError) return `Sin conexión con el servidor: no se pudo cargar ${what}.`;

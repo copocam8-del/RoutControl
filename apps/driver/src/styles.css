@@ -1147,3 +1147,13 @@
 .route-edit .rc-icon-btn:disabled {
   opacity: 0.35;
 }
+
+/* --- Mapa sin conexión (ADR-018): tarjeta en "Mis paquetes" ---------------------------------------- */
+.offline-map {
+  margin-top: 8px;
+}
+
+.offline-map__note {
+  margin: 0;
+  font-size: 13px;
+}

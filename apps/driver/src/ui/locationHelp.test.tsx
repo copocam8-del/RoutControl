@@ -12,7 +12,7 @@ import { freshDb, settle } from "../test/helpers";
 import { HomeScreen } from "./HomeScreen";
 import { AppContext } from "./hooks";
 
-vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" /> }));
+vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {} }));
 
 async function home(opts: { platform?: FakeDevice["platform"]; standalone?: boolean; consent?: boolean; denied?: boolean } = {}) {
   const backend = new FakeBackend();

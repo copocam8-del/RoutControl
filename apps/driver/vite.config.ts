@@ -95,6 +95,13 @@ export default defineConfig(({ mode }) => {
               handler: "CacheFirst",
               options: { cacheName: "rc-scanner", expiration: { maxEntries: 4 } },
             },
+            {
+              // Código del mapa (MapLibre, su worker y TrackMap): no va en la instalación, pero se
+              // guarda la primera vez que se abre el mapa o al guardar el mapa sin conexión (ADR-018).
+              urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(maplibre-gl|TrackMap)-/.test(url.pathname),
+              handler: "CacheFirst",
+              options: { cacheName: "rc-map-code", expiration: { maxEntries: 12 } },
+            },
             // Las teselas (.pmtiles) se piden por rango: van siempre a la red, sin pasar por el
             // caché del Service Worker (nunca puede devolver una versión vieja o rota).
           ],

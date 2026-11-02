@@ -11,7 +11,7 @@ import { freshDb } from "../test/helpers";
 import { testPackage } from "../test/packages";
 import { App } from "./App";
 
-vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" /> }));
+vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {} }));
 
 async function ready() {
   const backend = new FakeBackend();

@@ -9,6 +9,7 @@ import { BatchSender } from "./sync/batchSender";
 import { UpdateManager } from "./pwaUpdate";
 import { Deliveries } from "./delivery/deliveries";
 import { Outbox } from "./delivery/outbox";
+import { OfflineMap, registerOfflineStore } from "./map/offlineMap";
 import { type CodeDetector, createDetector, type DetectorKind } from "./scan/scanner";
 import { WorkdayController } from "./tracking/workdayController";
 
@@ -24,6 +25,8 @@ export interface AppServices {
   outbox: Outbox;
   /** "Mis paquetes" y la visita en curso. */
   deliveries: Deliveries;
+  /** Mapa sin conexión: las calles de la zona de los paquetes del día (ADR-018). */
+  offlineMap: OfflineMap;
   /** Cámara y lector de códigos (se reemplazan en las pruebas). */
   scanner: Scanner;
   /** Estado de la interfaz que dura lo que dura esta apertura de la app (no se guarda). */
@@ -53,7 +56,7 @@ const webScanner: Scanner = {
 };
 
 export function createApp(
-  overrides: Partial<Pick<AppServices, "db" | "api" | "device" | "config" | "scanner">> = {},
+  overrides: Partial<Pick<AppServices, "db" | "api" | "device" | "config" | "scanner" | "offlineMap">> = {},
 ): AppServices {
   const config = overrides.config ?? defaultConfig;
   const db = overrides.db ?? new DriverDB();
@@ -64,6 +67,9 @@ export function createApp(
   const workday = new WorkdayController({ db, api, device, sender, config });
   const outbox = new Outbox(db, api);
   const deliveries = new Deliveries({ db, api, outbox, device, workday });
+  const offlineMap = overrides.offlineMap ?? new OfflineMap({ db, config });
+  registerOfflineStore(offlineMap.store());
+  void offlineMap.init();
   let interval: ReturnType<typeof setInterval> | null = null;
   // Con la jornada iniciándose, en curso o finalizándose, una recarga cortaría el seguimiento.
   const updates = new UpdateManager(() => !["starting", "active", "ending"].includes(workday.getState().phase));
@@ -79,6 +85,7 @@ export function createApp(
     workday,
     outbox,
     deliveries,
+    offlineMap,
     scanner: overrides.scanner ?? webScanner,
     ui: { splashShown: false },
     updates,
