@@ -1,4 +1,4 @@
-import { Avatar, Brand, IconDashboard, IconLogout, IconMap, IconUsers, ThemeSelector } from "@routcontrol/ui";
+import { Avatar, Brand, IconCheck, IconDashboard, IconLogout, IconMap, IconPackage, IconUsers, ThemeSelector } from "@routcontrol/ui";
 import type { ReactNode } from "react";
 
 import { useAdmin, useSession } from "./adminApp";
@@ -8,6 +8,8 @@ import { ROLE_LABEL, type SessionInfo } from "./session";
 const NAV: Array<{ label: string; route: Route; matches: Route["name"][]; icon: ReactNode }> = [
   { label: "Inicio", route: { name: "dashboard" }, matches: ["dashboard"], icon: <IconDashboard /> },
   { label: "Jornadas", route: { name: "workdays", date: today() }, matches: ["workdays", "workday"], icon: <IconMap /> },
+  { label: "Paquetes", route: { name: "packages" }, matches: ["packages", "package", "import"], icon: <IconPackage /> },
+  { label: "Entregas", route: { name: "deliveries", date: today(), view: "deliveries" }, matches: ["deliveries"], icon: <IconCheck /> },
   { label: "Repartidores", route: { name: "drivers" }, matches: ["drivers"], icon: <IconUsers /> },
 ];
 

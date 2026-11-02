@@ -47,3 +47,10 @@ export function describeLoadError(error: unknown, what: string): string {
   }
   return `No se pudo cargar ${what}.`;
 }
+
+/** Mensaje de error de una acción (crear, asignar…): el motivo que da el servidor. */
+export function actionError(error: unknown): string {
+  if (error instanceof NetworkError) return "Sin conexión con el servidor. Probá de nuevo.";
+  if (error instanceof ApiError) return error.message || `Error ${error.status}.`;
+  return "No se pudo completar la acción.";
+}

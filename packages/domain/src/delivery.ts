@@ -105,3 +105,34 @@ export const route = z.object({
   total_distance_m: z.number().nullable(),
 });
 export type Route = z.infer<typeof route>;
+
+/** GET /deliveries (panel): las visitas del día con su paquete. */
+export const deliveryRecord = visitRecord.extend({
+  package: z.object({
+    id: z.uuid(),
+    tracking_code: z.string(),
+    recipient_name: z.string(),
+    status: z.string(),
+    address: z.object({ raw_text: z.string(), location: z.object({ lat: z.number(), lng: z.number() }).nullable() }).passthrough(),
+  }),
+});
+export type DeliveryRecord = z.infer<typeof deliveryRecord>;
+export const deliveryList = z.object({ date: z.string(), deliveries: z.array(deliveryRecord) });
+
+/** GET /incidents (panel). */
+export const incident = z.object({
+  id: z.uuid(),
+  type: z.string(),
+  description: z.string(),
+  status: z.enum(["OPEN", "RESOLVED"]),
+  occurred_at: isoDateTimeWithZone,
+  resolved_at: isoDateTimeWithZone.nullable(),
+  resolved_by: z.string().nullable(),
+  driver: z.string().nullable(),
+  visit_id: z.string().nullable(),
+  evidence: z.array(z.object({ id: z.uuid() })),
+  package: z.object({ id: z.uuid(), tracking_code: z.string(), recipient_name: z.string(), status: z.string(), address: z.string() }),
+});
+export type Incident = z.infer<typeof incident>;
+export const incidentList = z.object({ incidents: z.array(incident) });
+export const incidentEnvelope = z.object({ incident });

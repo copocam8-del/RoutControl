@@ -279,6 +279,22 @@ describe("TextField con ícono y botón", () => {
   });
 });
 
+describe("useLoad con una función de error inline", () => {
+  it("no vuelve a cargar en cada render (antes era un bucle infinito)", async () => {
+    let calls = 0;
+    const load = async () => {
+      calls += 1;
+      return "ok";
+    };
+    const { result, rerender } = renderHook(() => useLoad(load, (e) => String(e)));
+    await waitFor(() => expect(result.current[0]).toEqual({ status: "ready", data: "ok" }));
+    rerender();
+    rerender();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(calls).toBe(1);
+  });
+});
+
 describe("useLoad con actualización periódica", () => {
   const describeError = () => "falló";
 

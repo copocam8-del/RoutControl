@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import delivery_views as views
+from . import panel_views
 
 urlpatterns = [
     path("visits", views.VisitCreateView.as_view(), name="visit-create"),
@@ -8,5 +9,8 @@ urlpatterns = [
     path("evidence/<uuid:evidence_id>/file", views.EvidenceFileView.as_view(), name="evidence-file"),
     path("communications", views.CommunicationCreateView.as_view(), name="communication-create"),
     path("route", views.RouteView.as_view(), name="route"),
+    path("deliveries", panel_views.DeliveryListView.as_view(), name="delivery-list"),
+    path("incidents", panel_views.IncidentListView.as_view(), name="incident-list"),
+    path("incidents/<uuid:incident_id>/resolve", panel_views.IncidentResolveView.as_view(), name="incident-resolve"),
     path("route/optimize", views.RouteOptimizeView.as_view(), name="route-optimize"),
 ]

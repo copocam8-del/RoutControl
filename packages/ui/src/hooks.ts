@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { LoadState } from "./components/States";
 
@@ -15,6 +15,10 @@ export function useLoad<T>(
 ): [LoadState<T>, () => void] {
   const [state, setState] = useState<LoadState<T>>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
+  // La función de error se guarda en un ref: si se pasa una función nueva en cada render (por
+  // ejemplo, una flecha inline), no tiene que volver a cargar (antes era un bucle infinito).
+  const describeRef = useRef(describeError);
+  describeRef.current = describeError;
 
   useEffect(() => {
     if (!load) return;
@@ -25,12 +29,12 @@ export function useLoad<T>(
         if (current) setState({ status: "ready", data });
       })
       .catch((error: unknown) => {
-        if (current) setState({ status: "error", message: describeError(error) });
+        if (current) setState({ status: "error", message: describeRef.current(error) });
       });
     return () => {
       current = false;
     };
-  }, [load, describeError, attempt]);
+  }, [load, attempt]);
 
   useEffect(() => {
     if (!load || !refreshMs) return;

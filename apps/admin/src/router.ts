@@ -8,7 +8,11 @@ export type Route =
   | { name: "dashboard" }
   | { name: "workdays"; date: string }
   | { name: "workday"; id: string }
-  | { name: "drivers" };
+  | { name: "drivers" }
+  | { name: "packages" }
+  | { name: "package"; id: string }
+  | { name: "import" }
+  | { name: "deliveries"; date: string; view: "deliveries" | "incidents" };
 
 /** Fecha local AAAA-MM-DD (la del navegador; la empresa trabaja en su zona horaria). */
 export function today(now: Date = new Date()): string {
@@ -26,6 +30,18 @@ export function parseRoute(hash: string): Route {
     return { name: "workdays", date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : today() };
   }
   if (path === "/repartidores") return { name: "drivers" };
+  if (path === "/paquetes") return { name: "packages" };
+  if (path === "/paquetes/importar") return { name: "import" };
+  const pkg = /^\/paquetes\/([0-9a-f-]{36})$/i.exec(path);
+  if (pkg) return { name: "package", id: pkg[1]! };
+  if (path === "/entregas") {
+    const date = params.get("fecha");
+    return {
+      name: "deliveries",
+      date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : today(),
+      view: params.get("vista") === "incidencias" ? "incidents" : "deliveries",
+    };
+  }
   return { name: "dashboard" };
 }
 
@@ -39,6 +55,14 @@ export function href(route: Route): string {
       return `#/jornadas/${route.id}`;
     case "drivers":
       return "#/repartidores";
+    case "packages":
+      return "#/paquetes";
+    case "package":
+      return `#/paquetes/${route.id}`;
+    case "import":
+      return "#/paquetes/importar";
+    case "deliveries":
+      return `#/entregas?fecha=${route.date}${route.view === "incidents" ? "&vista=incidencias" : ""}`;
   }
 }
 

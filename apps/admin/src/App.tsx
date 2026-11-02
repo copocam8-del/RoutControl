@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { type AdminApp, AdminContext, useAdmin, useSession } from "./adminApp";
 import { Layout } from "./Layout";
 import { Dashboard } from "./pages/Dashboard";
+import { Deliveries } from "./pages/Deliveries";
+import { Import } from "./pages/Import";
+import { PackageDetail } from "./pages/PackageDetail";
+import { Packages } from "./pages/Packages";
 import { Drivers } from "./pages/Drivers";
 import { Login } from "./pages/Login";
 import { WorkdayDetail } from "./pages/WorkdayDetail";
@@ -42,6 +46,10 @@ function Screens({ welcomeMs }: { welcomeMs: number }) {
       {route.name === "workdays" ? <Workdays date={route.date} /> : null}
       {route.name === "workday" ? <WorkdayDetail key={route.id} id={route.id} /> : null}
       {route.name === "drivers" ? <Drivers /> : null}
+      {route.name === "packages" ? <Packages /> : null}
+      {route.name === "package" ? <PackageDetail key={route.id} id={route.id} /> : null}
+      {route.name === "import" ? <Import /> : null}
+      {route.name === "deliveries" ? <Deliveries date={route.date} view={route.view} /> : null}
     </Layout>
   );
 }

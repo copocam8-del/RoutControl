@@ -8,6 +8,7 @@ servidor (received_at).
 from __future__ import annotations
 
 import hashlib
+import uuid
 
 from django.contrib.gis.geos import Point
 from django.core.files.base import ContentFile
@@ -15,7 +16,7 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 
 from . import services
-from .models import Communication, Evidence, Package, Visit
+from .models import Communication, Evidence, Incident, Package, Visit
 
 S = Package.Status
 O = Visit.Outcome
@@ -83,6 +84,18 @@ def record_visit(driver, data: dict, actor) -> tuple[Visit, bool]:
     services.change_status(
         package, RESULT_STATUS.get(outcome, S.FAILED), actor, visit_id=str(visit.id), outcome=outcome, attribution=attribution
     )
+    if outcome != O.DELIVERED:
+        # Una entrega que no se pudo hacer es una incidencia para el panel (ADR-016). El id deriva
+        # del de la visita: reintentar no duplica.
+        Incident(
+            id=uuid.uuid5(visit.id, "incident"),
+            package=package,
+            visit=visit,
+            driver=driver,
+            type=outcome,
+            description=visit.notes,
+            occurred_at=ended_at or data["started_at"],
+        ).save(force_insert=True)
     return visit, True
 
 
