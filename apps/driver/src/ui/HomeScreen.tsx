@@ -25,7 +25,7 @@ import type { WorkdayState } from "../tracking/workdayController";
 import { ConsentDialog } from "./ConsentDialog";
 import { useApp, useNow, useStore } from "./hooks";
 import { LocationHelp } from "./LocationHelp";
-import { sortByRoute } from "../delivery/deliveries";
+import { nextPackage } from "../delivery/deliveries";
 import { ContactActions } from "./PackagesScreen";
 import { SyncChip } from "./SyncIndicator";
 
@@ -259,16 +259,9 @@ function WorkdayView({
   const delivered = packages.filter((p) => p.status === "DELIVERED").length;
   const failed = packages.filter((p) => p.status === "FAILED" || p.status === "RESCHEDULED").length;
   // En el orden de la ruta, si se armó (ADR-015).
-  const pendingList = sortByRoute(
-    packages.filter((p) => p.status === "ASSIGNED" || p.status === "IN_ROUTE"),
-    deliveries.route,
-  );
-  // Próxima parada: la visita en curso, si hay; si no, el primer pendiente (en camino primero).
-  const next =
-    packages.find((p) => p.id === deliveries.activeVisit?.package_id) ??
-    pendingList.find((p) => p.status === "IN_ROUTE") ??
-    pendingList[0] ??
-    null;
+  const pendingList = packages.filter((p) => p.status === "ASSIGNED" || p.status === "IN_ROUTE");
+  // Próxima parada: la misma regla que el mapa (nextPackage).
+  const next = nextPackage(packages, deliveries.route, deliveries.activeVisit?.package_id);
   const pct = packages.length ? Math.round((delivered / packages.length) * 100) : 0;
   const sync = useStore(app.sender);
   const now = useNow();
