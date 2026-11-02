@@ -16,16 +16,17 @@
  * Si algo falla, el error exacto (mensaje, recurso y URL) queda en `getMapErrors()` para la
  * pantalla de Diagnóstico, y el mensaje distingue "sin conexión" de "no se pudo cargar el mapa".
  */
-import { gapLines, trackBounds, type WorkdayTrack } from "@routcontrol/domain";
+import { gapLines, type LngLat, type MapStop, type RouteLeg, trackBounds, type WorkdayTrack } from "@routcontrol/domain";
 // El worker de MapLibre v6 es un archivo aparte: se publica con las apps (mismo origen) y se le
 // dice a MapLibre dónde está. Sin esto lo busca junto al código empaquetado y no lo encuentra.
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
-import { useEffect, useRef, useState } from "react";
+import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 import { type ResolvedTheme, useTheme } from "../theme";
 import { color, lightColor } from "../tokens";
 import { classifyFailure, describeResource, errorDetails, type MapFailureKind, recordMapError } from "./diagnostics";
 import { offlineFirst, type TileHandler } from "./offline";
+import { stopElement, updateStopElement } from "./stopMarker";
 import { absolute, buildStyle, DEFAULT_MAP_SOURCE, type MapSource } from "./style";
 
 export { DEFAULT_MAP_SOURCE, type MapSource } from "./style";
@@ -92,8 +93,12 @@ function useMap(
   setup: (maplibre: MapLibre, map: MapInstance, colors: ReturnType<typeof mapColors>) => void,
   options: (maplibre: MapLibre) => Partial<import("maplibre-gl").MapOptions>,
   deps: unknown[],
+  extra: { controls?: boolean } = {},
 ) {
   const container = useRef<HTMLDivElement>(null);
+  // El mapa ya cargado (para los mapas que se actualizan sin recrearse, como el de entregas).
+  const mapRef = useRef<{ maplibre: MapLibre; map: MapInstance } | null>(null);
+  const [ready, setReady] = useState(0);
   const [failure, setFailure] = useState<MapFailure | null>(null);
   const [attempt, setAttempt] = useState(0);
   const { resolved: theme } = useTheme();
@@ -137,7 +142,7 @@ function useMap(
         // Sin WebGL (o deshabilitado) el mapa no se puede crear.
         return fail(error, undefined, /webgl/i.test(String(error)) ? "WebGL del navegador" : "mapa");
       }
-      map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
+      if (extra.controls !== false) map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
       // Crédito de OpenStreetMap arriba: abajo está la leyenda (como la maqueta).
       map.addControl(new maplibre.AttributionControl({ compact: true }), "top-left");
       let tilesOk = false;
@@ -158,18 +163,22 @@ function useMap(
         }
       });
       map.on("load", () => {
-        if (map) setup(maplibre, map, mapColors(theme));
+        if (!map) return;
+        setup(maplibre, map, mapColors(theme));
+        mapRef.current = { maplibre, map };
+        setReady((n) => n + 1);
       });
     })();
 
     return () => {
       disposed = true;
+      mapRef.current = null;
       map?.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source.pmtiles, source.assets, attempt, theme, ...deps]);
 
-  return { container, failure, retry: () => setAttempt((n) => n + 1), colors: mapColors(theme) };
+  return { container, failure, retry: () => setAttempt((n) => n + 1), colors: mapColors(theme), mapRef, ready };
 }
 
 export function MapFailed({ failure, onRetry }: { failure: MapFailure; onRetry: () => void }) {
@@ -351,6 +360,200 @@ export function PositionsMap({
         aria-label={`Mapa con la última ubicación de ${positions.length} ${positions.length === 1 ? "repartidor" : "repartidores"} en jornada`}
         hidden={failure !== null}
       />
+    </div>
+  );
+}
+
+// --- Mapa de entregas del día (ADR-019) ---------------------------------------------------------
+
+export interface StopsMapHandle {
+  /** Centra en un punto (mi ubicación). */
+  centerOn(lat: number, lng: number): void;
+  /** Encuadra todas las paradas (y mi ubicación, si hay). */
+  fitAll(): void;
+}
+
+export interface MyLocation {
+  lat: number;
+  lng: number;
+  accuracy: number;
+}
+
+/**
+ * Las paradas del día como casitas numeradas (color por estado), la línea de la ruta y mi
+ * ubicación como un punto azul. A diferencia de los otros mapas, se crea una sola vez y se
+ * actualiza en el lugar: la ubicación cambia seguido y recrear el mapa haría parpadear todo.
+ * `interactive: false` es el mapa chico de la ficha (sin controles ni arrastre).
+ */
+export function StopsMap({
+  stops,
+  legs = [],
+  me = null,
+  selectedId = null,
+  onSelect,
+  source = DEFAULT_MAP_SOURCE,
+  height,
+  interactive = true,
+  bottomPadding = 0,
+  controlRef,
+  label,
+}: {
+  stops: MapStop[];
+  legs?: RouteLeg[];
+  me?: MyLocation | null;
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
+  source?: MapSource;
+  /** Alto fijo; sin alto, ocupa el contenedor (pantalla Mapa). */
+  height?: number;
+  interactive?: boolean;
+  /** Espacio que tapa la tarjeta de abajo (para encuadrar). */
+  bottomPadding?: number;
+  controlRef?: Ref<StopsMapHandle>;
+  label: string;
+}) {
+  const latest = useRef({ stops, me, onSelect, bottomPadding });
+  latest.current = { stops, me, onSelect, bottomPadding };
+  const markers = useRef(new Map<string, { marker: import("maplibre-gl").Marker; el: HTMLElement }>());
+  const meMarker = useRef<import("maplibre-gl").Marker | null>(null);
+
+  // Arriba los chips, a la derecha los botones flotantes, abajo lo que tape la pantalla (barra,
+  // leyenda o tarjeta): las casitas encuadradas quedan siempre a la vista.
+  const fitPadding = () =>
+    interactive ? { top: 96, left: 40, right: 76, bottom: 24 + latest.current.bottomPadding } : { top: 30, left: 30, right: 30, bottom: 30 };
+
+  const { container, failure, retry, mapRef, ready } = useMap(
+    source,
+    (_maplibre, map, c) => {
+      markers.current.clear();
+      meMarker.current = null;
+      map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "route-streets",
+        type: "line",
+        source: "route",
+        filter: ["==", ["get", "straight"], false],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": c.route, "line-width": 5, "line-opacity": 0.85 },
+      });
+      map.addLayer({
+        id: "route-straight",
+        type: "line",
+        source: "route",
+        filter: ["==", ["get", "straight"], true],
+        layout: { "line-cap": "round" },
+        paint: { "line-color": c.route, "line-width": 3, "line-dasharray": [1.5, 2], "line-opacity": 0.8 },
+      });
+      if (interactive) map.on("click", () => latest.current.onSelect?.(null));
+    },
+    (maplibre) => {
+      const base = interactive ? {} : { interactive: false };
+      const pts = latest.current.stops.map((s) => [s.lng, s.lat] as LngLat);
+      const here = latest.current.me;
+      if (here && interactive) pts.push([here.lng, here.lat]);
+      if (pts.length === 0) return { ...base, center: [-58.4, -34.61] as LngLat, zoom: 11 };
+      if (pts.length === 1) return { ...base, center: pts[0], zoom: 15 };
+      const bounds = new maplibre.LngLatBounds();
+      for (const p of pts) bounds.extend(p);
+      return { ...base, bounds, fitBoundsOptions: { padding: fitPadding(), maxZoom: 16 } };
+    },
+    [interactive],
+    { controls: interactive },
+  );
+
+  // Casitas: se agregan, actualizan y quitan en el lugar.
+  useEffect(() => {
+    const ctx = mapRef.current;
+    if (!ctx) return;
+    const seen = new Set<string>();
+    for (const stop of stops) {
+      seen.add(stop.id);
+      const existing = markers.current.get(stop.id);
+      if (existing) {
+        updateStopElement(existing.el, stop, stop.id === selectedId);
+        existing.marker.setLngLat([stop.lng, stop.lat]);
+      } else {
+        const el = stopElement(stop, stop.id === selectedId, (id) => latest.current.onSelect?.(id));
+        if (!interactive) el.tabIndex = -1;
+        const marker = new ctx.maplibre.Marker({ element: el, anchor: "bottom" }).setLngLat([stop.lng, stop.lat]).addTo(ctx.map);
+        markers.current.set(stop.id, { marker, el });
+      }
+    }
+    for (const [id, m] of markers.current) {
+      if (!seen.has(id)) {
+        m.marker.remove();
+        markers.current.delete(id);
+      }
+    }
+  }, [ready, stops, selectedId, interactive, mapRef]);
+
+  // Línea de la ruta.
+  useEffect(() => {
+    const src = mapRef.current?.map.getSource("route") as import("maplibre-gl").GeoJSONSource | undefined;
+    src?.setData({
+      type: "FeatureCollection",
+      features: legs.map((leg) => ({ type: "Feature", properties: { straight: leg.straight }, geometry: { type: "LineString", coordinates: leg.coords } })),
+    });
+  }, [ready, legs, mapRef]);
+
+  // Mi ubicación (punto azul).
+  useEffect(() => {
+    const ctx = mapRef.current;
+    if (!ctx) return;
+    if (!me) {
+      meMarker.current?.remove();
+      meMarker.current = null;
+      return;
+    }
+    if (!meMarker.current) {
+      const el = document.createElement("div");
+      el.className = "rc-me";
+      el.setAttribute("aria-hidden", "true");
+      el.innerHTML = '<span class="rc-me__halo"></span><span class="rc-me__dot"></span>';
+      meMarker.current = new ctx.maplibre.Marker({ element: el, anchor: "center" }).setLngLat([me.lng, me.lat]).addTo(ctx.map);
+    } else {
+      meMarker.current.setLngLat([me.lng, me.lat]);
+    }
+  }, [ready, me, mapRef]);
+
+  // La parada elegida queda a la vista, arriba de la tarjeta.
+  useEffect(() => {
+    const ctx = mapRef.current;
+    const stop = selectedId ? latest.current.stops.find((s) => s.id === selectedId) : null;
+    if (!ctx || !stop || !interactive) return;
+    ctx.map.easeTo({ center: [stop.lng, stop.lat], padding: { top: 0, left: 0, right: 0, bottom: latest.current.bottomPadding }, duration: 400 });
+  }, [ready, selectedId, interactive, mapRef]);
+
+  useImperativeHandle(
+    controlRef,
+    () => ({
+      centerOn(lat, lng) {
+        const ctx = mapRef.current;
+        ctx?.map.easeTo({ center: [lng, lat], zoom: Math.max(ctx.map.getZoom(), 15), duration: 500 });
+      },
+      fitAll() {
+        const ctx = mapRef.current;
+        if (!ctx) return;
+        const pts = latest.current.stops.map((s) => [s.lng, s.lat] as LngLat);
+        const here = latest.current.me;
+        if (here) pts.push([here.lng, here.lat]);
+        if (pts.length === 0) return;
+        if (pts.length === 1) {
+          ctx.map.easeTo({ center: pts[0], zoom: 15, duration: 500 });
+          return;
+        }
+        const bounds = new ctx.maplibre.LngLatBounds();
+        for (const p of pts) bounds.extend(p);
+        ctx.map.fitBounds(bounds, { padding: fitPadding(), maxZoom: 16, duration: 500 });
+      },
+    }),
+    [mapRef],
+  );
+
+  return (
+    <div className={`rc-map-frame rc-map-frame--flat rc-stops-map${height ? "" : " rc-stops-map--fill"}`}>
+      {failure ? <MapFailed failure={failure} onRetry={retry} /> : null}
+      <div ref={container} className="rc-map" style={height ? { height } : undefined} role="region" aria-label={label} hidden={failure !== null} />
     </div>
   );
 }

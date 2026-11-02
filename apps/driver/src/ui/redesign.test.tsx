@@ -17,7 +17,7 @@ vi.mock("@routcontrol/ui/map", () => ({
       mapa de {track.workday.id} {live ? "en vivo" : ""}
     </div>
   ),
-  setOfflineTiles: () => {},
+  setOfflineTiles: () => {}, StopsMap: () => <div data-testid="stops-map" />,
 }));
 
 function setup(opts: { loggedIn?: boolean } = {}) {
@@ -94,11 +94,11 @@ async function loggedIn() {
 }
 
 describe("solo lo que existe en la etapa 0", () => {
-  it("la barra inferior tiene Inicio, Paquetes, Recorridos y Perfil (como la maqueta)", async () => {
+  it("la barra inferior tiene Inicio, Paquetes, Mapa, Recorridos y Perfil", async () => {
     const { app } = await loggedIn();
     const nav = screen.getByRole("navigation", { name: "Navegación principal" });
     const names = [...nav.querySelectorAll("button")].map((b) => b.textContent);
-    expect(names).toEqual(["Inicio", "Paquetes", "Recorridos", "Perfil"]);
+    expect(names).toEqual(["Inicio", "Paquetes", "Mapa", "Recorridos", "Perfil"]);
     expect(screen.getByRole("button", { name: "Inicio" }).getAttribute("aria-current")).toBe("page");
     app.workday.dispose();
   });

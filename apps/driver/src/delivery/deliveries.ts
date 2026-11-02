@@ -39,6 +39,8 @@ export interface LocalRoute {
   source: "OPTIMIZED" | "MANUAL";
   total_eta_s: number | null;
   total_distance_m: number | null;
+  /** Tramo por calles hasta cada parada (polilínea codificada), para el mapa (ADR-019). */
+  paths?: Record<string, string>;
 }
 
 const ROUTE_KEY = "route";
@@ -52,7 +54,8 @@ export function sortByRoute<T extends { id: string }>(packages: T[], route: Loca
 
 function toLocalRoute(r: Route): LocalRoute | null {
   if (!r.stops.length || !r.source) return null;
-  return { order: r.stops.map((s) => s.package_id), source: r.source, total_eta_s: r.total_eta_s, total_distance_m: r.total_distance_m };
+  const paths = Object.fromEntries(r.stops.filter((s) => s.path).map((s) => [s.package_id, s.path!]));
+  return { order: r.stops.map((s) => s.package_id), source: r.source, total_eta_s: r.total_eta_s, total_distance_m: r.total_distance_m, paths };
 }
 
 export interface VisitResult {

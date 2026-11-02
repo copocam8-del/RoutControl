@@ -1,13 +1,4 @@
-import {
-  FAILURE_REASONS,
-  googleMapsUrl,
-  PACKAGE_STATUS_LABEL,
-  type PackageStatus,
-  telUrl,
-  type VisitOutcome,
-  wazeUrl,
-  whatsappUrl,
-} from "@routcontrol/domain";
+import { FAILURE_REASONS, mapStops, PACKAGE_STATUS_LABEL, type PackageStatus, telUrl, type VisitOutcome, whatsappUrl } from "@routcontrol/domain";
 import {
   Alert,
   Badge,
@@ -25,7 +16,10 @@ import {
   ListItem,
   LoadingState,
 } from "@routcontrol/ui";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+
+import { NAV_APP_LABEL, type NavApp, navigateUrl } from "../delivery/navApp";
+import { loadMapModule } from "../map/offlineMap";
 
 import { PENDING_STATUSES, sortByRoute } from "../delivery/deliveries";
 import { ScanScreen } from "./ScanScreen";
@@ -232,6 +226,75 @@ function PackageList({ onSelect, onScan }: { onSelect(id: string): void; onScan(
   );
 }
 
+// Mapa chico de la ficha: el mismo mapa real (y sin conexión) que la pestaña Mapa (ADR-019).
+const StopsMap = lazy(() => loadMapModule().then((m) => ({ default: m.StopsMap })));
+
+/**
+ * "Navegar": abre la app elegida (Google Maps o Waze). La primera vez pregunta cuál y la recuerda;
+ * se cambia en Perfil (ADR-019). `choosing` lo maneja quien la muestra, para ubicar las opciones.
+ */
+export function NavigateLink({
+  pkg,
+  variant,
+  choosing,
+  onChoosing,
+}: {
+  pkg: LocalPackage;
+  variant: "contact" | "button";
+  choosing: boolean;
+  onChoosing(v: boolean): void;
+}) {
+  const app = useApp();
+  const { app: chosen } = useStore(app.navApp);
+  const className = variant === "contact" ? "contact-action" : "rc-btn rc-btn--secondary";
+  const content = (
+    <>
+      {variant === "contact" ? <IconNavigate /> : null}
+      Navegar
+    </>
+  );
+  if (chosen) {
+    return (
+      <a className={className} href={navigateUrl(chosen, pkg.address)} target="_blank" rel="noopener noreferrer" title={`Navegar con ${NAV_APP_LABEL[chosen]}`}>
+        {content}
+      </a>
+    );
+  }
+  return (
+    <button type="button" className={className} aria-expanded={choosing} onClick={() => onChoosing(!choosing)}>
+      {content}
+    </button>
+  );
+}
+
+/** La primera vez: con qué app navegar. La elegida se recuerda (se cambia en Perfil). */
+export function NavigateChoices({ pkg, onDone }: { pkg: LocalPackage; onDone(): void }) {
+  const app = useApp();
+  const pick = (choice: NavApp) => {
+    void app.navApp.choose(choice);
+    onDone();
+  };
+  return (
+    <div className="navigate-pick">
+      <div className="navigate-choices" role="group" aria-label="Navegar con">
+        {(["google", "waze"] as const).map((choice) => (
+          <a
+            key={choice}
+            className="rc-btn rc-btn--secondary rc-btn--block"
+            href={navigateUrl(choice, pkg.address)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => pick(choice)}
+          >
+            {NAV_APP_LABEL[choice]}
+          </a>
+        ))}
+      </div>
+      <p className="rc-muted contact-note">Se recuerda para la próxima. La podés cambiar en Perfil.</p>
+    </div>
+  );
+}
+
 /** Llamar, WhatsApp y Navegar (enlaces externos, sin API de Google). */
 export function ContactActions({ pkg }: { pkg: LocalPackage }) {
   const app = useApp();
@@ -253,21 +316,9 @@ export function ContactActions({ pkg }: { pkg: LocalPackage }) {
             WhatsApp
           </a>
         ) : null}
-        <button type="button" className="contact-action" aria-expanded={navigating} onClick={() => setNavigating((v) => !v)}>
-          <IconNavigate />
-          Navegar
-        </button>
+        <NavigateLink pkg={pkg} variant="contact" choosing={navigating} onChoosing={setNavigating} />
       </div>
-      {navigating ? (
-        <div className="navigate-choices" role="group" aria-label="Navegar con">
-          <a className="rc-btn rc-btn--secondary rc-btn--block" href={googleMapsUrl(pkg.address)} target="_blank" rel="noopener noreferrer">
-            Google Maps
-          </a>
-          <a className="rc-btn rc-btn--secondary rc-btn--block" href={wazeUrl(pkg.address)} target="_blank" rel="noopener noreferrer">
-            Waze
-          </a>
-        </div>
-      ) : null}
+      {navigating ? <NavigateChoices pkg={pkg} onDone={() => setNavigating(false)} /> : null}
       {!tel ? <p className="rc-muted contact-note">Este paquete no tiene teléfono del destinatario.</p> : null}
     </>
   );
@@ -304,6 +355,7 @@ function PackageDetail({ pkg, onBack, onOpen }: { pkg: LocalPackage; onBack(): v
       </header>
       <div className="screen-body">
         <section className="stop-card" aria-label="Destino">
+          <StopMiniMap pkg={pkg} />
           <div className="stop-card__head">
             <span className="rc-eyebrow">Destino</span>
             <StatusBadge status={pkg.status} />
@@ -466,5 +518,20 @@ function VisitPanel({ pkg, onDone }: { pkg: LocalPackage; onDone(): void }) {
         {pkg.tracking_code}
       </p>
     </section>
+  );
+}
+
+/** Mapa chico de la ficha: el domicilio con su número de parada, sobre el mapa real (ADR-019). */
+function StopMiniMap({ pkg }: { pkg: LocalPackage }) {
+  const app = useApp();
+  const state = useStore(app.deliveries);
+  const stops = useMemo(() => mapStops(state.packages, state.route).filter((s) => s.id === pkg.id), [state.packages, state.route, pkg.id]);
+  if (!stops.length) return null; // sin ubicación: no hay mapa que mostrar
+  return (
+    <div className="stop-card__map">
+      <Suspense fallback={<div className="stop-card__map-placeholder" />}>
+        <StopsMap stops={stops} interactive={false} height={150} source={app.config.map} label={`Mapa del domicilio: ${pkg.address.raw_text}`} />
+      </Suspense>
+    </div>
   );
 }

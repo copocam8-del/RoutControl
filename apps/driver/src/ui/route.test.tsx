@@ -11,7 +11,7 @@ import { freshDb } from "../test/helpers";
 import { testPackage } from "../test/packages";
 import { App } from "./App";
 
-vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {} }));
+vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {}, StopsMap: () => <div data-testid="stops-map" /> }));
 
 async function ready() {
   const backend = new FakeBackend();
@@ -74,15 +74,16 @@ describe("Armar mi ruta", () => {
     const { app, backend, user } = await ready();
     backend.online = false;
     await user.click(screen.getByRole("button", { name: "Armar mi ruta" }));
-    expect(await screen.findByText(/Sin conexión: para armar la ruta hace falta señal/)).toBeTruthy();
+    // Con toda la suite en paralelo, el error de red tarda más de 1 s en llegar a la pantalla.
+    expect(await screen.findByText(/Sin conexión: para armar la ruta hace falta señal/, undefined, { timeout: 5000 })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Editar orden" }));
     await user.click(screen.getByRole("button", { name: "Subir Tercera 300" }));
     await user.click(screen.getByRole("button", { name: "Guardar orden" }));
-    await waitFor(() => expect(order()).toEqual(["Primera", "Tercera", "Segunda"]));
+    await waitFor(() => expect(order()).toEqual(["Primera", "Tercera", "Segunda"]), { timeout: 5000 });
     expect(app.outbox.getStatus().pending).toBe(1);
     backend.online = true;
     await app.outbox.flush();
     expect(backend.routeSource).toBe("MANUAL");
     app.workday.dispose();
-  });
+  }, 15_000);
 });

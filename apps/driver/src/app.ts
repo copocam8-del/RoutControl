@@ -9,6 +9,7 @@ import { BatchSender } from "./sync/batchSender";
 import { UpdateManager } from "./pwaUpdate";
 import { Deliveries } from "./delivery/deliveries";
 import { Outbox } from "./delivery/outbox";
+import { NavPreference } from "./delivery/navApp";
 import { OfflineMap, registerOfflineStore } from "./map/offlineMap";
 import { type CodeDetector, createDetector, type DetectorKind } from "./scan/scanner";
 import { WorkdayController } from "./tracking/workdayController";
@@ -27,6 +28,8 @@ export interface AppServices {
   deliveries: Deliveries;
   /** Mapa sin conexión: las calles de la zona de los paquetes del día (ADR-018). */
   offlineMap: OfflineMap;
+  /** Con qué app abre "Navegar": Google Maps o Waze (ADR-019). */
+  navApp: NavPreference;
   /** Cámara y lector de códigos (se reemplazan en las pruebas). */
   scanner: Scanner;
   /** Estado de la interfaz que dura lo que dura esta apertura de la app (no se guarda). */
@@ -70,6 +73,8 @@ export function createApp(
   const offlineMap = overrides.offlineMap ?? new OfflineMap({ db, config });
   registerOfflineStore(offlineMap.store());
   void offlineMap.init();
+  const navApp = new NavPreference(db);
+  void navApp.init();
   let interval: ReturnType<typeof setInterval> | null = null;
   // Con la jornada iniciándose, en curso o finalizándose, una recarga cortaría el seguimiento.
   const updates = new UpdateManager(() => !["starting", "active", "ending"].includes(workday.getState().phase));
@@ -86,6 +91,7 @@ export function createApp(
     outbox,
     deliveries,
     offlineMap,
+    navApp,
     scanner: overrides.scanner ?? webScanner,
     ui: { splashShown: false },
     updates,

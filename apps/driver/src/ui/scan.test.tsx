@@ -12,7 +12,7 @@ import { freshDb } from "../test/helpers";
 import { testPackage } from "../test/packages";
 import { App } from "./App";
 
-vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {} }));
+vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {}, StopsMap: () => <div data-testid="stops-map" /> }));
 
 /** Cámara y detector falsos: cada análisis devuelve el próximo "cuadro" de la lista. */
 function fakeScanner(frames: string[][], cameraError?: Error): Scanner & { frames: string[][] } {

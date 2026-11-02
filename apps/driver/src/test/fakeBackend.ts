@@ -238,7 +238,14 @@ export class FakeBackend {
 
   private routeWire() {
     return {
-      stops: this.routeOrder.map((id, i) => ({ package_id: id, sequence: i + 1, eta_s: this.routeSource === "OPTIMIZED" ? 300 : null, distance_m: this.routeSource === "OPTIMIZED" ? 1500 : null })),
+      // Tramo por calles de ejemplo (dos puntos, formato de polilínea) solo en la ruta armada.
+      stops: this.routeOrder.map((id, i) => ({
+        package_id: id,
+        sequence: i + 1,
+        eta_s: this.routeSource === "OPTIMIZED" ? 300 : null,
+        distance_m: this.routeSource === "OPTIMIZED" ? 1500 : null,
+        path: this.routeSource === "OPTIMIZED" ? "_p~iF~ps|U_ulLnnqC" : "",
+      })),
       source: this.routeOrder.length ? this.routeSource : null,
       total_eta_s: this.routeSource === "OPTIMIZED" ? 300 * this.routeOrder.length : null,
       total_distance_m: this.routeSource === "OPTIMIZED" ? 1500 * this.routeOrder.length : null,

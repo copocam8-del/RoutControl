@@ -44,6 +44,16 @@
   --rc-danger-text: #FCA5A5;
   /* Mapa */
   --rc-route: #8B5CF6;
+  /* Mapa de entregas (ADR-019): casitas por estado y su número. */
+  --rc-stop-pending: #7C5CFF;
+  --rc-stop-pending-ink: #FFFFFF;
+  --rc-stop-delivered: #34D399;
+  --rc-stop-delivered-ink: #052E1F;
+  --rc-stop-failed: #FBBF24;
+  --rc-stop-failed-ink: #3A2600;
+  --rc-stop-second: #C4B5FD;
+  --rc-stop-second-ink: #24145E;
+  --rc-me: #4D8DFF;
 
   /* Fondos suaves de los estados y otros valores que cambian con el tema */
   --rc-success-bg: rgba(52, 211, 153, 0.14);
@@ -99,6 +109,15 @@
    "Claro" siempre; "Automático" sigue a prefers-color-scheme. Por defecto (sin elegir), oscuro. */
 :root[data-theme="light"] {
   --rc-background: #F4F6FD;
+  --rc-stop-pending: #6D4AFF;
+  --rc-stop-pending-ink: #FFFFFF;
+  --rc-stop-delivered: #059669;
+  --rc-stop-delivered-ink: #FFFFFF;
+  --rc-stop-failed: #F59E0B;
+  --rc-stop-failed-ink: #3A2600;
+  --rc-stop-second: #B9A6FF;
+  --rc-stop-second-ink: #24145E;
+  --rc-me: #2563EB;
   --rc-surface: #FFFFFF;
   --rc-surface-2: #EDF0FB;
   --rc-sidebar: #FFFFFF;
@@ -159,6 +178,15 @@
 @media (prefers-color-scheme: light) {
   :root[data-theme="auto"] {
     --rc-background: #F4F6FD;
+  --rc-stop-pending: #6D4AFF;
+  --rc-stop-pending-ink: #FFFFFF;
+  --rc-stop-delivered: #059669;
+  --rc-stop-delivered-ink: #FFFFFF;
+  --rc-stop-failed: #F59E0B;
+  --rc-stop-failed-ink: #3A2600;
+  --rc-stop-second: #B9A6FF;
+  --rc-stop-second-ink: #24145E;
+  --rc-me: #2563EB;
     --rc-surface: #FFFFFF;
     --rc-surface-2: #EDF0FB;
     --rc-sidebar: #FFFFFF;
@@ -1171,4 +1199,111 @@ a.rc-item {
 .rc-theme--compact .rc-theme__option {
   min-height: 36px;
   padding: 0 10px;
+}
+
+/* --- Mapa de entregas del día (ADR-019): casitas numeradas y mi ubicación ----------------------- */
+.rc-stops-map--fill,
+.rc-stops-map--fill .rc-map {
+  height: 100%;
+}
+
+.rc-stop {
+  position: relative;
+  width: 36px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform 150ms ease;
+  transform-origin: 50% 100%;
+  --stop: var(--rc-stop-pending);
+  --ink: var(--rc-stop-pending-ink);
+}
+
+.rc-stop--delivered {
+  --stop: var(--rc-stop-delivered);
+  --ink: var(--rc-stop-delivered-ink);
+}
+
+.rc-stop--failed {
+  --stop: var(--rc-stop-failed);
+  --ink: var(--rc-stop-failed-ink);
+}
+
+.rc-stop--second {
+  --stop: var(--rc-stop-second);
+  --ink: var(--rc-stop-second-ink);
+}
+
+.rc-stop__house {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 6px rgba(var(--rc-background-rgb), 0.45));
+}
+
+.rc-stop__house path {
+  fill: var(--stop);
+  stroke: var(--rc-map-bg);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.rc-stop__n {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 15px;
+  text-align: center;
+  font: 800 14px/1 var(--rc-font);
+  color: var(--ink);
+}
+
+.rc-stop--selected {
+  transform: scale(1.25);
+  z-index: 2;
+}
+
+.rc-stop--selected .rc-stop__house path {
+  stroke: var(--rc-text);
+  stroke-width: 3;
+}
+
+.rc-stop:focus-visible {
+  outline: 3px solid var(--rc-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.rc-me {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.rc-me__dot,
+.rc-me__halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--rc-me);
+}
+
+.rc-me__dot {
+  border: 3px solid var(--rc-white);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.rc-me__halo {
+  opacity: 0.3;
+  transform: scale(2.2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rc-me__halo {
+    animation: rc-ping 2.2s ease-out infinite;
+  }
 }

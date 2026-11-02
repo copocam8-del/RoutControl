@@ -99,7 +99,16 @@ export function telUrl(phone: string): string | null {
 
 /** GET/PUT /route y POST /route/optimize (ADR-015). */
 export const route = z.object({
-  stops: z.array(z.object({ package_id: z.uuid(), sequence: z.number(), eta_s: z.number().nullable(), distance_m: z.number().nullable() })),
+  stops: z.array(
+    z.object({
+      package_id: z.uuid(),
+      sequence: z.number(),
+      eta_s: z.number().nullable(),
+      distance_m: z.number().nullable(),
+      /** Tramo por calles hasta la parada (polilínea codificada); "" si se ordenó a mano (ADR-019). */
+      path: z.string().optional(),
+    }),
+  ),
   source: z.enum(["OPTIMIZED", "MANUAL"]).nullable(),
   total_eta_s: z.number().nullable(),
   total_distance_m: z.number().nullable(),
