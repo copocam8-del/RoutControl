@@ -390,6 +390,7 @@ export function StopsMap({
   legs = [],
   me = null,
   selectedId = null,
+  nextId = null,
   onSelect,
   source = DEFAULT_MAP_SOURCE,
   height,
@@ -402,6 +403,8 @@ export function StopsMap({
   legs?: RouteLeg[];
   me?: MyLocation | null;
   selectedId?: string | null;
+  /** La próxima parada: más grande, con anillos que laten y la etiqueta "Próxima". */
+  nextId?: string | null;
   onSelect?: (id: string | null) => void;
   source?: MapSource;
   /** Alto fijo; sin alto, ocupa el contenedor (pantalla Mapa). */
@@ -417,10 +420,10 @@ export function StopsMap({
   const markers = useRef(new Map<string, { marker: import("maplibre-gl").Marker; el: HTMLElement }>());
   const meMarker = useRef<import("maplibre-gl").Marker | null>(null);
 
-  // Arriba los chips, a la derecha los botones flotantes, abajo lo que tape la pantalla (barra,
-  // leyenda o tarjeta): las paradas encuadradas quedan siempre a la vista.
+  // Arriba los chips (y la etiqueta "Próxima"), a la derecha los botones flotantes, abajo lo que
+  // tape la pantalla (barra, leyenda o tarjeta): las paradas encuadradas quedan siempre a la vista.
   const fitPadding = () =>
-    interactive ? { top: 96, left: 40, right: 76, bottom: 24 + latest.current.bottomPadding } : { top: 30, left: 30, right: 30, bottom: 30 };
+    interactive ? { top: 120, left: 60, right: 90, bottom: 40 + latest.current.bottomPadding } : { top: 30, left: 30, right: 30, bottom: 30 };
 
   const { container, failure, retry, mapRef, ready } = useMap(
     source,
@@ -470,10 +473,10 @@ export function StopsMap({
       seen.add(stop.id);
       const existing = markers.current.get(stop.id);
       if (existing) {
-        updateStopElement(existing.el, stop, stop.id === selectedId);
+        updateStopElement(existing.el, stop, stop.id === selectedId, stop.id === nextId);
         existing.marker.setLngLat([stop.lng, stop.lat]);
       } else {
-        const el = stopElement(stop, stop.id === selectedId, (id) => latest.current.onSelect?.(id));
+        const el = stopElement(stop, stop.id === selectedId, (id) => latest.current.onSelect?.(id), stop.id === nextId);
         if (!interactive) el.tabIndex = -1;
         const marker = new ctx.maplibre.Marker({ element: el, anchor: "center" }).setLngLat([stop.lng, stop.lat]).addTo(ctx.map);
         markers.current.set(stop.id, { marker, el });
@@ -485,7 +488,7 @@ export function StopsMap({
         markers.current.delete(id);
       }
     }
-  }, [ready, stops, selectedId, interactive, mapRef]);
+  }, [ready, stops, selectedId, nextId, interactive, mapRef]);
 
   // Línea de la ruta.
   useEffect(() => {

@@ -11,6 +11,7 @@ import { Button, EmptyState, LoadingState } from "@routcontrol/ui";
 import type { StopsMapHandle } from "@routcontrol/ui/map";
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 
+import { nextPackage } from "../delivery/deliveries";
 import { loadMapModule } from "../map/offlineMap";
 import { useApp, useStore } from "./hooks";
 import { NavigateChoices, NavigateLink, StatusBadge } from "./PackagesScreen";
@@ -48,6 +49,8 @@ export function MapScreen({ onOpenPackage }: { onOpenPackage(id: string): void }
   const stops = useMemo(() => filterStops(all, filter), [all, filter]);
   const legs = useMemo(() => routeLegs(state.route, state.packages), [state.route, state.packages]);
   const pendingCount = filterStops(all, "pending").length;
+  // La misma próxima parada que muestra Inicio.
+  const nextId = useMemo(() => nextPackage(state.packages, state.route, state.activeVisit?.package_id)?.id ?? null, [state.packages, state.route, state.activeVisit]);
   const stop = selected ? stops.find((s) => s.id === selected) : undefined;
   const pkg = stop ? state.packages.find((p) => p.id === stop.id) : undefined;
   const distance = stop ? distanceTo(me, stop) : null;
@@ -73,6 +76,7 @@ export function MapScreen({ onOpenPackage }: { onOpenPackage(id: string): void }
               legs={legs}
               me={me}
               selectedId={stop ? stop.id : null}
+              nextId={nextId}
               onSelect={setSelected}
               source={app.config.map}
               bottomPadding={NAV_PX + (stop ? SHEET_PX : LEGEND_PX)}

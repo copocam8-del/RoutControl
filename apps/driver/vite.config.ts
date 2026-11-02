@@ -128,6 +128,9 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
       restoreMocks: true,
+      // Muchas pruebas recorren la app entera (login, jornada, paquetes): con la compu cargada
+      // (servidores prendidos, poca RAM) pasan los 5 s por defecto sin que nada esté mal.
+      testTimeout: 15_000,
     },
   };
 });

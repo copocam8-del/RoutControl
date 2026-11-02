@@ -75,6 +75,18 @@ const RESULT_STATUS: Partial<Record<VisitOutcome, PackageStatus>> = {
 /** Pendientes primero (en el orden de la ruta, cuando exista), después los resueltos. */
 export const PENDING_STATUSES: PackageStatus[] = ["ASSIGNED", "IN_ROUTE", "FAILED", "RESCHEDULED"];
 
+/**
+ * Próxima parada (Inicio y Mapa usan la misma): la visita en curso, si hay; si no, el primer
+ * pendiente en el orden de la ruta (los que ya están en camino primero).
+ */
+export function nextPackage<T extends { id: string; status: PackageStatus }>(packages: T[], route: LocalRoute | null, activeVisitId: string | null | undefined): T | null {
+  const pending = sortByRoute(
+    packages.filter((p) => p.status === "ASSIGNED" || p.status === "IN_ROUTE"),
+    route,
+  );
+  return packages.find((p) => p.id === activeVisitId) ?? pending.find((p) => p.status === "IN_ROUTE") ?? pending[0] ?? null;
+}
+
 export class Deliveries {
   private state: DeliveriesState = {
     status: "loading",

@@ -19,6 +19,17 @@ describe("paradas del mapa de entregas (estilo Ruta.dc.html)", () => {
     expect(onSelect).toHaveBeenCalledWith("a");
   });
 
+  it("la próxima: clase propia, etiqueta 'Próxima' y anillos; deja de serlo al actualizarla", () => {
+    const el = stopElement(stop(), false, () => {}, true);
+    expect(el.classList.contains("rc-stop--next")).toBe(true);
+    expect(el.getAttribute("aria-label")).toBe("Parada 3: Uno 100 · Pendiente · Próxima");
+    expect(el.querySelector(".rc-stop__tag")!.textContent).toBe("Próxima");
+    expect(el.querySelectorAll(".rc-stop__pulse")).toHaveLength(2);
+    updateStopElement(el, stop(), false, false);
+    expect(el.classList.contains("rc-stop--next")).toBe(false);
+    expect(el.getAttribute("aria-label")).toBe("Parada 3: Uno 100 · Pendiente");
+  });
+
   it("al actualizarla conserva las clases que le pone MapLibre (si no, las paradas se corren)", () => {
     const el = stopElement(stop(), false, () => {});
     el.classList.add("maplibregl-marker", "maplibregl-marker-anchor-bottom");

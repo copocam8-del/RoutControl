@@ -23,6 +23,7 @@ vi.mock("@routcontrol/ui/map", () => ({
     onSelect,
     label,
     interactive = true,
+    nextId = null,
   }: {
     stops: MapStop[];
     legs?: RouteLeg[];
@@ -30,10 +31,11 @@ vi.mock("@routcontrol/ui/map", () => ({
     onSelect?: (id: string) => void;
     label: string;
     interactive?: boolean;
+    nextId?: string | null;
   }) => (
     <div role="region" aria-label={label} data-interactive={String(interactive)}>
       {stops.map((s) => (
-        <button key={s.id} type="button" aria-label={"Casita " + s.n + " " + s.state} onClick={() => onSelect?.(s.id)}>
+        <button key={s.id} type="button" aria-label={"Casita " + s.n + " " + s.state} data-next={String(s.id === nextId)} onClick={() => onSelect?.(s.id)}>
           {s.n}
         </button>
       ))}
@@ -92,6 +94,15 @@ describe("pestaña Mapa", () => {
     expect(screen.getByTestId("me").textContent).toBe("sin ubicación");
     expect((screen.getByRole("button", { name: "Centrar en mi ubicación" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Tu ubicación se ve con la jornada iniciada")).toBeTruthy();
+    app.workday.dispose();
+  });
+
+  it("la próxima parada del mapa es la misma que la de Inicio", async () => {
+    const { app } = await open();
+    await screen.findByRole("region", { name: /^Mapa con/ });
+    // Sin ruta: el primer pendiente de la lista ("Uno 100", parada 1).
+    const next = within(screen.getByRole("region", { name: /^Mapa con/ })).getAllByRole("button").filter((b) => b.dataset.next === "true");
+    expect(next.map((b) => b.getAttribute("aria-label"))).toEqual(["Casita 1 pending"]);
     app.workday.dispose();
   });
 
