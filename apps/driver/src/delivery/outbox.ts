@@ -19,7 +19,7 @@ export interface OutboxStatus {
   retryAt: number | null;
 }
 
-type Api = Pick<ApiClient, "recordVisit" | "uploadEvidence" | "recordCommunication">;
+type Api = Pick<ApiClient, "recordVisit" | "uploadEvidence" | "recordCommunication" | "loadPackages">;
 
 const defaultTimers: Timers = {
   setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms),
@@ -125,6 +125,8 @@ export class Outbox {
     } else if (item.kind === "evidence") {
       const photo = new Blob([item.photo!.data], { type: item.photo!.type });
       await this.api.uploadEvidence(item.body as Parameters<Api["uploadEvidence"]>[0], photo);
+    } else if (item.kind === "load") {
+      await this.api.loadPackages((item.body as { tracking_codes: string[] }).tracking_codes);
     } else {
       await this.api.recordCommunication(item.body as Parameters<Api["recordCommunication"]>[0]);
     }

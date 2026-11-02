@@ -1,11 +1,12 @@
 from django.urls import path
 
 from . import views
-from .delivery_views import PackageVisitsView
+from .delivery_views import PackageLoadView, PackageVisitsView
 
 urlpatterns = [
     path("", views.PackageListView.as_view(), name="package-list"),
     path("assign", views.PackageBulkAssignView.as_view(), name="package-bulk-assign"),
+    path("load", PackageLoadView.as_view(), name="package-load"),
     path("<uuid:package_id>", views.PackageDetailView.as_view(), name="package-detail"),
     path("<uuid:package_id>/assign", views.PackageAssignView.as_view(), name="package-assign"),
     path("<uuid:package_id>/status", views.PackageStatusView.as_view(), name="package-status"),

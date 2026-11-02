@@ -9,6 +9,7 @@ import { BatchSender } from "./sync/batchSender";
 import { UpdateManager } from "./pwaUpdate";
 import { Deliveries } from "./delivery/deliveries";
 import { Outbox } from "./delivery/outbox";
+import { type CodeDetector, createDetector, type DetectorKind } from "./scan/scanner";
 import { WorkdayController } from "./tracking/workdayController";
 
 export interface AppServices {
@@ -23,6 +24,8 @@ export interface AppServices {
   outbox: Outbox;
   /** "Mis paquetes" y la visita en curso. */
   deliveries: Deliveries;
+  /** Cámara y lector de códigos (se reemplazan en las pruebas). */
+  scanner: Scanner;
   /** Estado de la interfaz que dura lo que dura esta apertura de la app (no se guarda). */
   ui: { splashShown: boolean };
   /** Versiones nuevas de la PWA: solas sin jornada en curso, con aviso durante la jornada. */
@@ -32,7 +35,26 @@ export interface AppServices {
   stopAuthenticated(): void;
 }
 
-export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "device" | "config">> = {}): AppServices {
+export interface Scanner {
+  createDetector(): Promise<{ detector: CodeDetector; kind: DetectorKind }>;
+  /** Cámara trasera. Falla si no hay cámara o no hay permiso. */
+  openCamera(): Promise<MediaStream>;
+  /** Solo pruebas: analizar aunque el video no tenga cuadros (jsdom no reproduce video). */
+  skipReadyCheck?: boolean;
+}
+
+const webScanner: Scanner = {
+  createDetector,
+  openCamera: () =>
+    navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    }),
+};
+
+export function createApp(
+  overrides: Partial<Pick<AppServices, "db" | "api" | "device" | "config" | "scanner">> = {},
+): AppServices {
   const config = overrides.config ?? defaultConfig;
   const db = overrides.db ?? new DriverDB();
   const api = overrides.api ?? new ApiClient(config.apiBase);
@@ -57,6 +79,7 @@ export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "d
     workday,
     outbox,
     deliveries,
+    scanner: overrides.scanner ?? webScanner,
     ui: { splashShown: false },
     updates,
     async startAuthenticated() {

@@ -174,6 +174,25 @@ class CommunicationCreateView(APIView):
         return Response({"communication": {"id": str(item.id)}}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
+class LoadSerializer(serializers.Serializer):
+    tracking_codes = serializers.ListField(child=serializers.CharField(max_length=80, allow_blank=True), min_length=1, max_length=500)
+
+
+class PackageLoadView(APIView):
+    """POST /api/v1/packages/load {tracking_codes}: carga con escaneo (ADR-014). Idempotente."""
+
+    permission_classes = DRIVER_ONLY
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        driver = current_driver(request)
+        if driver is None:
+            return Response({"detail": "No tenés un perfil de repartidor activo."}, status=status.HTTP_403_FORBIDDEN)
+        data = LoadSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        return Response({"results": delivery.load_packages(driver, data.validated_data["tracking_codes"], request.user)})
+
+
 class PackageVisitsView(APIView):
     """GET /api/v1/packages/{id}/visits — visitas con sus fotos (panel y el propio repartidor)."""
 

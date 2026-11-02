@@ -289,6 +289,14 @@ export class ApiClient {
     await this.authed("/communications", { method: "POST", body }, anything);
   }
 
+  /** Carga con escaneo (ADR-014): los códigos asignados al repartidor pasan a "En camino". */
+  async loadPackages(trackingCodes: string[]): Promise<Array<{ code: string; result: string; package_id?: string }>> {
+    const body = (await this.authed("/packages/load", { method: "POST", body: { tracking_codes: trackingCodes } }, anything)) as {
+      results: Array<{ code: string; result: string; package_id?: string }>;
+    };
+    return body.results;
+  }
+
   async packageVisits(packageId: string): Promise<VisitRecord[]> {
     return (await this.authed(`/packages/${packageId}/visits`, { method: "GET" }, packageVisits)).visits;
   }

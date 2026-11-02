@@ -49,7 +49,7 @@ export type LocalPackage = DeliveryPackage;
  */
 export interface OutboxItem {
   id: string;
-  kind: "visit" | "evidence" | "communication";
+  kind: "visit" | "evidence" | "communication" | "load";
   package_id: string;
   queued_at: number;
   body: Record<string, unknown>;

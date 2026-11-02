@@ -114,6 +114,16 @@ export class FakeBackend {
     if (track && method === "GET") return this.track(track[1]!);
     if (path === "/packages/" && method === "GET") return json(200, { packages: this.packages });
     if (path === "/visits" && method === "POST") return this.visit(body);
+    if (path === "/packages/load" && method === "POST") {
+      const results = (body.tracking_codes as string[]).map((code) => {
+        const pkg = this.packages.find((p) => p.tracking_code === code);
+        if (!pkg) return { code, result: "not_assigned" };
+        if (pkg.status === "IN_ROUTE") return { code, result: "already_loaded", package_id: pkg.id };
+        pkg.status = "IN_ROUTE";
+        return { code, result: "loaded", package_id: pkg.id };
+      });
+      return json(200, { results });
+    }
     if (path === "/evidence" && method === "POST") {
       if (!this.visits.has(body.visit_id)) return json(409, { code: "visit_not_found", detail: "La visita de la foto no existe (todavía no llegó)." });
       const created = !this.evidence.has(body.id);

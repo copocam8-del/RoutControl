@@ -112,8 +112,16 @@ export class Deliveries {
 
   /** Lo hecho en la calle que todavía no llegó al servidor pisa el estado de la lista. */
   private async withLocalStatus(packages: DeliveryPackage[]): Promise<LocalPackage[]> {
-    const pendingVisits = (await this.deps.db.outbox.where("kind").equals("visit").toArray()).filter((i) => !i.failed);
-    const local = new Map(pendingVisits.map((v) => [v.package_id, RESULT_STATUS[v.body.outcome as VisitOutcome] ?? "FAILED"]));
+    const pending = (await this.deps.db.outbox.orderBy("queued_at").toArray()).filter((i) => !i.failed);
+    const local = new Map<string, PackageStatus>();
+    for (const item of pending) {
+      if (item.kind === "load") {
+        const codes = new Set((item.body.tracking_codes as string[]) ?? []);
+        for (const p of packages) if (codes.has(p.tracking_code) && p.status !== "DELIVERED") local.set(p.id, "IN_ROUTE");
+      } else if (item.kind === "visit") {
+        local.set(item.package_id, RESULT_STATUS[item.body.outcome as VisitOutcome] ?? "FAILED");
+      }
+    }
     return packages.map((p) => (local.has(p.id) ? { ...p, status: local.get(p.id)! } : p));
   }
 
@@ -193,6 +201,22 @@ export class Deliveries {
       activeVisit: null,
       packages: this.state.packages.map((p) => (p.id === visit.package_id ? { ...p, status } : p)),
     });
+  }
+
+  /**
+   * Carga con escaneo (ADR-014): los paquetes quedan "En camino" en el teléfono enseguida y la
+   * carga se envía al servidor por la cola (sirve aunque en el depósito no haya señal).
+   */
+  async markLoaded(pkgs: LocalPackage[]): Promise<void> {
+    if (!pkgs.length) return;
+    const ids = new Set(pkgs.map((p) => p.id));
+    const id = uuidv7(this.now());
+    await this.deps.outbox.enqueue([
+      { id, kind: "load", package_id: pkgs[0]!.id, body: { tracking_codes: pkgs.map((p) => p.tracking_code) } },
+    ]);
+    const packages = this.state.packages.map((p) => (ids.has(p.id) ? { ...p, status: "IN_ROUTE" as const } : p));
+    await this.deps.db.packages.bulkPut(packages.filter((p) => ids.has(p.id)));
+    this.set({ packages });
   }
 
   /** Registra que se tocó "Llamar" o "WhatsApp" (para el historial del paquete). */
