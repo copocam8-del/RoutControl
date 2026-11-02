@@ -238,3 +238,47 @@ def test_package_status_of_another_org_is_404(org_a, org_b, package_a):
 @covers("package-events")
 def test_package_events_of_another_org_is_404(org_a, org_b, package_a):
     assert client_for(org_b.owner, org_b.org).get(f"/api/v1/packages/{package_a['id']}/events").status_code == 404
+
+
+# --- Importación (etapa 1) ---------------------------------------------------------------------
+
+
+@pytest.fixture
+def import_a(org_a):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    response = client_for(org_a.owner, org_a.org).post(
+        "/api/v1/imports/", {"file": SimpleUploadedFile("a.csv", b"codigo;direccion\nA-9;Calle de A 1\n")}, format="multipart"
+    )
+    assert response.status_code == 201
+    return response.json()["import"]
+
+
+@covers("import-create")
+def test_import_creates_packages_only_in_the_own_org(org_a, org_b, import_a):
+    client_for(org_a.owner, org_a.org).post(
+        f"/api/v1/imports/{import_a['id']}/confirm", {"mapping": import_a["suggested_mapping"]}, format="json"
+    )
+    assert client_for(org_b.owner, org_b.org).get("/api/v1/packages/").json()["packages"] == []
+
+
+@covers("import-detail")
+def test_import_of_another_org_is_404(org_a, org_b, import_a):
+    assert client_for(org_b.owner, org_b.org).get(f"/api/v1/imports/{import_a['id']}").status_code == 404
+
+
+@covers("import-preview")
+def test_preview_of_another_org_is_404(org_a, org_b, import_a):
+    r = client_for(org_b.owner, org_b.org).post(
+        f"/api/v1/imports/{import_a['id']}/preview", {"mapping": import_a["suggested_mapping"]}, format="json"
+    )
+    assert r.status_code == 404
+
+
+@covers("import-confirm")
+def test_confirm_of_another_org_is_404_and_creates_nothing(org_a, org_b, import_a):
+    r = client_for(org_b.owner, org_b.org).post(
+        f"/api/v1/imports/{import_a['id']}/confirm", {"mapping": import_a["suggested_mapping"]}, format="json"
+    )
+    assert r.status_code == 404
+    assert client_for(org_a.owner, org_a.org).get("/api/v1/packages/").json()["packages"] == []

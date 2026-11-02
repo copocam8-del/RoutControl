@@ -6,3 +6,4 @@ django-cors-headers~=4.7
 psycopg[binary]~=3.2
 argon2-cffi~=25.1
 celery[redis]~=5.5
+openpyxl~=3.1

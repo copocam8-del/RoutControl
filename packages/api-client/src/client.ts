@@ -32,6 +32,11 @@ import {
   type PackageEvent,
   type PackageInput,
   packageList,
+  type ColumnMapping,
+  importEnvelope,
+  type ImportJob,
+  importPreview,
+  type ImportPreview,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -231,6 +236,22 @@ export class ApiClient {
     return (await this.authed(`/packages/${id}/events`, { method: "GET" }, packageEvents)).events;
   }
 
+  // --- Importación (etapa 1) ------------------------------------------------------------------
+
+  async uploadImport(file: Blob, filename: string): Promise<ImportJob> {
+    const form = new FormData();
+    form.append("file", file, filename);
+    return (await this.authed("/imports/", { method: "POST", body: form }, importEnvelope)).import;
+  }
+
+  async previewImport(id: string, mapping: ColumnMapping): Promise<ImportPreview> {
+    return this.authed(`/imports/${id}/preview`, { method: "POST", body: { mapping } }, importPreview);
+  }
+
+  async confirmImport(id: string, mapping: ColumnMapping): Promise<ImportJob> {
+    return (await this.authed(`/imports/${id}/confirm`, { method: "POST", body: { mapping } }, importEnvelope)).import;
+  }
+
   workdayTrack(workdayId: string): Promise<WorkdayTrack> {
     return this.authed(`/workdays/${workdayId}/track`, { method: "GET" }, workdayTrack);
   }
@@ -278,13 +299,15 @@ export class ApiClient {
 
   private async send(path: string, init: RequestInit_, bearer?: string | null): Promise<Response> {
     const headers: Record<string, string> = { Accept: "application/json", ...init.headers };
-    if (init.body !== undefined) headers["Content-Type"] = "application/json";
+    // Un FormData (subida de archivos) lleva su propio Content-Type con el separador.
+    const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
+    if (init.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
     if (bearer) headers.Authorization = `Bearer ${bearer}`;
     try {
       return await this.fetchImpl(`${this.base}${path}`, {
         method: init.method,
         headers,
-        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+        body: init.body === undefined ? undefined : isForm ? (init.body as FormData) : JSON.stringify(init.body),
         credentials: "include",
       });
     } catch (error) {
