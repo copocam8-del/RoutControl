@@ -89,7 +89,8 @@ export function Dashboard() {
 
 /** Posiciones que llegan por WebSocket, por repartidor (la más reciente). */
 function useLivePositions(): { status: LiveStatus; positions: Record<string, LivePosition> } {
-  const { api, config, live } = useAdmin();
+  const app = useAdmin();
+  const { api, config, live } = app;
   const [status, setStatus] = useState<LiveStatus>("offline");
   const [positions, setPositions] = useState<Record<string, LivePosition>>({});
   useEffect(() => {
@@ -98,6 +99,7 @@ function useLivePositions(): { status: LiveStatus; positions: Record<string, Liv
       origin: config.liveOrigin,
       getToken: (force) => api.accessTokenForSocket(force),
       onPosition: (p) => setPositions((known) => mergeLivePosition(known, p)),
+      onNotification: (n) => app.alerts.push(n),
       onStatus: setStatus,
       WebSocketImpl: live.WebSocketImpl,
       retryDelayMs: live.retryDelayMs,

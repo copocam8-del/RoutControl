@@ -7,6 +7,10 @@
  * - Ante un 401 se intenta un refresh una sola vez y se repite la petición.
  */
 import {
+  notificationList,
+  type AppNotification,
+  organizationSettings,
+  type OrganizationSettings,
   report,
   type Report,
   type ReportQuery,
@@ -378,6 +382,24 @@ export class ApiClient {
   }
 
   /** La foto de una visita (la API exige la sesión: no hay URL pública). */
+  /** Alertas del panel (ADR-025): las últimas y cuántas son nuevas para esta persona. */
+  listNotifications(): Promise<{ notifications: AppNotification[]; unread: number }> {
+    return this.authed("/notifications", { method: "GET" }, notificationList);
+  }
+
+  async markNotificationsSeen(): Promise<void> {
+    await this.authed("/notifications/seen", { method: "POST" }, anything);
+  }
+
+  /** Alertas y umbrales de la empresa (ADR-025). */
+  getSettings(): Promise<OrganizationSettings> {
+    return this.authed("/settings", { method: "GET" }, organizationSettings);
+  }
+
+  saveSettings(input: Omit<OrganizationSettings, "can_edit">): Promise<OrganizationSettings> {
+    return this.authed("/settings", { method: "PUT", body: input }, organizationSettings);
+  }
+
   /** Informe por repartidor y por empresa (ADR-024). */
   getReport(q: ReportQuery): Promise<Report> {
     return this.authed(`/reports?${reportParams(q)}`, { method: "GET" }, report);

@@ -1,4 +1,4 @@
-import { liveMessageSchema, type LivePosition } from "@routcontrol/domain";
+import { type AppNotification, liveMessageSchema, type LivePosition } from "@routcontrol/domain";
 
 /**
  * Cliente del mapa en vivo (ADR-017). Abre `/ws/live`, se autentica con el primer mensaje (el
@@ -12,6 +12,8 @@ export interface LiveOptions {
   origin: string;
   getToken: (force: boolean) => Promise<string | null>;
   onPosition: (p: LivePosition) => void;
+  /** Alertas del panel que llegan en vivo (ADR-025). */
+  onNotification?: (n: AppNotification) => void;
   onStatus: (s: LiveStatus) => void;
   WebSocketImpl?: typeof WebSocket;
   /** Espera antes del reintento n (desde 0). */
@@ -71,6 +73,8 @@ export function connectLive(opts: LiveOptions): () => void {
         opts.onStatus("live");
       } else if (parsed.data.type === "position") {
         opts.onPosition(parsed.data);
+      } else if (parsed.data.type === "notification") {
+        opts.onNotification?.(parsed.data.notification);
       }
     };
     ws.onclose = (e) => {

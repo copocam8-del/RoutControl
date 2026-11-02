@@ -1,6 +1,8 @@
 /** Mapa en vivo del panel (ADR-017): eventos que manda el servidor por WebSocket. */
 import { z } from "zod";
 
+import { notification } from "./alerts";
+
 export const livePositionSchema = z.object({
   type: z.literal("position"),
   /** DriverProfile (el mismo id que `/drivers`). */
@@ -15,6 +17,8 @@ export type LivePosition = z.infer<typeof livePositionSchema>;
 export const liveMessageSchema = z.discriminatedUnion("type", [
   livePositionSchema,
   z.object({ type: z.literal("ready") }),
+  // Alerta del panel (ADR-025).
+  z.object({ type: z.literal("notification"), notification }),
   z.object({ type: z.literal("error"), detail: z.string() }),
 ]);
 export type LiveMessage = z.infer<typeof liveMessageSchema>;

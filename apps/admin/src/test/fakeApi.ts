@@ -29,6 +29,17 @@ export class FakeApi {
   /** Informes (ADR-024): lo que devuelve /reports, y los pedidos recibidos. */
   reportDrivers: Array<Record<string, unknown>> = [];
   reportQueries: string[] = [];
+  /** Alertas y configuración (ADR-025). */
+  notifications: Array<Record<string, unknown>> = [];
+  unread = 0;
+  seenCalls = 0;
+  settings: Record<string, unknown> = {
+    alerts: { workday_started: true, workday_ended: true, no_signal: true, no_signal_minutes: 15, incident: true, route_finished: true },
+    reception: { green: 0.8, yellow: 0.4, min_visits: 3 },
+    second_attempt: { insert_max_min: 10, end_max_min: 25 },
+    can_edit: true,
+  };
+  savedSettings: unknown[] = [];
   nextSuggestion: Record<string, unknown> = {
     suggestion: "INSERT",
     suggestion_reason: "Insertarlo después de la parada 2: suma unos 6 min de recorrido.",
@@ -112,6 +123,19 @@ export class FakeApi {
       };
       this.secondAttempts.unshift(req);
       return json(201, { second_attempt: req });
+    }
+    if (path === "/notifications") return json(200, { notifications: this.notifications, unread: this.unread });
+    if (path === "/notifications/seen") {
+      this.seenCalls += 1;
+      this.unread = 0;
+      return json(200, { unread: 0 });
+    }
+    if (path === "/settings" && (init?.method ?? "GET") === "GET") return json(200, this.settings);
+    if (path === "/settings" && init?.method === "PUT") {
+      const body = JSON.parse(String(init.body));
+      this.savedSettings.push(body);
+      this.settings = { ...body, can_edit: true };
+      return json(200, this.settings);
     }
     if (path === "/reports" || path === "/reports/export") {
       this.reportQueries.push(url.search);

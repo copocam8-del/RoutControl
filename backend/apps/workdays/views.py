@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.alerts import services as alerts
 from apps.audit import services as audit
 from apps.audit.models import AuditLog
 from apps.drivers.models import Device, DriverProfile
@@ -146,6 +147,7 @@ class StartWorkdayView(APIView):
             return _conflict("id_conflict", "El dispositivo o la jornada ya existen. Generá un identificador nuevo.")
 
         raw, token = tracking.issue_tracking_token(workday)
+        alerts.workday_started(workday)
         return Response(self._payload(workday, raw, token), status=status.HTTP_201_CREATED)
 
     @staticmethod
@@ -189,6 +191,7 @@ class EndWorkdayView(APIView):
         workday.save()
         tracking.close_tracking_tokens(workday)
         tracking.recompute_gaps(workday)
+        alerts.workday_ended(workday)
         return Response({"workday": workday_payload(workday)})
 
 
