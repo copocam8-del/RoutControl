@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#070B1F" />
+    <script>
+      // Apariencia (ADR-007 v3): se aplica antes de pintar, así no hay un destello del otro tema.
+      try {
+        var t = localStorage.getItem("rc-theme:last");
+        document.documentElement.dataset.theme = t === "light" || t === "auto" ? t : "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>__APP_NAME__</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

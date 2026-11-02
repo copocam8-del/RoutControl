@@ -1,6 +1,6 @@
 # RouteControl — Paso 1: Análisis y planificación
 
-**Versión:** 0.5 (borrador para revisión)
+**Versión:** 0.5.3 (borrador para revisión)
 **Fecha:** 31/10/2026
 **Estado:** pendiente de aprobación final. Es la **única fuente de verdad** del proyecto: cualquier otro documento de planificación queda reemplazado por este.
 
@@ -9,6 +9,9 @@
 |---|---|
 | 0.1 | Primera propuesta (app móvil con React Native/Expo). |
 | 0.2 | Decisiones del cliente: SaaS multitenant desde el inicio; app del repartidor como PWA. Análisis de limitaciones reales de las PWA. |
+| 0.5.3 | **Mapas (ADR-008):** OpenStreetMap autoalojado en PMTiles desde nuestro origen (§5.5); "Navegar" abre Google Maps o Waze con enlaces externos; la optimización de ruta con OSRM y VROOM autoalojados pasa de la etapa 2 a la etapa 1. |
+| 0.5.2 | §10.1: **tema oscuro de las maquetas aprobadas** (`docs/diseno/`), con violeta `#7C5CFF` para las acciones principales y Plus Jakarta Sans. Reemplaza a la 0.5.1. Ver ADR-007 v2. |
+| 0.5.1 | §10.1: paleta azul (principal) y violeta (acento), en lugar del ámbar. Ver ADR-007. |
 | 0.5 | **Primero la PWA, sin tiendas.** Se desarrolla y se lanza RouteControl como PWA para no depender de Google Play ni App Store al principio. La app nativa con Capacitor (y la subida a las tiendas) pasa a una etapa posterior. Mientras tanto el GPS funciona dentro de los límites de la PWA (§4). La etapa 0 pasa a ser la validación de la PWA en teléfonos reales: no requiere Mac ni cuentas de las tiendas. |
 | 0.4 | **La PWA es provisoria.** El destino final de la app del repartidor son Google Play y App Store. La PWA solo se usa mientras se esperan las aprobaciones de las tiendas, y después deja de ser el canal de los repartidores. Se agregó el plan de lanzamiento (§14.1). |
 | 0.3 | **El recorrido GPS continuo es obligatorio.** La app del repartidor pasa a ser **PWA + Capacitor**: un único código React que se publica como PWA y como app nativa de Android e iOS con ubicación en segundo plano. Backend Django sin cambios. La etapa 0 pasa a ser la **prueba de concepto de GPS continuo** en dispositivos reales. Se descartan Expo/React Native y NestJS/Prisma. |
@@ -63,7 +66,7 @@ Descartados: Expo/React Native (código separado del panel, contradice D2) y Nes
 | Cronómetro (por marcas de tiempo) | Escaneo nativo y web | **GPS continuo en segundo plano** (permisos, batería, fabricantes Android) |
 | Llamadas, WhatsApp, navegación externa | Fotos offline con cola de subida | Motor de sincronización e idempotencia |
 | Dashboard básico | Push nativo y web | **Aprobación en Google Play y App Store** por ubicación en segundo plano |
-| Auditoría | Geocodificación de direcciones argentinas | Mapa offline; optimización de recorrido (etapa 2) |
+| Auditoría | Geocodificación de direcciones argentinas | Mapa offline; optimización de recorrido (etapa 1, OSRM + VROOM) |
 
 ---
 
@@ -199,7 +202,12 @@ Prueba parametrizada sobre **todos** los endpoints con un usuario de otra empres
 Criterios de elección: puntos recibidos en una jornada real con la pantalla bloqueada (en Android de gama media/baja y en iPhone), consumo de batería, huecos, precisión, esfuerzo de integración y costo. Todo plugin se usa detrás de la interfaz `DeviceServices.location`, para poder cambiarlo.
 
 ### 5.5 Mapa y modo offline
-MapLibre GL JS en todas las interfaces. Antes de salir (o con Wi-Fi) se guardan las teselas de la zona de los paquetes asignados, **solo si el proveedor lo autoriza**; la opción más segura es autoalojar teselas de OpenStreetMap en formato PMTiles. Los pines y los datos se dibujan desde el almacenamiento local. Las rutas calculadas en línea requieren conexión.
+> Decidido el 01/11/2026 (ADR-008).
+
+- **Mapa:** MapLibre GL JS en todas las interfaces, con **OpenStreetMap servido desde nuestro propio origen**: teselas en PMTiles, fuentes, íconos y el worker de MapLibre. No depende de otros dominios: no lo frenan los bloqueadores y puede funcionar sin conexión. La etapa 0 cubre la zona AMBA.
+- **Sin conexión (etapa 1):** antes de salir, o con Wi-Fi, se guardan en el teléfono las teselas de la zona de los paquetes asignados. Los pines y los datos se dibujan desde el almacenamiento local.
+- **Navegar:** el botón abre **Google Maps o Waze** con la dirección, mediante enlaces externos y sin API de Google.
+- **Armar mi ruta (etapa 1):** optimización del orden de las paradas con **VROOM** y ruteo con **OSRM**, los dos autoalojados. Calcular la ruta requiere conexión; la ruta calculada queda guardada en el teléfono.
 
 ### 5.6 Autenticación
 - Email y contraseña (Argon2), recuperación por email, invitaciones, elección de empresa.
@@ -220,7 +228,8 @@ MapLibre GL JS en todas las interfaces. Antes de salir (o con Wi-Fi) se guardan 
 | **Apple Developer Program** | Instalar en iPhone real, TestFlight, App Store, APNs | USD 99/año | Cuenta (a nombre de la empresa, idealmente) |
 | **Google Play Console** | Publicar en Android y pruebas internas | USD 25, pago único | Cuenta |
 | **Firebase (FCM)** | Push en Android (y opcionalmente en iOS) | Gratis | Proyecto de Firebase |
-| Teselas de mapa | Mapa (también offline) | PMTiles de OSM autoalojado · MapTiler / Stadia · Google | Elegir |
+| Teselas de mapa | Mapa (también offline) | **PMTiles de OSM autoalojado** (decidido, ADR-008) | Hosting para el archivo (estático, con rangos) |
+| Ruteo y optimización | "Armar mi ruta" (etapa 1) | **OSRM + VROOM autoalojados** (decidido, ADR-008) | Un servidor con los datos de OSM de la región |
 | Geocodificación | Dirección → coordenadas | Georef (API gratuita del Estado argentino) + respaldo comercial | Cuenta del respaldo |
 | Almacenamiento | Fotos e importaciones | AWS S3 · Cloudflare R2 · MinIO (desarrollo) | Cuenta |
 | Web Push | PWA y panel | VAPID propio | Nada |
@@ -351,23 +360,50 @@ Siempre en el backend, después del filtro por empresa.
 ## 10. Experiencia de usuario y diseño visual
 
 ### 10.1 Tokens visuales
-| Token | Valor | Uso |
-|---|---|---|
-| Navy 900 | `#0B1F3A` | Marca, barra lateral |
-| Navy 700 | `#16335C` | Estados activos |
-| Grafito | `#2B2F36` | Texto principal |
-| Gris 500 | `#6B7280` | Texto secundario |
-| Gris 100 | `#F3F4F6` | Fondos |
-| Blanco | `#FFFFFF` | Tarjetas |
-| Acento | `#F59E0B` | Acción principal |
-| Estados | `#16A34A` · `#EAB308` · `#DC2626` · `#9CA3AF` | Estados e indicador de domicilio |
+> Actualizado el 01/11/2026 (v0.5.2, ADR-007 v2): **tema oscuro de las maquetas aprobadas por el cliente** (`docs/diseno/`, que son la especificación visual obligatoria). Reemplaza la paleta clara de la v0.5.1.
+>
+> La fuente de verdad es `packages/ui/src/tokens.ts`. Las pruebas verifican:
+> - el contraste de cada par: WCAG AA como mínimo, y 7:1 en el texto principal y secundario;
+> - que estén todos los colores del README de las maquetas.
 
-Tipografía Inter, con números tabulares.
+| Token | Valor | Uso | Contraste |
+|---|---|---|---|
+| Fondo | `#070B1F` | Fondo de las pantallas | Texto principal encima: 17,9:1 |
+| Superficie | `#11183A` | Tarjetas, campos, barra inferior | Texto secundario encima: 7,9:1 |
+| Superficie 2 | `#1A2350` | Chips, botones secundarios, avatares | — |
+| Barra lateral / mapa | `#0B1130` / `#0C1230` | Panel / fondo del mapa | — |
+| Bordes | `#1F2860`, `#2A3470` | Tarjetas y separadores (decorativos) | — |
+| Borde de campos | `#5A67B0` | Contorno de los campos de formulario | 3,3:1 sobre la tarjeta (≥ 3:1) |
+| Texto principal | `#F3F5FF` | Títulos, cifras | 17,9:1 |
+| Texto secundario fuerte | `#D5DBF7` | Etiquetas | 12,6:1 sobre la tarjeta |
+| Texto secundario | `#A3AED6` | Detalles | 8,9:1 sobre el fondo |
+| **Acción principal** | violeta `#7C5CFF` (presionado y botones chicos: `#6B4BF0`) | Botones principales, foco | Blanco: 4,3:1 (texto grande, ≥ 19 px en negrita); 5,4:1 en `#6B4BF0` |
+| Acentos | violeta claro `#A78BFA` / `#C4B5FD`; azul `#4D8DFF` / `#7FB0FF` | Enlaces, ítem activo, etiquetas | 7,2:1 / 9,4:1 / — / 7,9:1 |
+| Marca | `linear-gradient(140deg, #4D8DFF, #7C5CFF)` | Solo logo, avatares y tarjeta destacada | — |
+| Éxito | `#34D399` / texto `#6EE7B7` | Registrando, conectado, permitido | 11,3:1 |
+| Atención | `#FBBF24` / texto `#FCD34D` | Sin señal, en pausa, pendientes | 12,0:1 |
+| Sin datos (huecos) | `#FB923C` / texto `#FDBA74` | Huecos en el mapa y en los resúmenes | 8,1:1 sobre el mapa |
+| Error | `#F87171` / texto `#FCA5A5` | Errores (no está en las maquetas, ADR-007) | 9,1:1 |
+| Recorrido en el mapa | `#8B5CF6` | Tramos registrados | 4,3:1 sobre el mapa (gráfico: ≥ 3:1) |
+
+**Tipografía y forma:**
+- **Fuente:** Plus Jakarta Sans de 400 a 800, empaquetada con la app para que funcione sin conexión. Los cronómetros y las cifras usan números tabulares.
+- **Tamaños:** el texto base es de 15 a 16 px. Los campos usan 17 px para que iOS no haga zoom al enfocarlos.
+- **Radios:** 16 px en los campos, 18 px en los botones y las tarjetas chicas, y 24 px en las tarjetas grandes y la barra inferior.
+- **Alturas:** 60 a 64 px en la acción principal; 56 px en los campos y los botones secundarios.
+
+**Animaciones:**
+- bienvenida de unos 2 s: el logo, la ruta que se dibuja, el nombre y el lema;
+- entrada suave del login;
+- pulso del botón "Iniciar jornada";
+- punto "en vivo" mientras se registra el recorrido.
+
+Con "reducir movimiento" (`prefers-reduced-motion`) no hay animaciones.
 
 ### 10.2 App para usar en la calle
 - Botones principales de al menos 56 px en la zona del pulgar; texto de 16 px como mínimo; alto contraste.
 - Flujo de visita en 3 toques.
-- Estado del GPS ("Registrando recorrido" / "GPS detenido: tocá para revisar") y de la sincronización siempre visibles.
+- Estado del GPS ("Registrando recorrido", "Recorrido en pausa", "Ubicación bloqueada") y de la sincronización siempre visibles, como pastillas en el encabezado.
 - **Pantalla de diagnóstico** en Perfil: permisos, optimización de batería, puntos pendientes de envío, última sincronización. Sirve para soporte.
 
 ### 10.3 Panel
@@ -481,10 +517,11 @@ Herramientas: pnpm workspaces, Docker Compose, pytest + factory_boy, Vitest, Pla
 ### Etapa 1 — Fundaciones completas + MVP
 1. Completar autenticación, invitaciones, roles y permisos; OpenAPI y cliente TS; paquete `domain`; esqueleto del panel; PWA del repartidor (misma app, implementación web de `DeviceServices`).
 2. **Panel:** usuarios → repartidores → paquetes (ABM + importación con mapeo de columnas) → asignación → dashboard → mapa en vivo → visitas, incidencias e historial.
-3. **App:** paquetes → escaneo → mapa (caché de zona) → ficha → visita con cronómetro → resultado → fotos → llamadas, WhatsApp y navegación externa.
-4. Sincronización completa, notificaciones (in-app, tiempo real, push nativo y web).
-5. **Lanzamiento como PWA** para las primeras empresas (§14.1, fase 1).
-6. Pruebas de punta a punta con dos empresas en paralelo.
+3. **App:** paquetes → escaneo → mapa (caché de zona) → ficha → visita con cronómetro → resultado → fotos → llamadas, WhatsApp y "Navegar" (enlaces a Google Maps o Waze).
+4. **"Armar mi ruta":** optimización del orden de las paradas con VROOM y ruteo con OSRM, autoalojados (antes estaba en la etapa 2; ADR-008).
+5. Sincronización completa, notificaciones (in-app, tiempo real, push nativo y web).
+6. **Lanzamiento como PWA** para las primeras empresas (§14.1, fase 1).
+7. Pruebas de punta a punta con dos empresas en paralelo.
 
 ### 14.1 Plan de lanzamiento de la app del repartidor
 
@@ -499,7 +536,7 @@ Herramientas: pnpm workspaces, Docker Compose, pytest + factory_boy, Vitest, Pla
 - Antes de la fase 2 hay que resolver las cuentas de las tiendas (§15.2).
 
 ### Etapa 2 — Funciones avanzadas + operación SaaS
-Historial e indicador de domicilios, optimización de recorrido, segundo intento, informes con exportación, alertas configurables, cierre automático de recorrido, actualizaciones del código web dentro de la app, registro autogestionado de empresas, límites por plan, exportación y baja de empresa.
+Historial e indicador de domicilios, segundo intento, informes con exportación, alertas configurables, cierre automático de recorrido, actualizaciones del código web dentro de la app, registro autogestionado de empresas, límites por plan, exportación y baja de empresa.
 
 ### Etapa 3 — Integraciones
 Plataformas logísticas con API oficial, VoIP, WhatsApp Business, ruteo con tránsito, analítica avanzada, cobro de suscripciones.
@@ -533,7 +570,7 @@ Mientras RouteControl sea PWA **no hace falta ninguna cuenta de las tiendas**.
 
 ### 15.3 Pendientes
 1. **CLB Developers:** ¿es una sociedad registrada? ¿Tiene sitio web y email con dominio propio?
-2. **Teselas de mapa:** ¿aprobás PMTiles de OSM autoalojado?
+2. ~~**Teselas de mapa:** ¿aprobás PMTiles de OSM autoalojado?~~ Aprobado el 01/11/2026 (ADR-008).
 3. **Dominio y hosting.**
 4. **Archivo de importación de ejemplo** y **etiquetas reales** para probar el escaneo.
 5. **Repositorio de GitHub.**

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mi recorrido</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+@keyframes rcTrace{0%{stroke-dashoffset:900}100%{stroke-dashoffset:0}}
+.rc-trace{stroke-dasharray:900;animation:rcTrace 2.4s ease-out both}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #070B1F; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #F3F5FF; display: flex; flex-direction: column">
+<header style="padding: 56px 20px 14px; display: flex; align-items: center; gap: 12px">
+<a href="Jornada.dc.html" aria-label="Volver" style="width: 44px; height: 44px; border-radius: 14px; background: #11183A; border: 1px solid #2A3470; color: #F3F5FF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="m11 6-6 6 6 6"></path></svg></a>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="font-size: 20px; font-weight: 800">Mi recorrido</div>
+<div style="font-size: 13px; color: #A3AED6">Domingo 1 de noviembre · 08:12 a 16:40</div>
+</div>
+</header>
+<div style="margin: 0 16px; height: 360px; border-radius: 24px; overflow: hidden; position: relative; background: #0C1230; border: 1px solid #1F2860">
+<svg width="358" height="360" viewBox="0 0 358 360" role="img" aria-label="Mapa del recorrido: un tramo continuo en violeta y un hueco sin datos marcado en naranja punteado" style="display: block">
+<rect width="358" height="360" fill="#0C1230"></rect>
+<path d="M-10 250 C 80 230, 140 290, 368 240" stroke="#13306B" stroke-width="22" fill="none"></path>
+<g stroke="#1B2452" stroke-width="10" fill="none">
+<path d="M0 60 H358"></path><path d="M0 140 H358"></path><path d="M0 320 H358"></path>
+<path d="M60 0 V360"></path><path d="M150 0 V360"></path><path d="M250 0 V360"></path><path d="M320 0 V360"></path>
+<path d="M0 0 L358 300"></path>
+</g>
+<g stroke="#161E46" stroke-width="4" fill="none">
+<path d="M0 100 H358"></path><path d="M0 190 H358"></path><path d="M105 0 V360"></path><path d="M200 0 V360"></path><path d="M290 0 V360"></path>
+</g>
+<path class="rc-trace" d="M60 320 L60 190 L105 190 L105 140 L150 140 L150 100 L200 100" stroke="#8B5CF6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+<path d="M200 100 L250 60" stroke="#FB923C" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 10" fill="none"></path>
+<path class="rc-trace" d="M250 60 L320 60 L320 140 L290 140 L290 190" stroke="#8B5CF6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+<circle cx="60" cy="320" r="10" fill="#34D399" stroke="#0C1230" stroke-width="4"></circle>
+<circle cx="290" cy="190" r="10" fill="#FFFFFF" stroke="#7C5CFF" stroke-width="5"></circle>
+</svg>
+<div style="position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: rgba(7,11,31,.85); font-size: 12px; font-weight: 600; color: #D5DBF7"><span style="width: 14px; height: 4px; border-radius: 2px; background: #8B5CF6"></span>Recorrido</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: rgba(7,11,31,.85); font-size: 12px; font-weight: 600; color: #D5DBF7"><span style="width: 14px; height: 0; border-top: 3px dotted #FB923C"></span>Sin datos</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: rgba(7,11,31,.85); font-size: 12px; font-weight: 600; color: #D5DBF7"><span style="width: 9px; height: 9px; border-radius: 50%; background: #34D399"></span>Inicio</span>
+</div>
+</div>
+<main style="flex-grow: 1; padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="padding: 14px 16px; border-radius: 18px; background: #11183A; border: 1px solid #1F2860; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #A3AED6">Duración</span><span style="font-size: 22px; font-weight: 800">8 h 28 min</span></div>
+<div style="padding: 14px 16px; border-radius: 18px; background: #11183A; border: 1px solid #1F2860; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px; color: #A3AED6">Distancia</span><span style="font-size: 22px; font-weight: 800">42,6 km</span></div>
+</div>
+<section style="padding: 16px; border-radius: 18px; background: rgba(251,146,60,.10); border: 1px solid rgba(251,146,60,.35); display: flex; gap: 14px; align-items: flex-start">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: rgba(251,146,60,.18); color: #FDBA74; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5"></path><path d="M12 16h.01"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 15px; font-weight: 700">1 tramo sin datos · 11:20 a 11:45</div>
+<div style="font-size: 13px; line-height: 1.5; color: #D5DBF7">La pantalla estuvo bloqueada. En la app web el GPS se pausa en ese caso; la app de las tiendas lo va a registrar completo.</div>
+</div>
+</section>
+<a href="Inicio.dc.html" style="margin-top: auto; height: 56px; border-radius: 18px; background: #1A2350; border: 1px solid #2A3470; color: #F3F5FF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Volver al inicio</a>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

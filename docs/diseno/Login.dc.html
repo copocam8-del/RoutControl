@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ingresar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+@keyframes rcIn{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
+.rc-in{animation:rcIn .6s ease-out both}
+input::placeholder{color:#7F8AB8}
+input:focus{outline:none;border-color:#7C5CFF !important;box-shadow:0 0 0 4px rgba(124,92,255,.28)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #070B1F; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #F3F5FF; padding: 72px 24px 32px; display: flex; flex-direction: column; gap: 28px">
+<div aria-hidden="true" style="position: absolute; width: 360px; height: 360px; right: -160px; top: -140px; border-radius: 50%; background: radial-gradient(closest-side, rgba(124,92,255,.40), rgba(7,11,31,0))"></div>
+<div class="rc-in" style="position: relative; display: flex; align-items: center; gap: 12px">
+<div style="width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(140deg, #4D8DFF 0%, #7C5CFF 100%); display: flex; align-items: center; justify-content: center">
+<svg width="26" height="26" viewBox="0 0 60 60" fill="none" aria-hidden="true"><path d="M14 44 C 14 30, 30 34, 30 24 S 44 16, 46 14" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"></path><circle cx="14" cy="44" r="7" fill="#FFFFFF"></circle><circle cx="46" cy="14" r="8" fill="#070B1F" stroke="#FFFFFF" stroke-width="5"></circle></svg>
+</div>
+<div style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em">Route<span style="color: #A78BFA">Control</span></div>
+</div>
+<div class="rc-in" style="position: relative; display: flex; flex-direction: column; gap: 8px; animation-delay: .08s">
+<h1 style="margin: 0; font-size: 32px; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em">Hola de nuevo</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #A3AED6">Ingresá con tu cuenta para empezar tu jornada.</p>
+</div>
+<form class="rc-in" style="position: relative; display: flex; flex-direction: column; gap: 18px; animation-delay: .16s">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="email" style="font-size: 14px; font-weight: 600; color: #D5DBF7">Email</label>
+<div style="position: relative">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A3AED6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 16px; top: 18px"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="m4 7 8 6 8-6"></path></svg>
+<input id="email" type="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nombre@empresa.com" value="repartidor1@norte.demo" style="width: 100%; box-sizing: border-box; height: 56px; border-radius: 16px; border: 1.5px solid #2A3470; background: #11183A; color: #F3F5FF; font-family: inherit; font-size: 17px; padding: 0 16px 0 48px">
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="pass" style="font-size: 14px; font-weight: 600; color: #D5DBF7">Contraseña</label>
+<div style="position: relative">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A3AED6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 16px; top: 18px"><rect x="4" y="10" width="16" height="11" rx="3"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+<input id="pass" type="{{passType}}" autocapitalize="off" autocorrect="off" spellcheck="false" value="routcontrol-demo" style="width: 100%; box-sizing: border-box; height: 56px; border-radius: 16px; border: 1.5px solid #2A3470; background: #11183A; color: #F3F5FF; font-family: inherit; font-size: 17px; padding: 0 64px 0 48px">
+<button type="button" onClick="{{toggle}}" aria-label="{{toggleLabel}}" style="position: absolute; right: 6px; top: 6px; width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: #A3AED6; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<sc-if value="{{hidden}}" hint-placeholder-val="{{ true }}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</sc-if>
+<sc-if value="{{shown}}" hint-placeholder-val="{{ false }}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6"></path></svg>
+</sc-if>
+</button>
+</div>
+</div>
+<a href="Login.dc.html" style="align-self: flex-end; font-size: 14px; font-weight: 600; padding: 6px 0">¿Olvidaste tu contraseña?</a>
+</form>
+<div style="flex-grow: 1"></div>
+<div class="rc-in" style="position: relative; display: flex; flex-direction: column; gap: 16px; animation-delay: .24s">
+<a href="Inicio.dc.html" style="height: 60px; border-radius: 18px; background: #7C5CFF; color: #FFFFFF; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; box-shadow: 0 12px 32px rgba(124,92,255,.40)">Ingresar
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+</a>
+<div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: #A3AED6">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path></svg>
+Tu ubicación solo se registra durante tu jornada.
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { show: false };
+}
+renderVals() {
+const show = this.state.show;
+return {
+passType: show ? 'text' : 'password',
+hidden: !show,
+shown: show,
+toggleLabel: show ? 'Ocultar contraseña' : 'Mostrar contraseña',
+toggle: () => this.setState({ show: !show })
+};
+}
+}
+</script>
+</body>
+</html>
