@@ -25,12 +25,19 @@ import type { WorkdayState } from "../tracking/workdayController";
 import { ConsentDialog } from "./ConsentDialog";
 import { useApp, useNow, useStore } from "./hooks";
 import { LocationHelp } from "./LocationHelp";
+import { ContactActions } from "./PackagesScreen";
 import { SyncChip } from "./SyncIndicator";
 
 const CONSENT_KEY = "consent-accepted-v1";
 
 /** Inicio: sin jornada (Inicio.dc.html) o con la jornada en curso (Jornada.dc.html). */
-export function HomeScreen({ onShowTrack }: { onShowTrack(workdayId: string): void }) {
+export function HomeScreen({
+  onShowTrack,
+  onOpenPackage = () => {},
+}: {
+  onShowTrack(workdayId: string): void;
+  onOpenPackage?(packageId: string): void;
+}) {
   const app = useApp();
   const session = useStore(app.session);
   const wd = useStore(app.workday);
@@ -82,7 +89,7 @@ export function HomeScreen({ onShowTrack }: { onShowTrack(workdayId: string): vo
   return (
     <>
       {active && wd.workday ? (
-        <WorkdayView wd={wd} notices={notices} onShowTrack={() => onShowTrack(wd.workday!.id)} />
+        <WorkdayView wd={wd} notices={notices} onShowTrack={() => onShowTrack(wd.workday!.id)} onOpenPackage={onOpenPackage} />
       ) : (
         <IdleView wd={wd} notices={notices} onStart={start} onShowHelp={() => setShowHelp(true)} />
       )}
@@ -234,8 +241,30 @@ const GPS_CHIP: Record<WorkdayState["gps"], { tone: "ok" | "warn" | "error" | "n
   off: { tone: "neutral", text: "GPS apagado" },
 };
 
-function WorkdayView({ wd, notices, onShowTrack }: { wd: WorkdayState; notices: React.ReactNode; onShowTrack(): void }) {
+function WorkdayView({
+  wd,
+  notices,
+  onShowTrack,
+  onOpenPackage,
+}: {
+  wd: WorkdayState;
+  notices: React.ReactNode;
+  onShowTrack(): void;
+  onOpenPackage(packageId: string): void;
+}) {
   const app = useApp();
+  const deliveries = useStore(app.deliveries);
+  const packages = deliveries.packages;
+  const delivered = packages.filter((p) => p.status === "DELIVERED").length;
+  const failed = packages.filter((p) => p.status === "FAILED" || p.status === "RESCHEDULED").length;
+  const pendingList = packages.filter((p) => p.status === "ASSIGNED" || p.status === "IN_ROUTE");
+  // Próxima parada: la visita en curso, si hay; si no, el primer pendiente (en camino primero).
+  const next =
+    packages.find((p) => p.id === deliveries.activeVisit?.package_id) ??
+    pendingList.find((p) => p.status === "IN_ROUTE") ??
+    pendingList[0] ??
+    null;
+  const pct = packages.length ? Math.round((delivered / packages.length) * 100) : 0;
   const sync = useStore(app.sender);
   const now = useNow();
   const workday = wd.workday!;
@@ -262,9 +291,33 @@ function WorkdayView({ wd, notices, onShowTrack }: { wd: WorkdayState; notices: 
             <span className="clock__time">{formatTime(workday.started_at)}</span>
           </div>
         </div>
+        {packages.length ? (
+          <div className="progress">
+            <div className="progress__label">
+              <span>
+                {delivered} de {packages.length} entregados
+              </span>
+              <span className="progress__pct">{pct}%</span>
+            </div>
+            <div className="progress__bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Avance de entregas">
+              <div style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <div className="screen-body">
+        {packages.length ? (
+          <Stats
+            label="Entregas de hoy"
+            valueFirst
+            items={[
+              { label: "Entregados", value: delivered, tone: "ok" },
+              { label: "Pendientes", value: pendingList.length },
+              { label: "No entregados", value: failed, tone: failed ? "warn" : undefined },
+            ]}
+          />
+        ) : null}
         <Stats
           label="Estado del registro"
           valueFirst
@@ -276,6 +329,28 @@ function WorkdayView({ wd, notices, onShowTrack }: { wd: WorkdayState; notices: 
         />
 
         {notices}
+
+        {next ? (
+          <section className="stop-card stop-card--next" aria-label="Próxima parada">
+            <div className="stop-card__head">
+              <span className="rc-eyebrow">{deliveries.activeVisit ? "Visita en curso" : "Próxima parada"}</span>
+              <span className="rc-muted">{pendingList.length} pendientes</span>
+            </div>
+            <button type="button" className="stop-card__who stop-card__open" onClick={() => onOpenPackage(next.id)}>
+              <span className="stop-card__icon" aria-hidden="true">
+                <IconPin size={22} />
+              </span>
+              <span>
+                <span className="stop-card__address">{next.address.raw_text}</span>
+                <span className="rc-muted stop-card__line">{[next.recipient_name, next.tracking_code].filter(Boolean).join(" · ")}</span>
+              </span>
+            </button>
+            <ContactActions pkg={next} />
+            <Button size="lg" block onClick={() => onOpenPackage(next.id)}>
+              {deliveries.activeVisit?.package_id === next.id ? "Seguir con la visita" : "Llegué: iniciar visita"}
+            </Button>
+          </section>
+        ) : null}
 
         <section className="workday-card" aria-label="Tu recorrido">
           <div className="workday-card__head">

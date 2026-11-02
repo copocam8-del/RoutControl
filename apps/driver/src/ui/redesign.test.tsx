@@ -93,17 +93,17 @@ async function loggedIn() {
 }
 
 describe("solo lo que existe en la etapa 0", () => {
-  it("la barra inferior tiene Inicio, Recorridos y Perfil (sin Paquetes)", async () => {
+  it("la barra inferior tiene Inicio, Paquetes, Recorridos y Perfil (como la maqueta)", async () => {
     const { app } = await loggedIn();
     const nav = screen.getByRole("navigation", { name: "Navegación principal" });
     const names = [...nav.querySelectorAll("button")].map((b) => b.textContent);
-    expect(names).toEqual(["Inicio", "Recorridos", "Perfil"]);
+    expect(names).toEqual(["Inicio", "Paquetes", "Recorridos", "Perfil"]);
     expect(screen.getByRole("button", { name: "Inicio" }).getAttribute("aria-current")).toBe("page");
     app.workday.dispose();
   });
 
-  it.each(["Paquetes", "Notificaciones", "Llamar", "WhatsApp", "Navegar", /Olvidaste/, /paquetes asignados/, /Próxima parada/, /Mapa de tu zona/])(
-    "no hay '%s' (llega en la etapa 1)",
+  it.each(["Notificaciones", "Llamar", "WhatsApp", "Navegar", /Olvidaste/, /paquetes asignados/, /Próxima parada/, /Mapa de tu zona/])(
+    "sin paquetes asignados no aparece '%s' (y las notificaciones todavía no existen)",
     async (text) => {
       const { app, user } = await loggedIn();
       await user.click(screen.getByRole("button", { name: "Iniciar jornada" }));

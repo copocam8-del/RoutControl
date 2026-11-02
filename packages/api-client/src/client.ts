@@ -37,6 +37,10 @@ import {
   type ImportJob,
   importPreview,
   type ImportPreview,
+  packageVisits,
+  visitCreated,
+  type VisitOutcome,
+  type VisitRecord,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -252,6 +256,54 @@ export class ApiClient {
     return (await this.authed(`/imports/${id}/confirm`, { method: "POST", body: { mapping } }, importEnvelope)).import;
   }
 
+  // --- Entrega en la calle (etapa 1, ADR-013) ----------------------------------------------
+
+  /** Idempotente por `id` (generado en el teléfono): reenviar no duplica. */
+  async recordVisit(body: {
+    id: string;
+    package_id: string;
+    workday_id?: string | null;
+    started_at: string;
+    ended_at?: string | null;
+    outcome: VisitOutcome;
+    attribution?: "RECIPIENT" | "LOGISTIC" | "NONE" | null;
+    notes?: string;
+    start_location?: { lat: number; lng: number; accuracy?: number | null } | null;
+    end_location?: { lat: number; lng: number; accuracy?: number | null } | null;
+  }): Promise<{ visit: VisitRecord; package_status: string }> {
+    return this.authed("/visits", { method: "POST", body }, visitCreated);
+  }
+
+  async uploadEvidence(
+    meta: { id: string; package_id: string; visit_id?: string | null; captured_at: string; reason?: string; lat?: number | null; lng?: number | null },
+    photo: Blob,
+  ): Promise<void> {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(meta)) if (value !== undefined && value !== null) form.append(key, String(value));
+    const ext = photo.type === "image/png" ? "png" : photo.type === "image/webp" ? "webp" : "jpg";
+    form.append("file", photo, `${meta.id}.${ext}`);
+    await this.authed("/evidence", { method: "POST", body: form }, anything);
+  }
+
+  async recordCommunication(body: { id: string; package_id: string; channel: "PHONE" | "WHATSAPP"; started_at: string }): Promise<void> {
+    await this.authed("/communications", { method: "POST", body }, anything);
+  }
+
+  async packageVisits(packageId: string): Promise<VisitRecord[]> {
+    return (await this.authed(`/packages/${packageId}/visits`, { method: "GET" }, packageVisits)).visits;
+  }
+
+  /** La foto de una visita (la API exige la sesión: no hay URL pública). */
+  async evidencePhoto(evidenceId: string): Promise<Blob> {
+    if (!this.accessToken) await this.refresh();
+    let response = await this.raw(`/evidence/${evidenceId}/file`, { method: "GET" }, this.accessToken);
+    if (response.status === 401 && (await this.refresh())) {
+      response = await this.raw(`/evidence/${evidenceId}/file`, { method: "GET" }, this.accessToken);
+    }
+    if (!response.ok) throw new ApiError(response.status, await readJson(response));
+    return response.blob();
+  }
+
   workdayTrack(workdayId: string): Promise<WorkdayTrack> {
     return this.authed(`/workdays/${workdayId}/track`, { method: "GET" }, workdayTrack);
   }
@@ -271,7 +323,7 @@ export class ApiClient {
 
   // --- Interno --------------------------------------------------------------------------------
 
-  private async authed<T>(path: string, init: RequestInit_, schema: z.ZodType<T>): Promise<T> {
+  private async authed<T>(path: string, init: RequestInit_, schema: z.ZodType<T> | { parse(v: unknown): T }): Promise<T> {
     if (!this.accessToken) await this.refresh();
     let response = await this.raw(path, init, this.accessToken);
     if (response.status === 401 && (await this.refresh())) {
@@ -315,6 +367,9 @@ export class ApiClient {
     }
   }
 }
+
+/** Respuestas que no se validan (alcanza con que sean 2xx). */
+const anything = { parse: (value: unknown) => value };
 
 /** Respuestas de un intermediario (proxy, túnel) que no llegó al servidor. */
 const GATEWAY_ERRORS = new Set([502, 503, 504, 530]);

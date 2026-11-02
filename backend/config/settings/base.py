@@ -162,6 +162,11 @@ TRACKING = {
     "DEFAULT_GAP_THRESHOLD_SECONDS": 300,
 }
 
+# Fotos de las entregas (ADR-013). En desarrollo, en disco (backend/media, fuera de git); en
+# producción, un almacenamiento de objetos (S3/R2) configurado en el despliegue.
+MEDIA_ROOT = env("MEDIA_ROOT", str(BASE_DIR / "media"))
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
 # Celery (ADR-010): broker Redis; tareas periódicas con beat.
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", False)
