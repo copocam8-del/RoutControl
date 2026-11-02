@@ -17,7 +17,7 @@ Las ramas están **apiladas**: cada una sale de la anterior y su PR apunta a la 
 | [#8](https://github.com/copocam8-del/RoutControl/pull/8) | "Armar mi ruta" con OSRM + VROOM (recorte AMBA), orden editable | `etapa-1/ruta` | 015 | ✅ |
 | [#9](https://github.com/copocam8-del/RoutControl/pull/9) | Panel: paquetes (alta, importación, asignación), entregas e incidencias con fotos | `etapa-1/panel-paquetes` | 016 | ✅ |
 | [#10](https://github.com/copocam8-del/RoutControl/pull/10) | Panel: mapa en vivo por WebSocket | `etapa-1/mapa-en-vivo` | 017 | ✅ |
-| [#11](https://github.com/copocam8-del/RoutControl/pull/11) | App: mapa sin conexión de la zona de los paquetes | `etapa-1/mapa-sin-conexion` | 018 | ver el PR |
+| [#11](https://github.com/copocam8-del/RoutControl/pull/11) | App: mapa sin conexión de la zona de los paquetes | `etapa-1/mapa-sin-conexion` | 018 | ✅ |
 
 La parte 8 se partió en dos PR (#9 y #10) para que el mapa en vivo, que suma Channels y Redis, se revise aparte. Este resumen va en la rama de #11.
 
