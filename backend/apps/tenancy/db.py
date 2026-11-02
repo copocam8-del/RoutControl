@@ -123,6 +123,9 @@ def apply_tenant_security(using: str = "default") -> None:
         # Auditoría: solo se agrega (ADR-010). La aplicación no puede modificar ni borrar registros.
         "DO $$ BEGIN IF to_regclass('public.audit_auditlog') IS NOT NULL THEN "
         f"REVOKE UPDATE, DELETE, TRUNCATE ON audit_auditlog FROM {app_user}; END IF; END $$",
+        # Trazabilidad de paquetes: también solo se agrega.
+        "DO $$ BEGIN IF to_regclass('public.packages_packageevent') IS NOT NULL THEN "
+        f"REVOKE UPDATE, DELETE, TRUNCATE ON packages_packageevent FROM {app_user}; END IF; END $$",
     ]
 
     with transaction.atomic(using=using), connection.cursor() as cursor:

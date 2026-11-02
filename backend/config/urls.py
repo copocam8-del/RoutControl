@@ -6,6 +6,7 @@ api_v1 = [
     path("workdays/", include("apps.workdays.urls")),
     path("drivers/", include("apps.drivers.urls")),
     path("tracking/", include("apps.tracking.urls")),
+    path("packages/", include("apps.packages.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
 ]
 
