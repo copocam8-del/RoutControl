@@ -5,7 +5,7 @@
  * Qué se guarda: solo lo de la jornada actual (y lo que quede pendiente de enviar de la
  * anterior). El access token NUNCA se guarda acá: vive en memoria (ADR-005).
  */
-import type { LocationPoint } from "@routcontrol/domain";
+import type { DeliveryPackage, LocationPoint } from "@routcontrol/domain";
 import Dexie, { type Table } from "dexie";
 
 /** Un punto GPS esperando ser enviado. */
@@ -38,6 +38,26 @@ export interface LocalWorkday {
   end?: { ended_at: string; location: { lat: number; lng: number; accuracy: number } | null; sent: boolean };
 }
 
+/** Un paquete asignado, guardado para verlo sin conexión (la lista del servidor manda al volver). */
+export type LocalPackage = DeliveryPackage;
+
+/**
+ * Algo hecho en la calle esperando ser enviado (offline primero, ADR-013): una visita, su foto o
+ * una comunicación. El id es el de la entidad (generado en el teléfono): reenviar no duplica.
+ * Las fotos se guardan como bytes (ArrayBuffer + tipo), que IndexedDB guarda bien en todos los
+ * navegadores (Safari tuvo problemas con Blobs).
+ */
+export interface OutboxItem {
+  id: string;
+  kind: "visit" | "evidence" | "communication";
+  package_id: string;
+  queued_at: number;
+  body: Record<string, unknown>;
+  photo?: { data: ArrayBuffer; type: string };
+  /** El servidor lo rechazó por un motivo que reintentar no arregla. */
+  failed?: { status: number; detail: string };
+}
+
 export interface MetaRow {
   key: string;
   value: unknown;
@@ -55,6 +75,8 @@ export class DriverDB extends Dexie {
   workdays!: Table<LocalWorkday, string>;
   meta!: Table<MetaRow, string>;
   log!: Table<SyncLogRow, number>;
+  packages!: Table<LocalPackage, string>;
+  outbox!: Table<OutboxItem, string>;
 
   constructor(name = "routcontrol-driver") {
     super(name);
@@ -63,6 +85,11 @@ export class DriverDB extends Dexie {
       workdays: "id, status",
       meta: "key",
       log: "++id, at",
+    });
+    // Etapa 1: paquetes asignados (sin conexión) y cola de lo hecho en la calle.
+    this.version(2).stores({
+      packages: "id, status",
+      outbox: "id, queued_at, package_id, kind",
     });
   }
 }

@@ -7,6 +7,8 @@ import { createWebDeviceServices } from "./device/web";
 import { DriverDB } from "./store/db";
 import { BatchSender } from "./sync/batchSender";
 import { UpdateManager } from "./pwaUpdate";
+import { Deliveries } from "./delivery/deliveries";
+import { Outbox } from "./delivery/outbox";
 import { WorkdayController } from "./tracking/workdayController";
 
 export interface AppServices {
@@ -17,6 +19,10 @@ export interface AppServices {
   sender: BatchSender;
   session: SessionStore;
   workday: WorkdayController;
+  /** Lo hecho en la calle (visitas, fotos, comunicaciones), esperando ser enviado (ADR-013). */
+  outbox: Outbox;
+  /** "Mis paquetes" y la visita en curso. */
+  deliveries: Deliveries;
   /** Estado de la interfaz que dura lo que dura esta apertura de la app (no se guarda). */
   ui: { splashShown: boolean };
   /** Versiones nuevas de la PWA: solas sin jornada en curso, con aviso durante la jornada. */
@@ -34,6 +40,8 @@ export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "d
   const sender = new BatchSender({ db, api, batchSize: config.sync.batchSize, isOnline: () => device.network.online() });
   const session = new SessionStore(api);
   const workday = new WorkdayController({ db, api, device, sender, config });
+  const outbox = new Outbox(db, api);
+  const deliveries = new Deliveries({ db, api, outbox, device, workday });
   let interval: ReturnType<typeof setInterval> | null = null;
   // Con la jornada iniciándose, en curso o finalizándose, una recarga cortaría el seguimiento.
   const updates = new UpdateManager(() => !["starting", "active", "ending"].includes(workday.getState().phase));
@@ -47,19 +55,26 @@ export function createApp(overrides: Partial<Pick<AppServices, "db" | "api" | "d
     sender,
     session,
     workday,
+    outbox,
+    deliveries,
     ui: { splashShown: false },
     updates,
     async startAuthenticated() {
       await workday.resume();
+      void deliveries.load();
+      void outbox.refresh().then(() => outbox.flush());
       // Envío periódico mientras la app está abierta (§5.2).
       interval ??= setInterval(() => {
-        if (device.lifecycle.visible()) void workday.retryPending();
+        if (!device.lifecycle.visible()) return;
+        void workday.retryPending();
+        void outbox.flush();
       }, config.sync.periodicFlushMs);
     },
     stopAuthenticated() {
       if (interval) clearInterval(interval);
       interval = null;
       workday.dispose();
+      outbox.dispose();
     },
   };
 }

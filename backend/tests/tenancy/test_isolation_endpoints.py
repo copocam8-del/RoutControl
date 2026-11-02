@@ -282,3 +282,83 @@ def test_confirm_of_another_org_is_404_and_creates_nothing(org_a, org_b, import_
     )
     assert r.status_code == 404
     assert client_for(org_a.owner, org_a.org).get("/api/v1/packages/").json()["packages"] == []
+
+
+# --- Entrega en la calle (etapa 1) -------------------------------------------------------------
+
+
+@pytest.fixture
+def delivered_a(org_a, settings, tmp_path):
+    """Un paquete de A asignado a su repartidor, con una visita y una foto."""
+    import uuid as _uuid
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    settings.MEDIA_ROOT = str(tmp_path)
+    pkg = client_for(org_a.owner, org_a.org).post(
+        "/api/v1/packages/",
+        {"tracking_code": "V-1", "address": {"raw_text": "Calle de A 5"}, "driver_id": _driver_of(org_a)},
+        format="json",
+    ).json()["package"]
+    visit_id = str(_uuid.uuid4())
+    driver = client_for(org_a.driver, org_a.org)
+    driver.post(
+        "/api/v1/visits",
+        {"id": visit_id, "package_id": pkg["id"], "started_at": iso(now_utc()), "outcome": "NO_ANSWER"},
+        format="json",
+    )
+    evidence_id = str(_uuid.uuid4())
+    driver.post(
+        "/api/v1/evidence",
+        {
+            "id": evidence_id,
+            "package_id": pkg["id"],
+            "visit_id": visit_id,
+            "captured_at": iso(now_utc()),
+            "file": SimpleUploadedFile("f.png", b"\x89PNG\r\n\x1a\nx", content_type="image/png"),
+        },
+        format="multipart",
+    )
+    return {"package": pkg, "visit_id": visit_id, "evidence_id": evidence_id}
+
+
+@covers("visit-create")
+def test_visit_cannot_target_a_package_of_another_org(org_a, org_b, delivered_a):
+    body = {"id": str(uuid.uuid4()), "package_id": delivered_a["package"]["id"], "started_at": iso(now_utc()), "outcome": "DELIVERED"}
+    assert client_for(org_b.driver, org_b.org).post("/api/v1/visits", body, format="json").status_code == 404
+    # Reusar el id de una visita de A desde B no la expone ni la pisa.
+    body["id"] = delivered_a["visit_id"]
+    assert client_for(org_b.driver, org_b.org).post("/api/v1/visits", body, format="json").status_code in (404, 409)
+
+
+@covers("evidence-create")
+def test_evidence_cannot_target_a_package_of_another_org(org_a, org_b, delivered_a):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    r = client_for(org_b.driver, org_b.org).post(
+        "/api/v1/evidence",
+        {
+            "id": str(uuid.uuid4()),
+            "package_id": delivered_a["package"]["id"],
+            "captured_at": iso(now_utc()),
+            "file": SimpleUploadedFile("f.png", b"\x89PNG\r\n\x1a\nx", content_type="image/png"),
+        },
+        format="multipart",
+    )
+    assert r.status_code == 404
+
+
+@covers("evidence-file")
+def test_photo_of_another_org_is_404(org_a, org_b, delivered_a):
+    assert client_for(org_b.owner, org_b.org).get(f"/api/v1/evidence/{delivered_a['evidence_id']}/file").status_code == 404
+
+
+@covers("communication-create")
+def test_communication_cannot_target_a_package_of_another_org(org_a, org_b, delivered_a):
+    body = {"id": str(uuid.uuid4()), "package_id": delivered_a["package"]["id"], "channel": "PHONE", "started_at": iso(now_utc())}
+    assert client_for(org_b.driver, org_b.org).post("/api/v1/communications", body, format="json").status_code == 404
+
+
+@covers("package-visits")
+def test_visits_of_another_org_are_404(org_a, org_b, delivered_a):
+    assert client_for(org_b.owner, org_b.org).get(f"/api/v1/packages/{delivered_a['package']['id']}/visits").status_code == 404

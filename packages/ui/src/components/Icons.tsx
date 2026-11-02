@@ -171,3 +171,37 @@ export const IconCalendar = (p: P) => (
     <path d="M16 3v4M8 3v4M3 10h18" />
   </Svg>
 );
+export const IconPackage = (p: P) => (
+  <Svg {...p}>
+    <path d="M21 8 12 3 3 8v8l9 5 9-5z" />
+    <path d="m3 8 9 5 9-5" />
+    <path d="M12 13v8" />
+  </Svg>
+);
+export const IconPhone = (p: P) => (
+  <Svg strokeWidth={2.2} {...p}>
+    <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+  </Svg>
+);
+export const IconWhatsApp = (p: P) => (
+  <Svg strokeWidth={2.2} {...p}>
+    <path d="M21 11.5a8.4 8.4 0 0 1-12.6 7.3L3 20l1.3-5A8.4 8.4 0 1 1 21 11.5Z" />
+  </Svg>
+);
+export const IconNavigate = (p: P) => (
+  <Svg strokeWidth={2.2} {...p}>
+    <path d="M3 11 21 3l-8 18-2-8z" />
+  </Svg>
+);
+export const IconCamera = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+    <circle cx="12" cy="13.5" r="3.5" />
+  </Svg>
+);
+export const IconSearch = (p: P) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </Svg>
+);

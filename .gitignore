@@ -25,3 +25,6 @@ Thumbs.db
 
 # Teselas del mapa: se generan con scripts/map/extract-region.mjs (ADR-008)
 map-data/*.pmtiles
+
+# Fotos de las entregas en desarrollo (ADR-013)
+backend/media/

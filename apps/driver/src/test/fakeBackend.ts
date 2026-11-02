@@ -46,6 +46,11 @@ export class FakeBackend {
   refreshCookie: string | null = null;
   accessTokens = new Set<string>();
   revokedTokens = new Set<string>();
+  /** Paquetes asignados al repartidor (GET /packages/). */
+  packages: Array<Record<string, any>> = [];
+  visits = new Map<string, Record<string, unknown>>();
+  evidence = new Map<string, Record<string, unknown>>();
+  communications = new Map<string, Record<string, unknown>>();
   /** POST /workdays/{id}/tracking-token responde 409 (gracia vencida), como el servidor real. */
   recoveryRefused = false;
   private counter = 0;
@@ -57,7 +62,12 @@ export class FakeBackend {
     const url = new URL(String(input), "http://localhost");
     const path = url.pathname.replace(/^\/api\/v1/, "");
     const headers = Object.fromEntries(Object.entries((init?.headers as Record<string, string>) ?? {}));
-    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    const body =
+      init?.body instanceof FormData
+        ? Object.fromEntries([...init.body.entries()].map(([k, v]) => [k, typeof v === "string" ? v : { size: (v as Blob).size, type: (v as Blob).type }]))
+        : init?.body
+          ? JSON.parse(String(init.body))
+          : undefined;
     this.calls.push({ method: init?.method ?? "GET", path, body, headers });
     if (!this.online) throw new TypeError("Failed to fetch");
     const failures = this.networkFailures.get(path) ?? 0;
@@ -102,6 +112,19 @@ export class FakeBackend {
     }
     const track = /^\/workdays\/([^/]+)\/track$/.exec(path);
     if (track && method === "GET") return this.track(track[1]!);
+    if (path === "/packages/" && method === "GET") return json(200, { packages: this.packages });
+    if (path === "/visits" && method === "POST") return this.visit(body);
+    if (path === "/evidence" && method === "POST") {
+      if (!this.visits.has(body.visit_id)) return json(409, { code: "visit_not_found", detail: "La visita de la foto no existe (todavía no llegó)." });
+      const created = !this.evidence.has(body.id);
+      this.evidence.set(body.id, body);
+      return json(created ? 201 : 200, { evidence: { id: body.id, upload_status: "UPLOADED", sha256: "x" } });
+    }
+    if (path === "/communications" && method === "POST") {
+      const created = !this.communications.has(body.id);
+      this.communications.set(body.id, body);
+      return json(created ? 201 : 200, { communication: { id: body.id } });
+    }
     const recover = /^\/workdays\/([^/]+)\/tracking-token$/.exec(path);
     if (recover && method === "POST") return this.recover(recover[1]!);
     const end = /^\/workdays\/([^/]+)\/end$/.exec(path);
@@ -183,6 +206,35 @@ export class FakeBackend {
       w.ended_at = body.ended_at;
     }
     return json(200, { workday: this.wire(w) });
+  }
+
+  private visit(body: Record<string, any>): Response {
+    const pkg = this.packages.find((p) => p.id === body.package_id);
+    if (!pkg) return json(404, { detail: "Paquete no encontrado." });
+    if (this.visits.has(body.id)) return json(200, { visit: this.visitWire(body), package_status: pkg.status });
+    if (!["ASSIGNED", "IN_ROUTE", "FAILED", "RESCHEDULED"].includes(pkg.status)) {
+      return json(409, { code: "not_visitable", detail: "El paquete no admite otra visita." });
+    }
+    this.visits.set(body.id, body);
+    pkg.status = body.outcome === "DELIVERED" ? "DELIVERED" : body.outcome === "RESCHEDULE_REQUESTED" ? "RESCHEDULED" : "FAILED";
+    return json(201, { visit: this.visitWire(body), package_status: pkg.status });
+  }
+
+  private visitWire(body: Record<string, any>) {
+    return {
+      id: body.id,
+      package_id: body.package_id,
+      driver: "Repartidor de prueba",
+      started_at: body.started_at,
+      ended_at: body.ended_at ?? null,
+      duration_s: null,
+      outcome: body.outcome,
+      outcome_attribution: "NONE",
+      notes: body.notes ?? "",
+      is_second_attempt: false,
+      end_location: null,
+      evidence: [],
+    };
   }
 
   private recover(id: string): Response {
