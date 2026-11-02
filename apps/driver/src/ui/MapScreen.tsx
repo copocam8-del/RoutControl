@@ -155,6 +155,12 @@ export function MapScreen({ onOpenPackage }: { onOpenPackage(id: string): void }
                   {STOP_STATE_LABEL[s]}
                 </li>
               ))}
+              {nextId ? (
+                <li className="map-chip map-chip--legend">
+                  <span className="map-legend__dot map-legend__dot--next" aria-hidden="true" />
+                  Próxima
+                </li>
+              ) : null}
               {reason === "no_workday" ? <li className="map-chip map-chip--legend">Tu ubicación se ve con la jornada iniciada</li> : null}
             </ul>
           )}

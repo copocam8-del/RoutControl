@@ -26,7 +26,7 @@ import { type ResolvedTheme, useTheme } from "../theme";
 import { color, lightColor } from "../tokens";
 import { classifyFailure, describeResource, errorDetails, type MapFailureKind, recordMapError } from "./diagnostics";
 import { offlineFirst, type TileHandler } from "./offline";
-import { stopElement, updateStopElement } from "./stopMarker";
+import { spreadOffsets, stopElement, updateStopElement } from "./stopMarker";
 import { absolute, buildStyle, DEFAULT_MAP_SOURCE, type MapSource } from "./style";
 
 export { DEFAULT_MAP_SOURCE, type MapSource } from "./style";
@@ -488,7 +488,30 @@ export function StopsMap({
         markers.current.delete(id);
       }
     }
+    spread();
   }, [ready, stops, selectedId, nextId, interactive, mapRef]);
+
+  // Las que se superponen en pantalla se abren en círculo (se recalcula con cada zoom).
+  function spread() {
+    const ctx = mapRef.current;
+    if (!ctx) return;
+    const points = [...markers.current].map(([id, m]) => {
+      const p = ctx.map.project(m.marker.getLngLat());
+      return { id, x: p.x, y: p.y };
+    });
+    const offsets = spreadOffsets(points);
+    for (const [id, m] of markers.current) m.marker.setOffset(offsets.get(id) ?? [0, 0]);
+  }
+
+  useEffect(() => {
+    const map = mapRef.current?.map;
+    if (!map) return;
+    map.on("zoomend", spread);
+    return () => {
+      map.off("zoomend", spread);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, mapRef]);
 
   // Línea de la ruta.
   useEffect(() => {

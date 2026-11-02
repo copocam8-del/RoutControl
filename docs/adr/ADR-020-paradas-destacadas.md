@@ -23,6 +23,12 @@
 - **Encuadre:** al ser más grandes las paradas (y con la etiqueta), los márgenes del encuadre crecen para que la próxima no quede cortada en el borde.
 - **Pruebas:** el tiempo máximo por prueba de la app sube a 15 s. Muchas recorren la app entera (login, jornada, paquetes) y, con la compu cargada (servidores prendidos y poca RAM libre), pasaban los 5 s por defecto sin ningún error real.
 
+## Cierre (02/11/2026)
+- **Paradas superpuestas** (lo que había quedado pendiente en ADR-019): las que en pantalla quedan una encima de otra, por estar en el mismo edificio o muy cerca con poco zoom, se **abren en círculo** alrededor de su lugar, con unos 40 px entre vecinas. Así se ven y se pueden tocar todas.
+  - Se recalcula con cada zoom. Al acercarse, vuelven a su lugar exacto.
+  - Es un desplazamiento de la parada en pantalla: la coordenada no cambia.
+- **Leyenda:** suma "Próxima" cuando hay una.
+
 ## Verificado
 - **Pruebas:**
   - la próxima parada tiene su clase, su etiqueta y sus anillos, y deja de ser próxima al actualizarse;
@@ -31,3 +37,5 @@
 - **WebKit, emulando un iPhone, en oscuro y en claro:**
   - el mapa con los paquetes de demo;
   - un muestrario con el CSS real de la app: todos los estados, la próxima, la elegida y mi ubicación, con y sin "reducir movimiento".
+  - con los datos de demo, las paradas 2 y 6, a unos 250 m entre sí, quedaban encimadas; ahora se ven separadas.
+- **Pruebas de la apertura en círculo:** las sueltas no se mueven, y ninguna queda tapada, aun con 8 en el mismo lugar.

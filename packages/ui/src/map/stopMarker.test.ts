@@ -2,7 +2,7 @@
 import type { MapStop } from "@routcontrol/domain";
 import { describe, expect, it, vi } from "vitest";
 
-import { stopElement, updateStopElement } from "./stopMarker";
+import { spreadOffsets, stopElement, updateStopElement } from "./stopMarker";
 
 const stop = (o: Partial<MapStop> = {}): MapStop => ({ id: "a", n: 3, lat: -34.6, lng: -58.38, state: "pending", label: "Parada 3: Uno 100", ...o });
 
@@ -40,5 +40,28 @@ describe("paradas del mapa de entregas (estilo Ruta.dc.html)", () => {
     expect(el.classList.contains("rc-stop--delivered")).toBe(false);
     expect(el.classList.contains("rc-stop--selected")).toBe(false);
     expect(el.classList.contains("maplibregl-marker")).toBe(true);
+  });
+});
+
+describe("paradas superpuestas", () => {
+  it("las que se tocan en pantalla se abren en círculo; las sueltas no se mueven", () => {
+    const offsets = spreadOffsets([
+      { id: "a", x: 100, y: 100 },
+      { id: "b", x: 105, y: 102 }, // el mismo edificio
+      { id: "c", x: 300, y: 300 },
+    ]);
+    expect(offsets.get("c")).toEqual([0, 0]);
+    const [ax, ay] = offsets.get("a")!;
+    const [bx, by] = offsets.get("b")!;
+    // Abiertas: ahora quedan separadas por al menos ~40 px.
+    expect(Math.hypot(100 + ax - (105 + bx), 100 + ay - (102 + by))).toBeGreaterThanOrEqual(40);
+  });
+
+  it("muchas en el mismo lugar: ninguna queda tapada por otra", () => {
+    const pts = Array.from({ length: 8 }, (_, i) => ({ id: String(i), x: 50, y: 50 }));
+    const offsets = spreadOffsets(pts);
+    const placed = pts.map((p) => [p.x + offsets.get(p.id)![0], p.y + offsets.get(p.id)![1]] as const);
+    for (let i = 0; i < placed.length; i++)
+      for (let j = i + 1; j < placed.length; j++) expect(Math.hypot(placed[i]![0] - placed[j]![0], placed[i]![1] - placed[j]![1])).toBeGreaterThan(30);
   });
 });
