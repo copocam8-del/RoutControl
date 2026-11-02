@@ -1,0 +1,62 @@
+# Tres sitios con HTTPS automático (Let's Encrypt). Los dominios salen de infra/prod/.env.
+{
+	email {$ACME_EMAIL}
+}
+
+(seguridad) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+	encode zstd gzip
+}
+
+# Mapa autoalojado (ADR-008): teselas PMTiles por rango, fuentes e íconos. Mismo origen que la app.
+(mapa) {
+	handle /map/* {
+		uri strip_prefix /map
+		root * /srv/map
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+}
+
+# Una app de una sola página: lo que no es un archivo va a index.html. El Service Worker y el
+# index nunca se guardan en caché (si no, una versión nueva tarda en llegar a los teléfonos).
+(spa) {
+	@nocache path /sw.js /index.html /manifest.webmanifest /registerSW.js
+	header @nocache Cache-Control "no-cache"
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	try_files {path} /index.html
+	file_server
+}
+
+{$APP_DOMAIN} {
+	import seguridad
+	import mapa
+	handle {
+		root * /srv/app
+		import spa
+	}
+}
+
+{$PANEL_DOMAIN} {
+	import seguridad
+	import mapa
+	handle {
+		root * /srv/panel
+		import spa
+	}
+}
+
+# API y WebSocket del mapa en vivo (/ws/live). Las fotos se sirven por la API, nunca directo.
+{$API_DOMAIN} {
+	import seguridad
+	request_body {
+		max_size 20MB
+	}
+	reverse_proxy backend:8000
+}

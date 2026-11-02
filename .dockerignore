@@ -1,0 +1,11 @@
+# Contexto de infra/prod/web.Dockerfile (la raíz del repositorio): solo lo que hace falta para
+# compilar la app y el panel.
+**/node_modules
+**/dist
+.git
+map-data
+backend
+docs
+infra
+.env
+.env.*

@@ -1,0 +1,28 @@
+# Imagen de producción del backend (ADR-021). x86 y ARM: python:3.13-slim y los paquetes de Debian
+# existen para las dos arquitecturas.
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DJANGO_SETTINGS_MODULE=config.settings.prod
+
+# GeoDjango necesita GDAL, GEOS y PROJ.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gdal-bin libgdal-dev libgeos-dev libproj-dev binutils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+
+COPY . .
+# Sin root: el proceso no puede tocar nada fuera de /app/media (fotos).
+RUN useradd --system --uid 1000 --home /app routcontrol \
+    && mkdir -p /app/media && chown -R routcontrol /app/media
+USER routcontrol
+
+EXPOSE 8000
+# Daphne sirve HTTP y WebSocket (mapa en vivo, ADR-017).
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "--proxy-headers", "config.asgi:application"]

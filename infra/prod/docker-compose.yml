@@ -1,0 +1,158 @@
+# Producción en un servidor Linux (x86 o ARM). Ver docs/despliegue.md y ADR-021.
+#   ./infra/prod/install.sh   instala todo con un solo comando (genera infra/prod/.env)
+#   ./infra/prod/update.sh    actualiza a la última versión del repositorio
+# Todo lo que cambia entre servidores está en infra/prod/.env (no se sube al repositorio).
+name: routcontrol-prod
+
+x-db-env: &db-env
+  DB_NAME: ${DB_NAME:-routcontrol}
+  DB_OWNER_USER: ${DB_OWNER_USER:-rc_owner}
+  DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD:?Falta DB_OWNER_PASSWORD en infra/prod/.env}
+  DB_APP_USER: ${DB_APP_USER:-rc_app}
+  DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Falta DB_APP_PASSWORD en infra/prod/.env}
+
+x-backend-env: &backend-env
+  <<: *db-env
+  DB_HOST: db
+  DB_PORT: "5432"
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Falta DJANGO_SECRET_KEY en infra/prod/.env}
+  DJANGO_ALLOWED_HOSTS: ${API_DOMAIN},${APP_DOMAIN},${PANEL_DOMAIN}
+  APP_NAME: ${APP_NAME:-RouteControl}
+  APP_URL: https://${APP_DOMAIN}
+  PANEL_URL: https://${PANEL_DOMAIN}
+  API_URL: https://${API_DOMAIN}
+  CORS_ALLOWED_ORIGINS: https://${APP_DOMAIN},https://${PANEL_DOMAIN}
+  CSRF_TRUSTED_ORIGINS: https://${APP_DOMAIN},https://${PANEL_DOMAIN}
+  MEDIA_ROOT: /app/media
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CHANNELS_REDIS_URL: redis://redis:6379/1
+  VROOM_URL: http://vroom:3000
+
+services:
+  db:
+    # postgis/postgis solo se publica para x86; imresamu/postgis es la misma imagen, multiarquitectura.
+    image: ${POSTGIS_IMAGE:-imresamu/postgis:16-3.5}
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en infra/prod/.env}
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../postgres/20-routcontrol-roles.sh:/docker-entrypoint-initdb.d/20-routcontrol-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "psql -h 127.0.0.1 -U postgres -d ${DB_NAME:-routcontrol} -tAc 'select 1'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    # Sin puertos publicados: la base solo es accesible desde la red interna de Docker.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    environment: *backend-env
+    volumes:
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    # Migra al arrancar (es idempotente) y sirve HTTP y WebSocket con Daphne.
+    command: sh -c "python manage.py migrate --noinput && exec daphne -b 0.0.0.0 -p 8000 --proxy-headers config.asgi:application"
+
+  # Tareas periódicas: cierre automático de jornadas olvidadas, alertas (Celery worker + beat).
+  worker:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    environment: *backend-env
+    volumes:
+      - media:/app/media
+    depends_on:
+      backend:
+        condition: service_started
+    command: celery -A config worker -B -l info --concurrency 1 --schedule /tmp/celerybeat-schedule
+
+  # Caddy: HTTPS automático (Let's Encrypt) y los tres sitios: app, panel y API.
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/prod/web.Dockerfile
+      args:
+        API_URL: https://${API_DOMAIN}
+        APP_NAME: ${APP_NAME:-RouteControl}
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      PANEL_DOMAIN: ${PANEL_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../../map-data:/srv/map:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+  # Copia diaria de la base y de las fotos (infra/prod/backup.sh). Quedan en infra/prod/backups.
+  backup:
+    image: ${POSTGIS_IMAGE:-imresamu/postgis:16-3.5}
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${DB_NAME:-routcontrol}
+      BACKUP_HOUR: ${BACKUP_HOUR:-3}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - ./backups:/backups
+      - media:/media:ro
+    entrypoint: ["bash", "/backup.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # "Armar mi ruta" (ADR-015). Opcional: --profile routing. Necesita map-data/routing (prepare.sh).
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v6.0.0
+    profiles: ["routing"]
+    restart: unless-stopped
+    volumes:
+      - ../../map-data/routing:/data:ro
+    command: osrm-routed --algorithm mld /data/amba.osrm
+
+  vroom:
+    image: ghcr.io/vroom-project/vroom-docker:v1.14.0
+    profiles: ["routing"]
+    restart: unless-stopped
+    environment:
+      VROOM_ROUTER: osrm
+    volumes:
+      - ../routing/vroom-conf:/conf
+    depends_on:
+      - osrm
+
+volumes:
+  pgdata:
+  media:
+  caddy_data:
+  caddy_config:

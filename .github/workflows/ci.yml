@@ -33,6 +33,30 @@ jobs:
         if: always()
         run: docker compose -f infra/docker-compose.yml down -v
 
+  deploy:
+    name: Despliegue (compose de producción y backend sin dependencias de desarrollo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scripts sin errores de sintaxis
+        run: for f in infra/prod/*.sh; do bash -n "$f"; done
+      - name: Compose de producción válido
+        env:
+          SECRET: ci-only-secret-key-with-more-than-32-characters
+        run: |
+          { grep -vE '^(DJANGO_SECRET_KEY|POSTGRES_PASSWORD|DB_OWNER_PASSWORD|DB_APP_PASSWORD)=' infra/prod/env.example
+            echo "DJANGO_SECRET_KEY=$SECRET"
+            echo "POSTGRES_PASSWORD=ci"; echo "DB_OWNER_PASSWORD=ci"; echo "DB_APP_PASSWORD=ci"; } > /tmp/ci.env
+          docker compose -f infra/prod/docker-compose.yml --env-file /tmp/ci.env --profile routing config --quiet
+      - name: Imagen de producción del backend (la configuración de producción carga)
+        env:
+          SECRET: ci-only-secret-key-with-more-than-32-characters
+        run: |
+          docker build -f backend/Dockerfile.prod -t rc-backend-prod backend
+          docker run --rm -e DJANGO_SECRET_KEY="$SECRET" -e DB_OWNER_PASSWORD=ci -e DB_APP_PASSWORD=ci \
+            rc-backend-prod python -c "import django; django.setup(); print('configuración de producción: ok')"
+
   front:
     name: Front (tipos, pruebas y compilación)
     runs-on: ubuntu-latest
