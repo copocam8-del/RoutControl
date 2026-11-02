@@ -88,6 +88,13 @@ export default defineConfig(({ mode }) => {
               handler: "CacheFirst",
               options: { cacheName: "rc-map-assets", expiration: { maxEntries: 60 } },
             },
+            {
+              // Lector de códigos (ZXing en WebAssembly, ADR-014): se guarda la primera vez que se
+              // usa, para poder escanear en el depósito sin señal. Su nombre lleva hash.
+              urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.endsWith(".wasm"),
+              handler: "CacheFirst",
+              options: { cacheName: "rc-scanner", expiration: { maxEntries: 4 } },
+            },
             // Las teselas (.pmtiles) se piden por rango: van siempre a la red, sin pasar por el
             // caché del Service Worker (nunca puede devolver una versión vieja o rota).
           ],

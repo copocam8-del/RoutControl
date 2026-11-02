@@ -1007,3 +1007,89 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* --- Carga con escaneo (ADR-014) --------------------------------------------------------------------- */
+.scan-camera {
+  position: relative;
+  border-radius: var(--rc-radius-2xl);
+  overflow: hidden;
+  background: #000;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-camera__video {
+  width: 100%;
+  max-height: 46dvh;
+  object-fit: cover;
+  display: block;
+}
+
+.scan-camera__frame {
+  position: absolute;
+  inset: 18% 10%;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.scan-hint {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+}
+
+.scan-manual {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.scan-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scan-result {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--rc-border);
+  background: var(--rc-surface);
+  font-size: 14px;
+}
+
+.scan-result__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex: none;
+  background: var(--rc-warning-bg);
+  color: var(--rc-warning-text);
+}
+
+.scan-result--loaded .scan-result__icon {
+  background: var(--rc-success-bg);
+  color: var(--rc-success-text);
+}
+
+.scan-result__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}

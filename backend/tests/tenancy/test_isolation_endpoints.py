@@ -362,3 +362,14 @@ def test_communication_cannot_target_a_package_of_another_org(org_a, org_b, deli
 @covers("package-visits")
 def test_visits_of_another_org_are_404(org_a, org_b, delivered_a):
     assert client_for(org_b.owner, org_b.org).get(f"/api/v1/packages/{delivered_a['package']['id']}/visits").status_code == 404
+
+
+@covers("package-load")
+def test_loading_never_touches_or_reveals_packages_of_another_org(org_a, org_b):
+    client_for(org_a.owner, org_a.org).post(
+        "/api/v1/packages/", {"tracking_code": "COMPARTIDO", "address": {"raw_text": "A 1"}, "driver_id": _driver_of(org_a)}, format="json"
+    )
+    r = client_for(org_b.driver, org_b.org).post("/api/v1/packages/load", {"tracking_codes": ["COMPARTIDO"]}, format="json")
+    assert r.json()["results"] == [{"code": "COMPARTIDO", "result": "not_assigned"}]
+    pkg = client_for(org_a.owner, org_a.org).get("/api/v1/packages/?q=COMPARTIDO").json()["packages"][0]
+    assert pkg["status"] == "ASSIGNED"

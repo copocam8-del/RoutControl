@@ -147,3 +147,32 @@ def record_communication(driver, data: dict) -> tuple[Communication, bool]:
 
 def now():
     return timezone.now()
+
+
+def load_packages(driver, codes: list[str], actor) -> list[dict]:
+    """Carga con escaneo (ADR-014): cada código asignado a este repartidor pasa a "En camino".
+
+    Respuesta por código (sin revelar nada de paquetes ajenos):
+    - loaded: estaba asignado y pasó a En camino;
+    - already_loaded: ya estaba En camino (escaneo repetido, reintento);
+    - not_assigned: no existe, o no está asignado a este repartidor (la misma respuesta);
+    - not_loadable: es suyo pero ya está entregado, cancelado o devuelto.
+    """
+    results = []
+    seen = set()
+    for raw in codes:
+        code = raw.strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        package = Package.objects.select_for_update().filter(tracking_code=code, assigned_driver=driver).first()
+        if package is None:
+            results.append({"code": code, "result": "not_assigned"})
+        elif package.status == S.IN_ROUTE:
+            results.append({"code": code, "result": "already_loaded", "package_id": str(package.id)})
+        elif package.status in (S.ASSIGNED, S.FAILED, S.RESCHEDULED):
+            services.change_status(package, S.IN_ROUTE, actor, source="scan")
+            results.append({"code": code, "result": "loaded", "package_id": str(package.id)})
+        else:
+            results.append({"code": code, "result": "not_loadable", "package_id": str(package.id), "status": package.status})
+    return results

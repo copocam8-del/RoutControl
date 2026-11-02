@@ -28,6 +28,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { PENDING_STATUSES } from "../delivery/deliveries";
+import { ScanScreen } from "./ScanScreen";
 import { preparePhoto } from "../delivery/photo";
 import type { LocalPackage } from "../store/db";
 import { useApp, useNow, useStore } from "./hooks";
@@ -59,12 +60,14 @@ export function StatusBadge({ status }: { status: PackageStatus }) {
 export function PackagesScreen({ selected, onSelect }: { selected: string | null; onSelect(id: string | null): void }) {
   const app = useApp();
   const state = useStore(app.deliveries);
+  const [scanning, setScanning] = useState(false);
   const pkg = selected ? state.packages.find((p) => p.id === selected) : null;
+  if (scanning) return <ScanScreen onDone={() => setScanning(false)} />;
   if (selected && pkg) return <PackageDetail pkg={pkg} onBack={() => onSelect(null)} onOpen={onSelect} />;
-  return <PackageList onSelect={onSelect} />;
+  return <PackageList onSelect={onSelect} onScan={() => setScanning(true)} />;
 }
 
-function PackageList({ onSelect }: { onSelect(id: string): void }) {
+function PackageList({ onSelect, onScan }: { onSelect(id: string): void; onScan(): void }) {
   const app = useApp();
   const state = useStore(app.deliveries);
   const outbox = useStore(app.outbox);
@@ -107,6 +110,11 @@ function PackageList({ onSelect }: { onSelect(id: string): void }) {
             <EmptyState title="No tenés paquetes asignados." description="Cuando tu empresa te asigne paquetes, aparecen acá." />
           ) : (
             <>
+              {state.packages.some((p) => ["ASSIGNED", "FAILED", "RESCHEDULED"].includes(p.status)) ? (
+                <Button size="lg" block onClick={onScan}>
+                  Cargar paquetes (escanear)
+                </Button>
+              ) : null}
               <div className="pkg-filters" role="group" aria-label="Filtrar paquetes">
                 {FILTERS.map((f) => (
                   <button key={f.id} type="button" className="pkg-filter" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
