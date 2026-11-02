@@ -380,7 +380,7 @@ export interface MyLocation {
 }
 
 /**
- * Las paradas del día como casitas numeradas (color por estado), la línea de la ruta y mi
+ * Las paradas del día como círculos numerados (color por estado, estilo de Ruta.dc.html), la línea de la ruta y mi
  * ubicación como un punto azul. A diferencia de los otros mapas, se crea una sola vez y se
  * actualiza en el lugar: la ubicación cambia seguido y recrear el mapa haría parpadear todo.
  * `interactive: false` es el mapa chico de la ficha (sin controles ni arrastre).
@@ -418,7 +418,7 @@ export function StopsMap({
   const meMarker = useRef<import("maplibre-gl").Marker | null>(null);
 
   // Arriba los chips, a la derecha los botones flotantes, abajo lo que tape la pantalla (barra,
-  // leyenda o tarjeta): las casitas encuadradas quedan siempre a la vista.
+  // leyenda o tarjeta): las paradas encuadradas quedan siempre a la vista.
   const fitPadding = () =>
     interactive ? { top: 96, left: 40, right: 76, bottom: 24 + latest.current.bottomPadding } : { top: 30, left: 30, right: 30, bottom: 30 };
 
@@ -434,7 +434,7 @@ export function StopsMap({
         source: "route",
         filter: ["==", ["get", "straight"], false],
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": c.route, "line-width": 5, "line-opacity": 0.85 },
+        paint: { "line-color": c.route, "line-width": 6 }, // como Ruta.dc.html
       });
       map.addLayer({
         id: "route-straight",
@@ -475,7 +475,7 @@ export function StopsMap({
       } else {
         const el = stopElement(stop, stop.id === selectedId, (id) => latest.current.onSelect?.(id));
         if (!interactive) el.tabIndex = -1;
-        const marker = new ctx.maplibre.Marker({ element: el, anchor: "bottom" }).setLngLat([stop.lng, stop.lat]).addTo(ctx.map);
+        const marker = new ctx.maplibre.Marker({ element: el, anchor: "center" }).setLngLat([stop.lng, stop.lat]).addTo(ctx.map);
         markers.current.set(stop.id, { marker, el });
       }
     }

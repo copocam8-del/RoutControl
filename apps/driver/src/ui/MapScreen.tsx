@@ -27,9 +27,9 @@ const NAV_PX = 108;
 const LEGEND_PX = 90;
 
 /**
- * Mapa con las entregas del día (ADR-019): una casita por domicilio con su número de parada y el
+ * Mapa con las entregas del día (ADR-019): un círculo numerado por domicilio (Ruta.dc.html) con su número de parada y el
  * color de su estado, la línea de la ruta si está armada y mi ubicación (con la jornada en curso).
- * Al tocar una casita sube la tarjeta con la dirección, el destinatario, el estado y la distancia.
+ * Al tocar una parada sube la tarjeta con la dirección, el destinatario, el estado y la distancia.
  */
 export function MapScreen({ onOpenPackage }: { onOpenPackage(id: string): void }) {
   const app = useApp();

@@ -44,7 +44,7 @@
   --rc-danger-text: #FCA5A5;
   /* Mapa */
   --rc-route: #8B5CF6;
-  /* Mapa de entregas (ADR-019): casitas por estado y su número. */
+  /* Mapa de entregas (ADR-019): paradas por estado y su número. */
   --rc-stop-pending: #7C5CFF;
   --rc-stop-pending-ink: #FFFFFF;
   --rc-stop-delivered: #34D399;
@@ -1201,22 +1201,23 @@ a.rc-item {
   padding: 0 10px;
 }
 
-/* --- Mapa de entregas del día (ADR-019): casitas numeradas y mi ubicación ----------------------- */
+/* --- Mapa de entregas del día (ADR-019): paradas numeradas y mi ubicación ----------------------- */
 .rc-stops-map--fill,
 .rc-stops-map--fill .rc-map {
   height: 100%;
 }
 
+/* Paradas con el estilo de Ruta.dc.html: círculo de 26 px, borde blanco, número en negrita. */
 .rc-stop {
-  position: relative;
-  width: 36px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  transition: transform 150ms ease;
-  transform-origin: 50% 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   --stop: var(--rc-stop-pending);
   --ink: var(--rc-stop-pending-ink);
 }
@@ -1236,46 +1237,53 @@ a.rc-item {
   --ink: var(--rc-stop-second-ink);
 }
 
-.rc-stop__house {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 3px 6px rgba(var(--rc-background-rgb), 0.45));
-}
-
-.rc-stop__house path {
-  fill: var(--stop);
-  stroke: var(--rc-map-bg);
-  stroke-width: 2.5;
-  stroke-linejoin: round;
+.rc-stop__dot {
+  width: 26px;
+  height: 26px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  border: 2.5px solid #FFFFFF;
+  background: var(--stop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(var(--rc-background-rgb), 0.45);
+  transition: scale 150ms ease;
 }
 
 .rc-stop__n {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 15px;
-  text-align: center;
-  font: 800 14px/1 var(--rc-font);
+  font: 800 12px/1 var(--rc-font);
   color: var(--ink);
 }
 
 .rc-stop--selected {
-  transform: scale(1.25);
   z-index: 2;
 }
 
-.rc-stop--selected .rc-stop__house path {
-  stroke: var(--rc-text);
-  stroke-width: 3;
+.rc-stop--selected .rc-stop__dot {
+  /* scale y no transform: la animación de entrada usa transform y lo pisaría. */
+  scale: 1.3;
+  box-shadow: 0 0 0 4px rgba(var(--rc-primary-rgb), 0.45), 0 2px 8px rgba(var(--rc-background-rgb), 0.5);
 }
 
 .rc-stop:focus-visible {
+  outline: none;
+}
+
+.rc-stop:focus-visible .rc-stop__dot {
   outline: 3px solid var(--rc-primary);
   outline-offset: 2px;
-  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rc-stop__dot {
+    animation: rc-stop-in 0.4s ease-out both;
+  }
+}
+
+@keyframes rc-stop-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
 }
 
 .rc-me {

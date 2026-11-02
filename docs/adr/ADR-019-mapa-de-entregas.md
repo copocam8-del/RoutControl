@@ -5,7 +5,7 @@
 - **Contexto:**
   - para ver dónde quedan las entregas del día, la app mandaba a Google Maps o Waze;
   - el pedido es un mapa propio, con el OpenStreetMap autoalojado (ADR-008), que funcione sin conexión con la zona guardada (ADR-018);
-  - el pedido nombra `docs/diseno/Ruta.dc.html` como referencia para los pines numerados. **Ese archivo no está en el repositorio ni en las carpetas del proyecto**, así que se siguieron las maquetas más cercanas:
+  - el pedido nombra `docs/diseno/Ruta.dc.html` como referencia para los pines numerados. En la primera versión ese archivo no estaba en el repositorio, así que se siguieron las maquetas más cercanas. Después llegó (rama `diseno/maquetas`, commit 3e22b09) y las paradas se ajustaron a su estilo (ver "Ajuste a Ruta.dc.html"). Las maquetas que se usaron al principio:
     - `Recorrido.dc.html`: el mapa, las píldoras de la leyenda y el botón cuadrado;
     - `Jornada.dc.html`: el número de parada en un cuadrado redondeado, la tarjeta de la próxima parada y los botones Llamar, WhatsApp y Navegar.
 
@@ -51,6 +51,17 @@
 - **Sin conexión:** los dos mapas se cargan con `loadMapModule` (ADR-018), así que las calles salen primero de la zona guardada en el teléfono.
 - **Componente:** `StopsMap` en `@routcontrol/ui/map`. A diferencia de los otros mapas, se crea una sola vez y después actualiza en el lugar las casitas, la línea y el punto azul: la ubicación cambia seguido y recrear el mapa haría parpadear todo.
 
+## Ajuste a Ruta.dc.html (02/11/2026)
+- **Paradas:** pasan de casitas a **círculos de 26 px** con el número en negrita, **borde blanco de 2,5 px** y un leve sombreado, como los pines de la maqueta. Se conserva el color por estado del pedido: la maqueta solo muestra pendientes (violeta).
+  - Sobre verde, amarillo y violeta claro, el número va oscuro para que se lea.
+  - Al aparecer, **caen** de a una en el orden de la ruta, como la animación de la maqueta. Con "reducir movimiento", no se animan.
+  - La parada elegida se agranda y lleva un anillo violeta.
+  - El área para tocar es de 44 px, aunque el círculo sea de 26.
+- **Línea de la ruta:** 6 px, en el violeta del recorrido (`#8B5CF6`), como la maqueta.
+- **Mi ubicación** ya coincidía con el punto de partida de la maqueta: círculo azul con borde blanco.
+- La leyenda usa círculos con borde blanco, como las paradas.
+- **Técnico:** el círculo va dentro del botón del marcador. MapLibre ubica el marcador con `transform`, así que la animación y el agrandado tienen que ir en otro elemento; el agrandado usa la propiedad `scale` para no chocar con la animación. En la versión de las casitas, el agrandado de la elegida nunca llegaba a verse por este mismo motivo.
+
 ## Verificado
 - **Pruebas:**
   - **domain:** número y estado de las casitas, filtro, tramos por calles y rectas, decodificación de polilíneas (con el ejemplo de la documentación del formato) y distancias.
@@ -69,5 +80,4 @@
 
 ## Pendiente
 - Ver la **línea de la ruta** en un teléfono real: en el navegador no se armó una ruta para no iniciar jornadas en los datos de demo, y está verificada con pruebas.
-- **Ruta.dc.html:** si existe, sumarla a `docs/diseno/` y ajustar las casitas a esa maqueta.
 - Cuando muchas casitas se superponen (edificios con varios paquetes), agruparlas.
