@@ -34,6 +34,8 @@ DEBUG = env_bool("DJANGO_DEBUG", False)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 INSTALLED_APPS = [
+    # daphne primero: `runserver` sirve también WebSocket (mapa en vivo, ADR-017).
+    "daphne",
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.gis",
@@ -59,6 +61,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = None
+ASGI_APPLICATION = "config.asgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -171,6 +174,14 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 ROUTING = {
     "VROOM_URL": env("VROOM_URL", "http://vroom:3000"),
     "TIMEOUT_S": float(env("ROUTING_TIMEOUT_S", "15")),
+}
+
+# Mapa en vivo (ADR-017): Redis como bus entre los procesos que reciben puntos y los WebSocket.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [env("CHANNELS_REDIS_URL", "redis://redis:6379/1")]},
+    }
 }
 
 # Celery (ADR-010): broker Redis; tareas periódicas con beat.

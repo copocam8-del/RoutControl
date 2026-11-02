@@ -10,7 +10,7 @@ from apps.tenancy.permissions import HasTrackingContext
 from apps.tenancy.timefmt import iso_utc
 from apps.workdays.models import Workday
 
-from . import services
+from . import live, services
 from .serializers import AwareDateTimeField, PointSerializer
 
 
@@ -96,6 +96,8 @@ class TrackingBatchView(APIView):
 
         if inserted:
             services.recompute_gaps(workday)
+            # Mapa en vivo del panel (ADR-017): la última ubicación, después del commit.
+            live.publish_latest_position(workday, [p for p in valid if str(p["point_id"]) in inserted])
 
         device_updates = {"last_sync_at": now}
         if sent_at is not None:

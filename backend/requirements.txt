@@ -7,3 +7,6 @@ psycopg[binary]~=3.2
 argon2-cffi~=25.1
 celery[redis]~=5.5
 openpyxl~=3.1
+channels~=4.2
+channels-redis~=4.2
+daphne~=4.1

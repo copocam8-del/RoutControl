@@ -526,6 +526,27 @@ a {
   color: var(--rc-success-text);
 }
 
+/* Mapa en vivo conectado (ADR-017): mismo chip, con un punto en el color de "en jornada". */
+.live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rc-success-text);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--rc-success-text) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .live-dot {
+    animation: rc-live-pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes rc-live-pulse {
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--rc-success-text) 0%, transparent);
+  }
+}
+
 /* --- Inicio --------------------------------------------------------------------------------------- */
 .kpis {
   display: grid;

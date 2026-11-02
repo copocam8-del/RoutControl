@@ -117,6 +117,15 @@ export class ApiClient {
     return this.accessToken !== null;
   }
 
+  /**
+   * Access token vigente para abrir el WebSocket del mapa en vivo (ADR-017). Si no hay, intenta
+   * renovarlo con la cookie; `force` renueva aunque haya uno (el servidor rechazó el actual).
+   */
+  async accessTokenForSocket(force = false): Promise<string | null> {
+    if (force || !this.accessToken) await this.refresh();
+    return this.accessToken;
+  }
+
   clearSession(): void {
     this.accessToken = null;
   }

@@ -11,12 +11,15 @@ export interface AdminApp {
   session: AdminSession;
   /** Estado de la interfaz que dura lo que dura esta apertura del panel (no se guarda). */
   ui: { splashShown: boolean };
+  /** Mapa en vivo (ADR-017). `WebSocketImpl: null` lo apaga (pruebas que no lo usan). */
+  live: { WebSocketImpl: typeof WebSocket | null; retryDelayMs?: (attempt: number) => number };
 }
 
-export function createAdminApp(overrides: Partial<Pick<AdminApp, "api" | "config">> = {}): AdminApp {
+export function createAdminApp(overrides: Partial<Pick<AdminApp, "api" | "config" | "live">> = {}): AdminApp {
   const config = overrides.config ?? defaultConfig;
   const api = overrides.api ?? new ApiClient(config.apiBase);
-  return { config, api, session: new AdminSession(api), ui: { splashShown: false } };
+  const live = overrides.live ?? { WebSocketImpl: globalThis.WebSocket ?? null };
+  return { config, api, session: new AdminSession(api), ui: { splashShown: false }, live };
 }
 
 export const AdminContext = createContext<AdminApp | null>(null);

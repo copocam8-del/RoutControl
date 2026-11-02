@@ -10,3 +10,6 @@ CORS_ALLOWED_ORIGINS = ["https://app.example.test"]
 
 # Argon2 real es lento; en pruebas alcanza con un hash rápido.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# Pruebas: bus en memoria (sin Redis).
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
