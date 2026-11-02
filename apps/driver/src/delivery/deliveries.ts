@@ -6,9 +6,9 @@
  *   el teléfono enseguida; cuando el servidor confirma, su lista vuelve a mandar.
  * - La visita en curso (con su cronómetro) se guarda en el teléfono: si se cierra la app, sigue.
  */
-import { type DeliveryPackage, type PackageStatus, uuidv7, type VisitOutcome } from "@routcontrol/domain";
+import { type DeliveryPackage, type PackageStatus, type Route, uuidv7, type VisitOutcome } from "@routcontrol/domain";
 
-import type { ApiClient } from "../api/client";
+import { ApiError, type ApiClient, NetworkError } from "../api/client";
 import type { DeviceServices } from "../device/DeviceServices";
 import { type DriverDB, getMeta, type LocalPackage, setMeta } from "../store/db";
 import type { WorkdayController } from "../tracking/workdayController";
@@ -29,6 +29,30 @@ export interface DeliveriesState {
   updatedAt: number | null;
   activeVisit: ActiveVisit | null;
   error: string | null;
+  /** Orden de las paradas (ADR-015): ids de paquetes, del primero al último. */
+  route: LocalRoute | null;
+  routing: boolean;
+}
+
+export interface LocalRoute {
+  order: string[];
+  source: "OPTIMIZED" | "MANUAL";
+  total_eta_s: number | null;
+  total_distance_m: number | null;
+}
+
+const ROUTE_KEY = "route";
+
+/** Los pendientes en el orden de la ruta (los que no están en la ruta, al final). */
+export function sortByRoute<T extends { id: string }>(packages: T[], route: LocalRoute | null): T[] {
+  if (!route) return packages;
+  const index = new Map(route.order.map((id, i) => [id, i]));
+  return [...packages].sort((a, b) => (index.get(a.id) ?? Infinity) - (index.get(b.id) ?? Infinity));
+}
+
+function toLocalRoute(r: Route): LocalRoute | null {
+  if (!r.stops.length || !r.source) return null;
+  return { order: r.stops.map((s) => s.package_id), source: r.source, total_eta_s: r.total_eta_s, total_distance_m: r.total_distance_m };
 }
 
 export interface VisitResult {
@@ -56,13 +80,15 @@ export class Deliveries {
     updatedAt: null,
     activeVisit: null,
     error: null,
+    route: null,
+    routing: false,
   };
   private listeners = new Set<(s: DeliveriesState) => void>();
 
   constructor(
     private readonly deps: {
       db: DriverDB;
-      api: Pick<ApiClient, "listPackages">;
+      api: Pick<ApiClient, "listPackages" | "getRoute" | "optimizeRoute">;
       outbox: Outbox;
       device: DeviceServices;
       workday: Pick<WorkdayController, "getState">;
@@ -86,9 +112,13 @@ export class Deliveries {
   /** Lee la lista guardada y la visita en curso; después intenta actualizar desde el servidor. */
   async load(): Promise<void> {
     const { db } = this.deps;
-    const [cached, active] = await Promise.all([db.packages.toArray(), getMeta<ActiveVisit>(db, ACTIVE_VISIT_KEY)]);
+    const [cached, active, route] = await Promise.all([
+      db.packages.toArray(),
+      getMeta<ActiveVisit>(db, ACTIVE_VISIT_KEY),
+      getMeta<LocalRoute>(db, ROUTE_KEY),
+    ]);
     if (cached.length) this.set({ status: "ready", packages: await this.withLocalStatus(cached), offline: true });
-    this.set({ activeVisit: active ?? null });
+    this.set({ activeVisit: active ?? null, route: route ?? null });
     await this.refresh();
   }
 
@@ -101,6 +131,7 @@ export class Deliveries {
         await db.packages.bulkPut(fresh);
       });
       this.set({ status: "ready", packages: await this.withLocalStatus(fresh), offline: false, updatedAt: this.now(), error: null });
+      await this.refreshRoute();
     } catch (error) {
       if (this.state.packages.length) {
         this.set({ status: "ready", offline: true });
@@ -108,6 +139,58 @@ export class Deliveries {
         this.set({ status: "error", error: error instanceof Error ? error.message : "No se pudo cargar la lista." });
       }
     }
+  }
+
+  /** La ruta guardada en el servidor (si hay jornada); si hay un orden local sin enviar, manda ese. */
+  private async refreshRoute(): Promise<void> {
+    if (this.deps.workday.getState().phase !== "active") return;
+    const pendingLocal = (await this.deps.db.outbox.where("kind").equals("route").count()) > 0;
+    if (pendingLocal) return;
+    try {
+      const route = toLocalRoute(await this.deps.api.getRoute());
+      await setMeta(this.deps.db, ROUTE_KEY, route);
+      this.set({ route });
+    } catch {
+      // sin señal o sin jornada en el servidor: queda la guardada
+    }
+  }
+
+  /** "Armar mi ruta" (ADR-015): VROOM ordena los pendientes desde la ubicación actual. */
+  async buildRoute(): Promise<void> {
+    if (this.deps.workday.getState().phase !== "active") throw new Error("Iniciá la jornada para armar la ruta.");
+    this.set({ routing: true });
+    try {
+      let start: { lat: number; lng: number };
+      try {
+        const fix = await this.deps.device.location.current({ timeoutMs: 10_000 });
+        start = { lat: fix.lat, lng: fix.lng };
+      } catch {
+        throw new Error("Hace falta tu ubicación para armar la ruta desde donde estás.");
+      }
+      let route: LocalRoute | null;
+      try {
+        route = toLocalRoute(await this.deps.api.optimizeRoute(start));
+      } catch (error) {
+        if (error instanceof NetworkError) throw new Error("Sin conexión: para armar la ruta hace falta señal. Podés ordenar las paradas a mano.");
+        if (error instanceof ApiError) throw new Error(error.message);
+        throw error;
+      }
+      await this.deps.db.outbox.where("kind").equals("route").delete(); // el orden nuevo reemplaza al manual sin enviar
+      await setMeta(this.deps.db, ROUTE_KEY, route);
+      this.set({ route });
+    } finally {
+      this.set({ routing: false });
+    }
+  }
+
+  /** Orden a mano: queda en el teléfono y se envía por la cola (también sin señal). */
+  async reorder(order: string[]): Promise<void> {
+    const route: LocalRoute = { order, source: "MANUAL", total_eta_s: null, total_distance_m: null };
+    await setMeta(this.deps.db, ROUTE_KEY, route);
+    this.set({ route });
+    await this.deps.db.outbox.where("kind").equals("route").delete(); // vale el último orden
+    const id = uuidv7(this.now());
+    await this.deps.outbox.enqueue([{ id, kind: "route", package_id: order[0] ?? "", body: { package_ids: order } }]);
   }
 
   /** Lo hecho en la calle que todavía no llegó al servidor pisa el estado de la lista. */

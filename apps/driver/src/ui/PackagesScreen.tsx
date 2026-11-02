@@ -27,7 +27,7 @@ import {
 } from "@routcontrol/ui";
 import { useEffect, useMemo, useState } from "react";
 
-import { PENDING_STATUSES } from "../delivery/deliveries";
+import { PENDING_STATUSES, sortByRoute } from "../delivery/deliveries";
 import { ScanScreen } from "./ScanScreen";
 import { preparePhoto } from "../delivery/photo";
 import type { LocalPackage } from "../store/db";
@@ -78,9 +78,38 @@ function PackageList({ onSelect, onScan }: { onSelect(id: string): void; onScan(
     () => Object.fromEntries(FILTERS.map((f) => [f.id, state.packages.filter((p) => f.match(p.status)).length])) as Record<Filter, number>,
     [state.packages],
   );
-  const shown = state.packages
+  const wd = useStore(app.workday);
+  const [editing, setEditing] = useState<string[] | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const filtered = state.packages
     .filter((p) => FILTERS.find((f) => f.id === filter)!.match(p.status))
     .filter((p) => !q || [p.tracking_code, p.recipient_name, p.address.raw_text].some((t) => t.toLowerCase().includes(q)));
+  const shown = filter === "pending" ? sortByRoute(filtered, state.route) : filtered;
+  const canRoute = filter === "pending" && !q && counts.pending > 1 && wd.phase === "active";
+
+  async function buildRoute() {
+    setRouteError(null);
+    try {
+      await app.deliveries.buildRoute();
+    } catch (e) {
+      setRouteError(e instanceof Error ? e.message : "No se pudo armar la ruta.");
+    }
+  }
+
+  function move(index: number, delta: number) {
+    setEditing((order) => {
+      if (!order) return order;
+      const next = [...order];
+      const [item] = next.splice(index, 1);
+      next.splice(index + delta, 0, item!);
+      return next;
+    });
+  }
+
+  async function saveOrder() {
+    if (editing) await app.deliveries.reorder(editing);
+    setEditing(null);
+  }
 
   return (
     <main className="screen screen--tabs">
@@ -127,7 +156,55 @@ function PackageList({ onSelect, onScan }: { onSelect(id: string): void; onScan(
                 <IconSearch size={18} />
                 <input type="search" placeholder="Código, destinatario o dirección" value={query} onChange={(e) => setQuery(e.target.value)} />
               </label>
-              {shown.length === 0 ? (
+              {canRoute ? (
+                <div className="route-bar">
+                  {editing ? (
+                    <>
+                      <Button variant="secondary" onClick={() => setEditing(null)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={() => void saveOrder()}>Guardar orden</Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="secondary" loading={state.routing} loadingLabel="Armando…" onClick={() => void buildRoute()}>
+                        Armar mi ruta
+                      </Button>
+                      <Button variant="secondary" onClick={() => setEditing(shown.map((p) => p.id))}>
+                        Editar orden
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ) : null}
+              {routeError ? <Alert tone="warning">{routeError}</Alert> : null}
+              {state.route && filter === "pending" && !editing ? (
+                <p className="rc-muted route-summary">
+                  {state.route.source === "OPTIMIZED" ? "Ruta armada" : "Orden a mano"}
+                  {state.route.total_distance_m ? ` · ${(state.route.total_distance_m / 1000).toFixed(1).replace(".", ",")} km` : ""}
+                  {state.route.total_eta_s ? ` · unos ${Math.round(state.route.total_eta_s / 60)} min de manejo` : ""}
+                </p>
+              ) : null}
+              {editing ? (
+                <ol className="route-edit" aria-label="Orden de las paradas">
+                  {editing.map((id, i) => {
+                    const p = state.packages.find((x) => x.id === id);
+                    if (!p) return null;
+                    return (
+                      <li key={id} className="route-edit__item">
+                        <span className="route-edit__n">{i + 1}</span>
+                        <span className="route-edit__text">{p.address.raw_text}</span>
+                        <button type="button" className="rc-icon-btn" aria-label={`Subir ${p.address.raw_text}`} disabled={i === 0} onClick={() => move(i, -1)}>
+                          ↑
+                        </button>
+                        <button type="button" className="rc-icon-btn" aria-label={`Bajar ${p.address.raw_text}`} disabled={i === editing.length - 1} onClick={() => move(i, 1)}>
+                          ↓
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : shown.length === 0 ? (
                 <EmptyState title="No hay paquetes en esta lista." />
               ) : (
                 <ul className="items" aria-label="Paquetes">

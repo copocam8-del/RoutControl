@@ -7,4 +7,6 @@ urlpatterns = [
     path("evidence", views.EvidenceCreateView.as_view(), name="evidence-create"),
     path("evidence/<uuid:evidence_id>/file", views.EvidenceFileView.as_view(), name="evidence-file"),
     path("communications", views.CommunicationCreateView.as_view(), name="communication-create"),
+    path("route", views.RouteView.as_view(), name="route"),
+    path("route/optimize", views.RouteOptimizeView.as_view(), name="route-optimize"),
 ]

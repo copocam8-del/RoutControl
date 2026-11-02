@@ -373,3 +373,40 @@ def test_loading_never_touches_or_reveals_packages_of_another_org(org_a, org_b):
     assert r.json()["results"] == [{"code": "COMPARTIDO", "result": "not_assigned"}]
     pkg = client_for(org_a.owner, org_a.org).get("/api/v1/packages/?q=COMPARTIDO").json()["packages"][0]
     assert pkg["status"] == "ASSIGNED"
+
+
+# --- Armar mi ruta (etapa 1) -------------------------------------------------------------------
+
+
+@pytest.fixture
+def route_b(org_a, org_b, monkeypatch):
+    """B con jornada y un paquete propio; A con un paquete. VROOM falso que devuelve todo."""
+    from apps.packages import routing
+
+    monkeypatch.setattr(
+        routing,
+        "call_vroom",
+        lambda problem: {"code": 0, "routes": [{"steps": [{"type": "job", "job": j["id"], "arrival": 0, "distance": 0} for j in problem["jobs"]]}]},
+    )
+    a = client_for(org_a.owner, org_a.org).post(
+        "/api/v1/packages/", {"tracking_code": "RA", "address": {"raw_text": "A 1", "lat": -34.6, "lng": -58.4}, "driver_id": _driver_of(org_a)}, format="json"
+    ).json()["package"]
+    client_for(org_b.owner, org_b.org).post(
+        "/api/v1/packages/", {"tracking_code": "RB", "address": {"raw_text": "B 1", "lat": -34.6, "lng": -58.4}, "driver_id": _driver_of(org_b)}, format="json"
+    )
+    start_workday(org_b.driver, org_b.org)
+    return a
+
+
+@covers("route-optimize")
+def test_optimize_only_uses_packages_of_the_own_org(org_a, org_b, route_b):
+    r = client_for(org_b.driver, org_b.org).post("/api/v1/route/optimize", {"lat": -34.6, "lng": -58.4}, format="json")
+    assert route_b["id"] not in [s["package_id"] for s in r.json()["stops"]]
+    assert len(r.json()["stops"]) == 1
+
+
+@covers("route")
+def test_manual_route_ignores_packages_of_another_org(org_a, org_b, route_b):
+    r = client_for(org_b.driver, org_b.org).put("/api/v1/route", {"package_ids": [route_b["id"]]}, format="json")
+    assert route_b["id"] not in [s["package_id"] for s in r.json()["stops"]]
+    assert route_b["id"] not in [s["package_id"] for s in client_for(org_b.driver, org_b.org).get("/api/v1/route").json()["stops"]]

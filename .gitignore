@@ -28,3 +28,6 @@ map-data/*.pmtiles
 
 # Fotos de las entregas en desarrollo (ADR-013)
 backend/media/
+
+# Datos de ruteo (OSRM): se generan con infra/routing/prepare.sh (ADR-015)
+map-data/routing/

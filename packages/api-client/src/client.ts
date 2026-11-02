@@ -41,6 +41,8 @@ import {
   visitCreated,
   type VisitOutcome,
   type VisitRecord,
+  route,
+  type Route,
 } from "@routcontrol/domain";
 import type { z } from "zod";
 
@@ -297,6 +299,20 @@ export class ApiClient {
     return body.results;
   }
 
+  // --- Armar mi ruta (ADR-015) --------------------------------------------------------------
+
+  async getRoute(): Promise<Route> {
+    return this.authed("/route", { method: "GET" }, route);
+  }
+
+  async optimizeRoute(start: { lat: number; lng: number }): Promise<Route> {
+    return this.authed("/route/optimize", { method: "POST", body: start }, route);
+  }
+
+  async saveRoute(packageIds: string[]): Promise<Route> {
+    return this.authed("/route", { method: "PUT", body: { package_ids: packageIds } }, route);
+  }
+
   async packageVisits(packageId: string): Promise<VisitRecord[]> {
     return (await this.authed(`/packages/${packageId}/visits`, { method: "GET" }, packageVisits)).visits;
   }
@@ -383,7 +399,7 @@ const anything = { parse: (value: unknown) => value };
 const GATEWAY_ERRORS = new Set([502, 503, 504, 530]);
 
 interface RequestInit_ {
-  method: "GET" | "POST" | "PATCH";
+  method: "GET" | "POST" | "PATCH" | "PUT";
   body?: unknown;
   headers?: Record<string, string>;
 }

@@ -221,3 +221,25 @@ class ImportJob(TenantModel, TimestampedModel):
     error_rows = models.PositiveIntegerField(default=0)
     errors = models.JSONField(default=list, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
+
+
+class RouteStop(TenantModel, TimestampedModel):
+    """Orden de las paradas de una jornada (§7.2, ADR-015): el que armó VROOM o el que editó el
+    repartidor. Se reemplaza entero cada vez que se arma o se edita la ruta."""
+
+    class Source(models.TextChoices):
+        OPTIMIZED = "OPTIMIZED", "Armada automáticamente"
+        MANUAL = "MANUAL", "Ordenada a mano"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workday = models.ForeignKey(Workday, on_delete=models.CASCADE, related_name="route_stops")
+    package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name="route_stops")
+    sequence = models.PositiveIntegerField()
+    source = models.CharField(max_length=20, choices=Source.choices)
+    # Lo que estimó el ruteo para llegar a esta parada desde la anterior (null si es manual).
+    eta_s = models.PositiveIntegerField(null=True, blank=True)
+    distance_m = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta(TenantModel.Meta):
+        constraints = [models.UniqueConstraint(fields=["organization", "workday", "package"], name="routestop_unique_pkg")]
+        indexes = [models.Index(fields=["organization", "workday", "sequence"], name="routestop_workday_seq")]

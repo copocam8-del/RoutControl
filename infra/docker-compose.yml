@@ -76,5 +76,29 @@ services:
         condition: service_started
     command: celery -A config worker -B -l info --concurrency 1
 
+  # Armar mi ruta (ADR-015): OSRM (tiempos por calle) y VROOM (orden de las paradas), autoalojados.
+  # Preparar los datos una vez: infra/routing/prepare.sh. No arrancan por defecto (memoria):
+  #   docker compose -f infra/docker-compose.yml --profile routing up -d osrm vroom
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v6.0.0
+    profiles: ["routing"]
+    volumes:
+      - ../map-data/routing:/data:ro
+    command: osrm-routed --algorithm mld /data/amba.osrm
+    ports:
+      - "5000:5000"
+
+  vroom:
+    image: ghcr.io/vroom-project/vroom-docker:v1.14.0
+    profiles: ["routing"]
+    environment:
+      VROOM_ROUTER: osrm
+    volumes:
+      - ./routing/vroom-conf:/conf
+    depends_on:
+      - osrm
+    ports:
+      - "3000:3000"
+
 volumes:
   pgdata:

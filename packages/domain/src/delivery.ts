@@ -96,3 +96,12 @@ export function telUrl(phone: string): string | null {
   const cleaned = phone.replace(/[^\d+]/g, "");
   return cleaned.replace(/\D/g, "").length >= 6 ? `tel:${cleaned}` : null;
 }
+
+/** GET/PUT /route y POST /route/optimize (ADR-015). */
+export const route = z.object({
+  stops: z.array(z.object({ package_id: z.uuid(), sequence: z.number(), eta_s: z.number().nullable(), distance_m: z.number().nullable() })),
+  source: z.enum(["OPTIMIZED", "MANUAL"]).nullable(),
+  total_eta_s: z.number().nullable(),
+  total_distance_m: z.number().nullable(),
+});
+export type Route = z.infer<typeof route>;
