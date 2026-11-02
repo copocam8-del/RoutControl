@@ -1399,3 +1399,8 @@
   height: 150px;
   background: var(--rc-map-bg);
 }
+
+/* Indicador de recepción en la ficha (ADR-022). */
+.stop-card__reception {
+  margin-top: 8px;
+}

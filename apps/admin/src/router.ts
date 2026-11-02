@@ -12,6 +12,7 @@ export type Route =
   | { name: "packages" }
   | { name: "package"; id: string }
   | { name: "import" }
+  | { name: "address"; id: string }
   | { name: "deliveries"; date: string; view: "deliveries" | "incidents" };
 
 /** Fecha local AAAA-MM-DD (la del navegador; la empresa trabaja en su zona horaria). */
@@ -34,6 +35,8 @@ export function parseRoute(hash: string): Route {
   if (path === "/paquetes/importar") return { name: "import" };
   const pkg = /^\/paquetes\/([0-9a-f-]{36})$/i.exec(path);
   if (pkg) return { name: "package", id: pkg[1]! };
+  const address = /^\/domicilios\/([0-9a-f-]{36})$/i.exec(path);
+  if (address) return { name: "address", id: address[1]! };
   if (path === "/entregas") {
     const date = params.get("fecha");
     return {
@@ -61,6 +64,8 @@ export function href(route: Route): string {
       return `#/paquetes/${route.id}`;
     case "import":
       return "#/paquetes/importar";
+    case "address":
+      return `#/domicilios/${route.id}`;
     case "deliveries":
       return `#/entregas?fecha=${route.date}${route.view === "incidents" ? "&vista=incidencias" : ""}`;
   }

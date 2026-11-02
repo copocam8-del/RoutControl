@@ -1,5 +1,6 @@
 import type { LocationPermission } from "@routcontrol/domain";
 import {
+  ReceptionBadge,
   Alert,
   Avatar,
   Button,
@@ -332,7 +333,8 @@ function WorkdayView({
           <section className="stop-card stop-card--next" aria-label="Próxima parada">
             <div className="stop-card__head">
               <span className="rc-eyebrow">{deliveries.activeVisit ? "Visita en curso" : "Próxima parada"}</span>
-              <span className="rc-muted">{pendingList.length} pendientes</span>
+              {/* Como la maqueta (Jornada.dc.html): el chip "Suele recibir" del domicilio (ADR-022). */}
+              {next.reception ? <ReceptionBadge reception={next.reception} /> : <span className="rc-muted">{pendingList.length} pendientes</span>}
             </div>
             <button type="button" className="stop-card__who stop-card__open" onClick={() => onOpenPackage(next.id)}>
               <span className="stop-card__icon" aria-hidden="true">

@@ -1435,3 +1435,17 @@ a.rc-item {
   0% { scale: 1; opacity: 0.55; }
   100% { scale: 3.4; opacity: 0; }
 }
+
+/* --- Indicador de recepción del domicilio (ADR-022): chip con punto, como "Suele recibir" -------- */
+.rc-reception .rc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rc-reception__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}

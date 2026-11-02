@@ -1450,3 +1450,28 @@ a.filter-chip[aria-selected="true"] {
   border-color: var(--rc-primary);
   background: rgba(var(--rc-primary-rgb), 0.22);
 }
+
+/* --- Historial del domicilio (ADR-022) ----------------------------------------------------------- */
+.reception-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 80ch;
+}
+
+.panel-card__pad {
+  padding: 20px 22px 0;
+}
+
+.address-packages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rc-table tr.is-voided td {
+  opacity: 0.55;
+}

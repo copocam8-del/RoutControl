@@ -11,7 +11,7 @@ from apps.tenancy.models import Membership
 from apps.tenancy.permissions import HasTenantContext, role_required
 from apps.tenancy.timefmt import iso_utc
 
-from . import services
+from . import reception, services
 from .models import Package, PackageEvent
 
 STAFF_ROLES = (Membership.Role.OWNER, Membership.Role.ADMIN, Membership.Role.SUPERVISOR)
@@ -29,7 +29,7 @@ def own_driver_id(request):
 
 
 def visible_packages(request):
-    qs = Package.objects.select_related("address", "assigned_driver__membership__user")
+    qs = Package.objects.select_related("address", "organization", "assigned_driver__membership__user")
     if is_staff(request):
         return qs
     return qs.filter(assigned_driver_id=own_driver_id(request))
@@ -49,8 +49,11 @@ def address_payload(a) -> dict:
     }
 
 
-def package_payload(p: Package) -> dict:
+def package_payload(p: Package, receptions: dict | None = None) -> dict:
+    """`receptions`: indicadores ya calculados para una lista (una sola consulta); si falta, se
+    calcula el de este domicilio."""
     driver = p.assigned_driver
+    stats = (receptions or {}).get(p.address_id) or reception.for_addresses([p.address_id], p.organization)[p.address_id]
     return {
         "id": str(p.id),
         "tracking_code": p.tracking_code,
@@ -60,6 +63,8 @@ def package_payload(p: Package) -> dict:
         "recipient_phone": p.recipient_phone,
         "notes": p.notes,
         "address": address_payload(p.address),
+        # Indicador de recepción del domicilio (§7.3, ADR-022): informativo.
+        "reception": reception.summary(stats),
         "assigned_driver": (
             {"id": str(driver.id), "name": driver.membership.user.full_name or driver.membership.user.email}
             if driver
@@ -145,7 +150,8 @@ class PackageListView(APIView):
                 Q(tracking_code__icontains=q) | Q(recipient_name__icontains=q) | Q(address__raw_text__icontains=q)
             )
         packages = list(qs.order_by("-created_at")[: self.MAX])
-        return Response({"packages": [package_payload(p) for p in packages]})
+        receptions = reception.for_addresses([p.address_id for p in packages], packages[0].organization) if packages else {}
+        return Response({"packages": [package_payload(p, receptions) for p in packages]})
 
     def post(self, request):
         if not is_staff(request):

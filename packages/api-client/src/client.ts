@@ -7,6 +7,8 @@
  * - Ante un 401 se intenta un refresh una sola vez y se repite la petición.
  */
 import {
+  addressHistory,
+  type AddressHistory,
   type ChooseOrganization,
   chooseOrganization,
   driverList,
@@ -224,6 +226,11 @@ export class ApiClient {
     if (filters.q) params.set("q", filters.q);
     const query = params.toString();
     return (await this.authed(`/packages/${query ? `?${query}` : ""}`, { method: "GET" }, packageList)).packages;
+  }
+
+  /** Historial del domicilio con su indicador de recepción (panel, ADR-022). */
+  async getAddress(id: string): Promise<AddressHistory> {
+    return this.authed(`/addresses/${id}`, { method: "GET" }, addressHistory);
   }
 
   async getPackage(id: string): Promise<DeliveryPackage> {

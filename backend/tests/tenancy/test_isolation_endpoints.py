@@ -432,3 +432,10 @@ def test_incident_of_another_org_cannot_be_resolved(org_a, org_b, delivered_a):
     [incident] = client_for(org_a.owner, org_a.org).get("/api/v1/incidents").json()["incidents"]
     assert client_for(org_b.owner, org_b.org).post(f"/api/v1/incidents/{incident['id']}/resolve", {}, format="json").status_code == 404
     assert client_for(org_a.owner, org_a.org).get("/api/v1/incidents?status=OPEN").json()["incidents"][0]["id"] == incident["id"]
+
+
+@covers("address-detail")
+def test_address_history_of_another_org_is_404(org_a, org_b, package_a):
+    address_id = package_a["address"]["id"]
+    assert client_for(org_a.owner, org_a.org).get(f"/api/v1/addresses/{address_id}").status_code == 200
+    assert client_for(org_b.owner, org_b.org).get(f"/api/v1/addresses/{address_id}").status_code == 404

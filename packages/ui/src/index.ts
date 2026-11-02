@@ -13,3 +13,4 @@ export * from "./map/diagnostics";
 // Apariencia: oscuro, claro o automático.
 export * from "./components/ThemeSelector";
 export * from "./theme";
+export * from "./components/Reception";
