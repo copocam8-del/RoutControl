@@ -147,6 +147,38 @@ def test_photo_must_be_an_image_and_its_visit_must_exist(org_a):
     assert early.status_code == 409 and early.json()["code"] == "visit_not_found"
 
 
+def test_photo_type_comes_from_its_content_not_from_what_the_phone_says(org_a):
+    from apps.packages.delivery import sniff_image
+
+    assert sniff_image(b"\xff\xd8\xff\xe0\x00\x10JFIF") == "image/jpeg"
+    assert sniff_image(PNG) == "image/png"
+    assert sniff_image(b"RIFF\x24\x00\x00\x00WEBPVP8 ") == "image/webp"
+    assert sniff_image(b"RIFF\x24\x00\x00\x00WAVEfmt ") is None
+    assert sniff_image(b"<html>") is None and sniff_image(b"") is None
+
+    p = assigned_package(org_a)
+    client = client_for(org_a.driver, org_a.org)
+    base = {"package_id": p["id"], "captured_at": iso(now_utc())}
+    # Dice ser JPEG pero es HTML: se rechaza.
+    fake = client.post(
+        "/api/v1/evidence",
+        {**base, "id": str(uuid.uuid4()), "file": SimpleUploadedFile("f.jpg", b"<script>alert(1)</script>", content_type="image/jpeg")},
+        format="multipart",
+    )
+    assert fake.status_code == 400 and fake.json()["code"] == "bad_type"
+    # Dice "application/octet-stream" (algunos Android) pero es un PNG: se acepta como PNG.
+    eid = str(uuid.uuid4())
+    ok = client.post(
+        "/api/v1/evidence",
+        {**base, "id": eid, "file": SimpleUploadedFile("f.bin", PNG, content_type="application/octet-stream")},
+        format="multipart",
+    )
+    assert ok.status_code == 201
+    with tenant_context(org_a.id):
+        e = Evidence.objects.get(id=eid)
+        assert e.mime == "image/png" and e.storage_key.endswith(".png")
+
+
 def test_communications_are_logged_once(org_a):
     p = assigned_package(org_a)
     body = {"id": str(uuid.uuid4()), "package_id": p["id"], "channel": "WHATSAPP", "started_at": iso(now_utc())}

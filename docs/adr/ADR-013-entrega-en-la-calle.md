@@ -40,6 +40,13 @@
 - **Jornada en curso** (Jornada.dc.html): avance "N de M entregados", cifras de Entregados, Pendientes y No entregados, y la **próxima parada** con Llamar, WhatsApp, Navegar y "Llegué: iniciar visita".
   - Por ahora la próxima es el primer pendiente; el orden de la ruta llega con "Armar mi ruta".
 
+## Ajuste posterior: tipo de las fotos
+- El tipo de la foto sale de su **contenido** (los primeros bytes: JPEG `FF D8 FF`, PNG `89 50 4E 47…`, WEBP `RIFF…WEBP`), no del `Content-Type` que manda el teléfono.
+  - Un archivo que dice ser JPEG y no lo es se rechaza (`bad_type`).
+  - Un PNG que llega como `application/octet-stream`, como hacen algunos Android, se acepta como PNG.
+  - El tipo y la extensión que se guardan son los detectados.
+- Se eligió la firma del formato y no Pillow: no suma una dependencia de compilación a la imagen y alcanza para no servir algo que no es una imagen. Pillow haría falta si en el futuro se recomprimen las fotos o se les quitan los metadatos EXIF (por ejemplo, la ubicación).
+
 ## Pendiente
 - Almacenamiento de fotos en producción (S3 o R2) y su retención (§11).
 - Firma o aclaración de quien recibe, si el cliente la pide.

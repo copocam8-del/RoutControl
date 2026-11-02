@@ -28,6 +28,10 @@
   - el chip "Actualizado hh:mm" pasa a "**En vivo**", con un punto verde, mientras hay conexión. Las maquetas no tienen un indicador propio, así que se reutiliza el mismo chip, en oscuro y en claro con los tokens del tema. Con "reducir movimiento", el punto no late.
   - en desarrollo, Vite manda `/ws` por proxy a Django (`ws: true`). En producción el origen es `API_URL`.
 
+- **Origen (ajuste posterior):** el WebSocket va envuelto en `AllowedHostsOriginValidator`. Rechaza conexiones cuyo encabezado `Origin` no esté en `ALLOWED_HOSTS`, y también las que no lo traen. Así otra página abierta en el navegador ni siquiera llega a pedir el token.
+  - **En producción**, el panel (`panel.<dominio>`) está en otro origen que la API: hay que agregar su host a `DJANGO_ALLOWED_HOSTS`, o el mapa en vivo no conecta.
+  - En desarrollo, `ALLOWED_HOSTS = ["*"]`.
+
 ## Verificado
 - **Pruebas:**
   - autorización: personal sí; repartidor, membresía desactivada, token de otra empresa y basura, no;
