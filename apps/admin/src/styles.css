@@ -1516,3 +1516,35 @@ a.filter-chip[aria-selected="true"] {
   font-size: 14px;
   color: var(--rc-text-2);
 }
+
+/* --- Informes (ADR-024) ---------------------------------------------------------------------------- */
+.report-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.report-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.report-table td,
+.report-table th {
+  white-space: nowrap;
+}
+
+.report-table__total th,
+.report-table__total td {
+  font-weight: 800;
+  border-top: 2px solid var(--rc-border-strong);
+}
+
+.report-note {
+  margin: 0;
+  font-size: 13px;
+  max-width: 90ch;
+}

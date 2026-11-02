@@ -7,6 +7,9 @@
  * - Ante un 401 se intenta un refresh una sola vez y se repite la petición.
  */
 import {
+  report,
+  type Report,
+  type ReportQuery,
   secondAttempt,
   type SecondAttempt,
   type SecondAttemptSuggestion,
@@ -375,6 +378,21 @@ export class ApiClient {
   }
 
   /** La foto de una visita (la API exige la sesión: no hay URL pública). */
+  /** Informe por repartidor y por empresa (ADR-024). */
+  getReport(q: ReportQuery): Promise<Report> {
+    return this.authed(`/reports?${reportParams(q)}`, { method: "GET" }, report);
+  }
+
+  /** El mismo informe como archivo (Excel o CSV), para descargar. */
+  async exportReport(q: ReportQuery, formato: "xlsx" | "csv"): Promise<Blob> {
+    const path = `/reports/export?${reportParams(q)}&formato=${formato}`;
+    if (!this.accessToken) await this.refresh();
+    let response = await this.raw(path, { method: "GET" }, this.accessToken);
+    if (response.status === 401 && (await this.refresh())) response = await this.raw(path, { method: "GET" }, this.accessToken);
+    if (!response.ok) throw new ApiError(response.status, await readJson(response));
+    return response.blob();
+  }
+
   async evidencePhoto(evidenceId: string): Promise<Blob> {
     if (!this.accessToken) await this.refresh();
     let response = await this.raw(`/evidence/${evidenceId}/file`, { method: "GET" }, this.accessToken);
@@ -469,4 +487,12 @@ async function readJson(response: Response): Promise<unknown> {
   } catch {
     return { detail: text.slice(0, 200) };
   }
+}
+
+function reportParams(q: ReportQuery): string {
+  const p = new URLSearchParams({ period: q.period });
+  if (q.date) p.set(q.period === "range" ? "from" : "date", q.date);
+  if (q.period === "range" && q.to) p.set("to", q.to);
+  if (q.driver) p.set("driver", q.driver);
+  return p.toString();
 }

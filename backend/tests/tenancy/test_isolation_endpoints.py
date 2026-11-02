@@ -459,3 +459,19 @@ def test_second_attempts_of_another_org_are_invisible(org_a, org_b, package_a):
     assert other.post(f"/api/v1/second-attempts/{created['id']}/decide", {"accept": True}, format="json").status_code == 404
     with tenant_context(org_a.id):
         assert SecondAttemptRequest.objects.get(id=created["id"]).decision == "PENDING"
+
+
+@covers("report")
+@covers("report-export")
+def test_reports_never_include_another_org(org_a, org_b):
+    from tests.packages.test_reports import _day_with_activity, around_now
+
+    _day_with_activity(org_a)
+    mine = client_for(org_a.owner, org_a.org).get("/api/v1/reports", around_now()).json()
+    assert mine["total"]["visits"] == 3
+    other = client_for(org_b.owner, org_b.org)
+    assert other.get("/api/v1/reports", around_now()).json()["total"]["visits"] == 0
+    driver_a = mine["drivers"][0]["driver"]["id"]
+    assert other.get("/api/v1/reports", {**around_now(), "driver": driver_a}).json()["drivers"] == []
+    csv = other.get("/api/v1/reports/export", {**around_now(), "formato": "csv"}).content.decode("utf-8-sig")
+    assert "driver1" not in csv and csv.strip().splitlines()[-1].startswith("Total de la empresa;0;")

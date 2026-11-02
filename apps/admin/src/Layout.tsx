@@ -1,4 +1,5 @@
-import { Avatar, Brand, IconCheck, IconDashboard, IconLogout, IconMap, IconPackage, IconUsers, ThemeSelector } from "@routcontrol/ui";
+import {
+  IconCalendar, Avatar, Brand, IconCheck, IconDashboard, IconLogout, IconMap, IconPackage, IconUsers, ThemeSelector } from "@routcontrol/ui";
 import type { ReactNode } from "react";
 
 import { useAdmin, useSession } from "./adminApp";
@@ -11,6 +12,7 @@ const NAV: Array<{ label: string; route: Route; matches: Route["name"][]; icon: 
   { label: "Paquetes", route: { name: "packages" }, matches: ["packages", "package", "import", "address"], icon: <IconPackage /> },
   { label: "Entregas", route: { name: "deliveries", date: today(), view: "deliveries" }, matches: ["deliveries"], icon: <IconCheck /> },
   { label: "Repartidores", route: { name: "drivers" }, matches: ["drivers"], icon: <IconUsers /> },
+  { label: "Informes", route: { name: "reports", period: "week", date: today() }, matches: ["reports"], icon: <IconCalendar /> },
 ];
 
 /** Barra lateral (Panel.dc.html). En pantallas angostas pasa arriba. */
