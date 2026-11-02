@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.tracking",
     "apps.audit",
     "apps.packages",
+    "apps.alerts",
 ]
 
 MIDDLEWARE = [
@@ -191,6 +192,8 @@ CELERY_TIMEZONE = "UTC"
 CELERY_BEAT_SCHEDULE = {
     # Jornadas olvidadas: se cierran solas al cumplir la duración máxima (§5.4).
     "cerrar-jornadas-olvidadas": {"task": "workdays.close_forgotten_workdays", "schedule": 15 * 60},
+    # Alertas "sin señal" (ADR-025): cada 2 minutos se revisan las jornadas en curso.
+    "alertas-sin-senal": {"task": "alerts.check_no_signal", "schedule": 2 * 60},
 }
 
 LOGGING = {

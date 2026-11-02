@@ -9,6 +9,7 @@ api_v1 = [
     path("packages/", include("apps.packages.urls")),
     path("imports/", include("apps.packages.import_urls")),
     path("", include("apps.packages.delivery_urls")),
+    path("", include("apps.alerts.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
 ]
 

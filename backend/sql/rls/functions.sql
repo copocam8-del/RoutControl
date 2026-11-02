@@ -121,6 +121,19 @@ CREATE FUNCTION rc_stale_workdays(p_default_max_hours double precision)
 REVOKE ALL ON FUNCTION rc_stale_workdays(double precision) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION rc_stale_workdays(double precision) TO {app_user};
 
+-- (4) Alertas "sin señal" (Celery, ADR-025): las jornadas en curso de todas las empresas. Devuelve
+-- solo identificadores; la revisión se hace dentro del contexto de cada empresa, con RLS.
+DROP FUNCTION IF EXISTS rc_active_workdays();
+CREATE FUNCTION rc_active_workdays()
+  RETURNS TABLE (organization_id uuid, workday_id uuid)
+  LANGUAGE sql STABLE SECURITY DEFINER
+  SET search_path = public, pg_temp
+  AS $$
+    SELECT w.organization_id, w.id FROM workdays_workday w WHERE w.status = 'ACTIVE'
+  $$;
+REVOKE ALL ON FUNCTION rc_active_workdays() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION rc_active_workdays() TO {app_user};
+
 REVOKE ALL ON FUNCTION rc_user_memberships(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION rc_resolve_tracking_token(varchar) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION rc_current_org() TO {app_user};

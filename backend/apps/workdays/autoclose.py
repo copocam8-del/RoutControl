@@ -53,6 +53,9 @@ def close_forgotten_workdays() -> list[uuid.UUID]:
             workday.save()
             tracking.close_tracking_tokens(workday)
             tracking.recompute_gaps(workday)
+            from apps.alerts import services as alerts
+
+            alerts.workday_ended(workday)
             closed.append(workday.id)
     if closed:
         logger.info("Jornadas cerradas automáticamente: %s", len(closed))

@@ -475,3 +475,24 @@ def test_reports_never_include_another_org(org_a, org_b):
     assert other.get("/api/v1/reports", {**around_now(), "driver": driver_a}).json()["drivers"] == []
     csv = other.get("/api/v1/reports/export", {**around_now(), "formato": "csv"}).content.decode("utf-8-sig")
     assert "driver1" not in csv and csv.strip().splitlines()[-1].startswith("Total de la empresa;0;")
+
+
+@covers("notification-list")
+@covers("notification-seen")
+def test_alerts_of_another_org_are_never_seen(org_a, org_b):
+    start_workday(org_a.driver, org_a.org)
+    assert client_for(org_a.owner, org_a.org).get("/api/v1/notifications").json()["unread"] == 1
+    other = client_for(org_b.owner, org_b.org)
+    assert other.get("/api/v1/notifications").json() == {"notifications": [], "unread": 0}
+    assert other.post("/api/v1/notifications/seen").status_code == 200
+    # Marcar como visto en B no toca lo de A.
+    assert client_for(org_a.owner, org_a.org).get("/api/v1/notifications").json()["unread"] == 1
+
+
+@covers("organization-settings")
+def test_settings_are_per_company(org_a, org_b):
+    a = client_for(org_a.owner, org_a.org)
+    body = {k: a.get("/api/v1/settings").json()[k] for k in ("alerts", "reception", "second_attempt")}
+    body["alerts"]["no_signal_minutes"] = 45
+    assert a.put("/api/v1/settings", body, format="json").status_code == 200
+    assert client_for(org_b.owner, org_b.org).get("/api/v1/settings").json()["alerts"]["no_signal_minutes"] == 15

@@ -15,6 +15,8 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.utils import timezone
 
+from apps.alerts import services as alerts
+
 from . import services
 from .models import Communication, Evidence, Incident, Package, Visit
 
@@ -99,7 +101,7 @@ def record_visit(driver, data: dict, actor) -> tuple[Visit, bool]:
     if outcome != O.DELIVERED:
         # Una entrega que no se pudo hacer es una incidencia para el panel (ADR-016). El id deriva
         # del de la visita: reintentar no duplica.
-        Incident(
+        incident = Incident(
             id=uuid.uuid5(visit.id, "incident"),
             package=package,
             visit=visit,
@@ -107,7 +109,18 @@ def record_visit(driver, data: dict, actor) -> tuple[Visit, bool]:
             type=outcome,
             description=visit.notes,
             occurred_at=ended_at or data["started_at"],
-        ).save(force_insert=True)
+        )
+        incident.save(force_insert=True)
+        alerts.incident_created(incident, package.organization)
+    # Alerta "recorrido finalizado" (ADR-025): si con esta visita no le quedan paradas pendientes.
+    from apps.workdays.models import Workday
+
+    workday = (
+        Workday.objects.select_related("organization", "driver__membership__user").filter(id=visit.workday_id).first()
+        if visit.workday_id
+        else Workday.objects.select_related("organization", "driver__membership__user").filter(driver=driver, status=Workday.Status.ACTIVE).first()
+    )
+    alerts.maybe_route_finished(workday)
     return visit, True
 
 

@@ -14,6 +14,8 @@ export type Route =
   | { name: "package"; id: string }
   | { name: "import" }
   | { name: "address"; id: string }
+  | { name: "alerts" }
+  | { name: "settings" }
   | { name: "reports"; period: ReportPeriodKind; date: string; to?: string; driver?: string }
   | { name: "deliveries"; date: string; view: "deliveries" | "incidents" };
 
@@ -37,6 +39,8 @@ export function parseRoute(hash: string): Route {
   if (path === "/paquetes/importar") return { name: "import" };
   const pkg = /^\/paquetes\/([0-9a-f-]{36})$/i.exec(path);
   if (pkg) return { name: "package", id: pkg[1]! };
+  if (path === "/alertas") return { name: "alerts" };
+  if (path === "/configuracion") return { name: "settings" };
   if (path === "/informes") {
     const kind = PERIOD_FROM_ES[params.get("periodo") ?? ""] ?? "week";
     const isDate = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
@@ -80,6 +84,10 @@ export function href(route: Route): string {
       return "#/paquetes/importar";
     case "address":
       return `#/domicilios/${route.id}`;
+    case "alerts":
+      return "#/alertas";
+    case "settings":
+      return "#/configuracion";
     case "reports": {
       const q = new URLSearchParams({ periodo: PERIOD_TO_ES[route.period], fecha: route.date });
       if (route.period === "range" && route.to) q.set("hasta", route.to);

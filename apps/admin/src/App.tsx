@@ -14,6 +14,8 @@ import { WorkdayDetail } from "./pages/WorkdayDetail";
 import { Workdays } from "./pages/Workdays";
 import { AddressDetail } from "./pages/AddressDetail";
 import { Reports } from "./pages/Reports";
+import { Alerts } from "./pages/Alerts";
+import { Settings } from "./pages/Settings";
 import { useRoute } from "./router";
 import { prefersReducedMotion, WELCOME_MS, Welcome } from "./Welcome";
 
@@ -53,6 +55,8 @@ function Screens({ welcomeMs }: { welcomeMs: number }) {
       {route.name === "import" ? <Import /> : null}
       {route.name === "address" ? <AddressDetail key={route.id} id={route.id} /> : null}
       {route.name === "reports" ? <Reports route={route} /> : null}
+      {route.name === "alerts" ? <Alerts /> : null}
+      {route.name === "settings" ? <Settings /> : null}
       {route.name === "deliveries" ? <Deliveries date={route.date} view={route.view} /> : null}
     </Layout>
   );

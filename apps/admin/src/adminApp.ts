@@ -2,6 +2,7 @@ import { ApiClient } from "@routcontrol/api-client";
 import { ApiError, NetworkError } from "@routcontrol/api-client";
 import { createContext, useContext, useSyncExternalStore } from "react";
 
+import { AlertsStore } from "./alerts";
 import { type AdminConfig, config as defaultConfig } from "./config";
 import { AdminSession } from "./session";
 
@@ -13,13 +14,15 @@ export interface AdminApp {
   ui: { splashShown: boolean };
   /** Mapa en vivo (ADR-017). `WebSocketImpl: null` lo apaga (pruebas que no lo usan). */
   live: { WebSocketImpl: typeof WebSocket | null; retryDelayMs?: (attempt: number) => number };
+  /** Alertas del panel (ADR-025). */
+  alerts: AlertsStore;
 }
 
 export function createAdminApp(overrides: Partial<Pick<AdminApp, "api" | "config" | "live">> = {}): AdminApp {
   const config = overrides.config ?? defaultConfig;
   const api = overrides.api ?? new ApiClient(config.apiBase);
   const live = overrides.live ?? { WebSocketImpl: globalThis.WebSocket ?? null };
-  return { config, api, session: new AdminSession(api), ui: { splashShown: false }, live };
+  return { config, api, session: new AdminSession(api), ui: { splashShown: false }, live, alerts: new AlertsStore(api) };
 }
 
 export const AdminContext = createContext<AdminApp | null>(null);
