@@ -25,9 +25,11 @@ import { useEffect, useRef, useState } from "react";
 import { type ResolvedTheme, useTheme } from "../theme";
 import { color, lightColor } from "../tokens";
 import { classifyFailure, describeResource, errorDetails, type MapFailureKind, recordMapError } from "./diagnostics";
+import { offlineFirst, type TileHandler } from "./offline";
 import { absolute, buildStyle, DEFAULT_MAP_SOURCE, type MapSource } from "./style";
 
 export { DEFAULT_MAP_SOURCE, type MapSource } from "./style";
+export { downloadTiles, type DownloadProgress, type OfflineTileJson, type OfflineTileStore, setOfflineTiles } from "./offline";
 
 export function mapColors(theme: ResolvedTheme) {
   const c = theme === "light" ? lightColor : color;
@@ -58,13 +60,23 @@ function loadMapLibre(): Promise<MapLibre> {
     const [maplibre, { Protocol }] = await Promise.all([import("maplibre-gl"), import("pmtiles")]);
     await import("maplibre-gl/dist/maplibre-gl.css");
     maplibre.setWorkerUrl(absolute(workerUrl));
-    maplibre.addProtocol("pmtiles", new Protocol().tile);
+    // Primero lo guardado en el teléfono (mapa sin conexión, ADR-018), después la red.
+    maplibre.addProtocol("pmtiles", offlineFirst(new Protocol().tilev4 as unknown as TileHandler) as never);
     return maplibre;
   })().catch((error: unknown) => {
     ready = null; // que "Reintentar" vuelva a intentarlo
     throw error;
   });
   return ready;
+}
+
+/**
+ * Deja en el caché del Service Worker el código del mapa (MapLibre, su worker y sus estilos), para
+ * que el mapa abra sin conexión. Lo llama la descarga del mapa sin conexión (ADR-018).
+ */
+export async function preloadMapCode(): Promise<void> {
+  await loadMapLibre();
+  await fetch(absolute(workerUrl));
 }
 
 export interface MapFailure {

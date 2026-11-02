@@ -32,6 +32,7 @@ import { ScanScreen } from "./ScanScreen";
 import { preparePhoto } from "../delivery/photo";
 import type { LocalPackage } from "../store/db";
 import { useApp, useNow, useStore } from "./hooks";
+import { OfflineMapCard } from "./OfflineMapCard";
 
 const STATUS_TONE: Record<PackageStatus, BadgeTone> = {
   CREATED: "neutral",
@@ -222,6 +223,7 @@ function PackageList({ onSelect, onScan }: { onSelect(id: string): void; onScan(
                   ))}
                 </ul>
               )}
+              {!editing ? <OfflineMapCard packages={state.packages} /> : null}
             </>
           )
         ) : null}

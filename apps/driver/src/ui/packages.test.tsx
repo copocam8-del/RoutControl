@@ -11,7 +11,7 @@ import { freshDb } from "../test/helpers";
 import { testPackage } from "../test/packages";
 import { App } from "./App";
 
-vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" /> }));
+vi.mock("@routcontrol/ui/map", () => ({ TrackMap: () => <div data-testid="map" />, setOfflineTiles: () => {} }));
 
 async function loggedIn(packages = [testPackage({ recipient_name: "Ana (prueba)" }), testPackage({ recipient_name: "Beto (prueba)", recipient_phone: "" })]) {
   const backend = new FakeBackend();

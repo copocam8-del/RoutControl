@@ -41,6 +41,11 @@ export interface LocalWorkday {
 /** Un paquete asignado, guardado para verlo sin conexión (la lista del servidor manda al volver). */
 export type LocalPackage = DeliveryPackage;
 
+export interface MapTileRow {
+  key: string;
+  data: Uint8Array;
+}
+
 /**
  * Algo hecho en la calle esperando ser enviado (offline primero, ADR-013): una visita, su foto o
  * una comunicación. El id es el de la entidad (generado en el teléfono): reenviar no duplica.
@@ -77,6 +82,8 @@ export class DriverDB extends Dexie {
   log!: Table<SyncLogRow, number>;
   packages!: Table<LocalPackage, string>;
   outbox!: Table<OutboxItem, string>;
+  /** Mapa sin conexión (ADR-018): teselas de la zona de los paquetes, por "z/x/y". */
+  mapTiles!: Table<MapTileRow, string>;
 
   constructor(name = "routcontrol-driver") {
     super(name);
@@ -91,6 +98,7 @@ export class DriverDB extends Dexie {
       packages: "id, status",
       outbox: "id, queued_at, package_id, kind",
     });
+    this.version(3).stores({ mapTiles: "key" });
   }
 }
 
