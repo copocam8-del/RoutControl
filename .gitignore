@@ -31,3 +31,5 @@ backend/media/
 
 # Datos de ruteo (OSRM): se generan con infra/routing/prepare.sh (ADR-015)
 map-data/routing/
+# Producción: copias de seguridad del servidor (infra/prod/backup.sh).
+infra/prod/backups/
