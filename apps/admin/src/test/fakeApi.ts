@@ -26,6 +26,9 @@ export class FakeApi {
   addresses = new Map<string, unknown>();
   /** Segundos intentos (ADR-023): la sugerencia que devuelve el servidor al pedirlo. */
   secondAttempts: Array<Record<string, unknown>> = [];
+  /** Informes (ADR-024): lo que devuelve /reports, y los pedidos recibidos. */
+  reportDrivers: Array<Record<string, unknown>> = [];
+  reportQueries: string[] = [];
   nextSuggestion: Record<string, unknown> = {
     suggestion: "INSERT",
     suggestion_reason: "Insertarlo después de la parada 2: suma unos 6 min de recorrido.",
@@ -109,6 +112,17 @@ export class FakeApi {
       };
       this.secondAttempts.unshift(req);
       return json(201, { second_attempt: req });
+    }
+    if (path === "/reports" || path === "/reports/export") {
+      this.reportQueries.push(url.search);
+      if (path === "/reports/export") return new Response(new Blob(["x"]), { status: 200, headers: { "Content-Type": "text/csv" } });
+      const sum = (k: string) => this.reportDrivers.reduce((n, d) => n + Number(d[k] ?? 0), 0);
+      const keys = ["workdays", "hours", "distance_km", "events_only_workdays", "no_signal_minutes", "visits", "delivered", "failed", "failed_recipient", "failed_logistic", "second_attempts"];
+      const total: Record<string, unknown> = Object.fromEntries(keys.map((k) => [k, sum(k)]));
+      total.delivery_rate = sum("delivered") + sum("failed") ? sum("delivered") / (sum("delivered") + sum("failed")) : null;
+      total.avg_visit_minutes = null;
+      const kind = url.searchParams.get("period") ?? "week";
+      return json(200, { period: { kind, from: "2026-11-02", to: "2026-11-08", label: kind === "month" ? "Noviembre de 2026" : "Semana del 2/11/2026 al 8/11/2026" }, drivers: this.reportDrivers, total });
     }
     if (path === "/second-attempts") {
       const pk = url.searchParams.get("package");

@@ -6,9 +6,11 @@ from zoneinfo import ZoneInfo
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.parsers import JSONParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.tenancy.permissions import HasTenantContext
 from apps.tenancy.timefmt import iso_utc
 
 from .delivery_views import visit_payload
@@ -169,3 +171,84 @@ class AddressDetailView(APIView):
                 ],
             }
         )
+
+
+class ReportQuerySerializer(serializers.Serializer):
+    period = serializers.ChoiceField(choices=["day", "week", "fortnight", "month", "range"], default="day")
+    date = serializers.DateField(required=False)
+    to = serializers.DateField(required=False)
+    driver = serializers.UUIDField(required=False)
+    # "formato" y no "format": DRF reserva ?format= para elegir su propio formato de respuesta.
+    formato = serializers.ChoiceField(choices=["csv", "xlsx"], required=False)
+
+    def to_internal_value(self, data):
+        # "from" es palabra reservada en Python: se acepta en la URL y se renombra.
+        data = data.copy()
+        if "from" in data:
+            data["date"] = data["from"]
+        return super().to_internal_value(data)
+
+
+def _report(request):
+    """(informe, None) o (None, respuesta de error). El repartidor solo ve el suyo (§8: "propios")."""
+    from apps.tenancy.models import Membership
+
+    from . import reports
+    from .views import STAFF_ROLES, own_driver_id
+
+    q = ReportQuerySerializer(data=request.query_params)
+    q.is_valid(raise_exception=True)
+    v = q.validated_data
+    org = request._request.tenant.membership.organization
+    role = request._request.tenant.membership.role
+    driver_id = v.get("driver")
+    if role not in STAFF_ROLES:
+        if role != Membership.Role.DRIVER:
+            return None, Response({"detail": "Tu rol no permite ver informes."}, status=status.HTTP_403_FORBIDDEN)
+        own = own_driver_id(request)
+        if driver_id and str(driver_id) != str(own):
+            return None, Response({"detail": "Solo podés ver tu propio informe."}, status=status.HTTP_403_FORBIDDEN)
+        driver_id = own
+    today = timezone.now().astimezone(ZoneInfo(org.timezone)).date()
+    anchor = v.get("date") or today
+    try:
+        p = reports.period(v["period"], anchor, v.get("date"), v.get("to"))
+    except reports.ReportError as exc:
+        return None, Response({"code": "bad_period", "detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    return reports.build(org, p, driver_id), None
+
+
+class ReportView(APIView):
+    """GET /api/v1/reports?period=day|week|fortnight|month|range&date=&from=&to=&driver= (ADR-024)."""
+
+    # Personal: todos los repartidores; repartidor: solo el suyo (ver _report).
+    permission_classes = [IsAuthenticated, HasTenantContext]
+
+    def get(self, request):
+        report, err = _report(request)
+        return err or Response(report)
+
+
+class ReportExportView(APIView):
+    """GET /api/v1/reports/export?...&formato=csv|xlsx — el mismo informe, para Excel."""
+
+    # Personal: todos los repartidores; repartidor: solo el suyo (ver _report).
+    permission_classes = [IsAuthenticated, HasTenantContext]
+
+    def get(self, request):
+        from django.http import HttpResponse
+
+        from . import reports
+
+        report, err = _report(request)
+        if err:
+            return err
+        fmt = request.query_params.get("formato", "xlsx")
+        name = f"informe-{report['period']['from']}-a-{report['period']['to']}"
+        if fmt == "csv":
+            resp = HttpResponse(reports.to_csv(report), content_type="text/csv; charset=utf-8")
+            resp["Content-Disposition"] = f'attachment; filename="{name}.csv"'
+        else:
+            resp = HttpResponse(reports.to_xlsx(report), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            resp["Content-Disposition"] = f'attachment; filename="{name}.xlsx"'
+        return resp
