@@ -57,3 +57,18 @@ El usuario elige la apariencia: **Oscuro** (por defecto), **Claro** o **Automát
 | Mapa | estilo claro; recorrido `#7C3AED` |
 
 Las pruebas de la paleta (`packages/ui/src/tokens.test.ts`) verifican el contraste AA de cada par del modo claro y que cada color de esta tabla esté en `tokens.ts`.
+
+## Etapa 1 · Paquetes y visitas (aprobado el 01/11/2026, 20:30)
+
+| Archivo | Pantalla |
+|---|---|
+| `Paquetes.dc.html` | Mis paquetes: buscador, filtros por estado y lista por número de parada |
+| `Escanear.dc.html` | Cargar paquetes: **escaneo continuo**. Se pasa el celular por encima de la pila y cada código se suma solo (varios por cuadro si entran), sin repetir. Contador, barra de avance, últimos cargados y "Armar mi ruta" |
+| `Ruta.dc.html` | Tu ruta está lista: orden sugerido desde la ubicación actual, mapa con paradas numeradas, totales, "Cambiar orden" y "Empezar ruta" |
+| `Ficha.dc.html` | Ficha de entrega **con el resultado ahí mismo**: Entregado / No entregado; si no se entregó, motivos y foto; "Guardar y seguir a la parada N". "Llegué: iniciar visita" queda como opción para medir el tiempo |
+| `Visita.dc.html` | Visita en curso con cronómetro |
+| `Resultado.dc.html` | Resultado de la visita (lista completa de motivos, observaciones y foto) |
+
+Pedidos del cliente: (1) registrar el resultado desde la ficha; (2) cargar todos los paquetes juntos y que la app arme la mejor ruta, en lugar de escanear de a uno. La optimización de ruta estaba en la etapa 2 de la planificación: pendiente de decidir si se adelanta a la etapa 1.
+
+Nota (02/11/2026): la optimización de ruta se adelantó a la etapa 1 (`docs/adr/ADR-015-armar-mi-ruta.md`).

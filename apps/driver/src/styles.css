@@ -1265,7 +1265,8 @@
 .map-legend__dot {
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: 50%;
+  border: 1.5px solid #FFFFFF;
 }
 
 .map-legend__dot--pending { background: var(--rc-stop-pending); }
