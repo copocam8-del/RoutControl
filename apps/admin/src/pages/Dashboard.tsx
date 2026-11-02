@@ -1,4 +1,4 @@
-import { type DriverSummary, isWithoutSignal, NO_SIGNAL_MINUTES, type WorkdayWithDriver } from "@routcontrol/domain";
+import { type DriverSummary, isWithoutSignal, type LivePosition, mergeLivePosition, NO_SIGNAL_MINUTES, type WorkdayWithDriver } from "@routcontrol/domain";
 import {
   Avatar,
   Badge,
@@ -15,10 +15,11 @@ import {
   LoadingState,
   useLoad,
 } from "@routcontrol/ui";
-import { lazy, Suspense, useCallback } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { describeLoadError, useAdmin, useSession } from "../adminApp";
 import { useNow } from "../hooks";
+import { connectLive, type LiveStatus } from "../live";
 import { DemoChip, PageTitle } from "../Layout";
 import { href, today } from "../router";
 
@@ -27,7 +28,7 @@ const PositionsMap = lazy(() => import("@routcontrol/ui/map").then((m) => ({ def
 
 const describe = (e: unknown) => describeLoadError(e, "la operación de hoy");
 
-/** Cada cuánto se vuelve a consultar el inicio (no hay WebSocket en la etapa 0). */
+/** Cada cuánto se vuelve a consultar el inicio. Las ubicaciones llegan además en vivo (ADR-017). */
 export const REFRESH_MS = 30_000;
 
 interface Today {
@@ -52,6 +53,7 @@ export function Dashboard() {
   }, [api, date]);
   const [state, reload] = useLoad<Today>(load, describe, REFRESH_MS);
   const now = useNow(30_000);
+  const live = useLivePositions();
   const user = session.status === "authenticated" ? session.session.user : null;
 
   return (
@@ -63,26 +65,73 @@ export function Dashboard() {
           <>
             <DemoChip />
             {state.status === "ready" ? (
-              <span className="updated-chip" title={`Se actualiza sola cada ${REFRESH_MS / 1000} s`}>
-                <IconSync size={16} />
-                Actualizado {formatTime(new Date(state.data.at).toISOString())}
-              </span>
+              live.status === "live" ? (
+                <span className="updated-chip" title="Las ubicaciones se actualizan apenas llegan">
+                  <span className="live-dot" aria-hidden="true" />
+                  En vivo
+                </span>
+              ) : (
+                <span className="updated-chip" title={`Se actualiza sola cada ${REFRESH_MS / 1000} s`}>
+                  <IconSync size={16} />
+                  Actualizado {formatTime(new Date(state.data.at).toISOString())}
+                </span>
+              )
             ) : null}
           </>
         }
       />
       <Loadable state={state} loadingLabel="Cargando la operación de hoy…" onRetry={reload}>
-        {(data) => <Operation data={data} now={now} />}
+        {(data) => <Operation data={data} now={now} live={live.positions} />}
       </Loadable>
     </>
   );
 }
 
-function Operation({ data, now }: { data: Today; now: number }) {
+/** Posiciones que llegan por WebSocket, por repartidor (la más reciente). */
+function useLivePositions(): { status: LiveStatus; positions: Record<string, LivePosition> } {
+  const { api, config, live } = useAdmin();
+  const [status, setStatus] = useState<LiveStatus>("offline");
+  const [positions, setPositions] = useState<Record<string, LivePosition>>({});
+  useEffect(() => {
+    if (!live.WebSocketImpl) return;
+    return connectLive({
+      origin: config.liveOrigin,
+      getToken: (force) => api.accessTokenForSocket(force),
+      onPosition: (p) => setPositions((known) => mergeLivePosition(known, p)),
+      onStatus: setStatus,
+      WebSocketImpl: live.WebSocketImpl,
+      retryDelayMs: live.retryDelayMs,
+    });
+  }, [api, config.liveOrigin, live]);
+  return { status, positions };
+}
+
+/**
+ * Aplica las posiciones en vivo a los repartidores cargados: solo si son de la jornada activa que
+ * conocemos y más nuevas que la última que trajo la consulta. Una jornada nueva aparece con la
+ * próxima consulta (cada 30 s).
+ */
+export function withLivePositions(drivers: DriverSummary[], live: Record<string, LivePosition>): DriverSummary[] {
+  return drivers.map((d) => {
+    const p = live[d.id];
+    const active = d.active_workday;
+    if (!p || !active || p.workday_id !== active.id) return d;
+    if (active.last_point_at && Date.parse(active.last_point_at) >= Date.parse(p.recorded_at)) return d;
+    return { ...d, active_workday: { ...active, last_point_at: p.recorded_at, last_location: { lat: p.lat, lng: p.lng } } };
+  });
+}
+
+function Operation({ data, now, live }: { data: Today; now: number; live: Record<string, LivePosition> }) {
   const { config } = useAdmin();
-  const { workdays, drivers } = data;
+  const { workdays } = data;
+  const drivers = useMemo(() => withLivePositions(data.drivers, live), [data.drivers, live]);
   const active = workdays.filter((w) => w.status === "ACTIVE");
-  const silent = active.filter((w) => isWithoutSignal(w.last_point_at, w.started_at, now));
+  const liveByWorkday = new Map(Object.values(live).map((p) => [p.workday_id, p.recorded_at]));
+  const lastSignal = (w: WorkdayWithDriver) => {
+    const l = liveByWorkday.get(w.id);
+    return l && (!w.last_point_at || Date.parse(l) > Date.parse(w.last_point_at)) ? l : w.last_point_at;
+  };
+  const silent = active.filter((w) => isWithoutSignal(lastSignal(w), w.started_at, now));
   const enabled = drivers.filter((d) => d.status === "ACTIVE" && d.membership_status === "ACTIVE");
   const working = enabled.filter((d) => d.active_workday);
   const positions = working.flatMap((d) =>

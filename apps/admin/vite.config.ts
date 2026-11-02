@@ -15,7 +15,9 @@ export default defineConfig(({ mode }) => {
   const appName = env.APP_NAME || "RouteControl";
   // Solo desarrollo: /api va por proxy a Django (mismo origen, ADR-005). En producción el panel
   // está en panel.<dominio> y la API en API_URL (api.<dominio>).
-  const proxy = { "/api": { target: env.VITE_API_PROXY_TARGET || "http://localhost:8000", changeOrigin: false } };
+  const target = env.VITE_API_PROXY_TARGET || "http://localhost:8000";
+  // /ws: mapa en vivo por WebSocket (ADR-017).
+  const proxy = { "/api": { target, changeOrigin: false }, "/ws": { target, ws: true, changeOrigin: false } };
 
   return {
     envDir: ENV_DIR,

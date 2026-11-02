@@ -50,6 +50,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      # Bus del mapa en vivo (ADR-017).
+      redis:
+        condition: service_started
     command: >
       sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
 
