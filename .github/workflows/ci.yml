@@ -1,0 +1,55 @@
+# Integración continua (ADR-009): en cada pull request y en cada push a main.
+# - Backend: las mismas pruebas que `pnpm test:backend`, con PostGIS y los roles reales
+#   (rc_owner migra; las pruebas de aislamiento se conectan como rc_app, sin privilegios).
+# - Front: chequeo de tipos, pruebas (Vitest) y compilación de la PWA y del panel.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Django + PostGIS, como rc_app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen del backend
+        run: docker compose -f infra/docker-compose.yml build backend
+      - name: Pruebas (pytest) con PostGIS y los roles rc_owner / rc_app
+        run: docker compose -f infra/docker-compose.yml run --rm backend pytest -q
+      - name: Migraciones al día (no faltan migraciones por generar)
+        run: docker compose -f infra/docker-compose.yml run --rm backend python manage.py makemigrations --check --dry-run
+      - name: Apagar
+        if: always()
+        run: docker compose -f infra/docker-compose.yml down -v
+
+  front:
+    name: Front (tipos, pruebas y compilación)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Chequeo de tipos
+        run: pnpm typecheck
+      - name: Pruebas
+        run: pnpm test:front
+      - name: Compilación de la PWA
+        run: pnpm driver:build
+      - name: Compilación del panel
+        run: pnpm admin:build
