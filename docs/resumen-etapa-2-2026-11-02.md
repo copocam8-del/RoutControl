@@ -11,7 +11,7 @@ Pedido: terminar las paradas del mapa, dejar preparado el despliegue para un ser
 | [#18](https://github.com/copocam8-del/RoutControl/pull/18) | Historial de domicilios e indicador verde, amarillo, rojo y gris | `etapa-2/domicilios` | `main` | 022 | ✅ |
 | [#19](https://github.com/copocam8-del/RoutControl/pull/19) | Segundo intento con sugerencia de desvío | `etapa-2/segundo-intento` | #18 | 023 | ✅ |
 | [#20](https://github.com/copocam8-del/RoutControl/pull/20) | Informes por repartidor y por empresa, con exportación | `etapa-2/informes` | #19 | 024 | ✅ |
-| [#21](https://github.com/copocam8-del/RoutControl/pull/21) | Alertas configurables en el panel | `etapa-2/alertas` | #20 | 025 | ver el PR |
+| [#21](https://github.com/copocam8-del/RoutControl/pull/21) | Alertas configurables en el panel | `etapa-2/alertas` | #20 | 025 | ✅ |
 
 - **#16 y #17** son independientes: se fusionan cuando quieras.
 - **De #18 a #21** están apilados (ADR-009): se fusionan en orden y, al fusionar uno, el siguiente se cambia de base a `main`.
